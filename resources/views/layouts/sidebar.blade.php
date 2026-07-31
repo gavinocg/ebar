@@ -1,0 +1,317 @@
+@php
+    $business = \App\Models\BusinessSetting::getSettings();
+@endphp
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@yield('title', 'Dashboard') - {{ $business->business_name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --sidebar-width: 260px;
+            --sidebar-collapsed: 0px;
+        }
+        
+        body {
+            overflow-x: hidden;
+        }
+        
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            transition: all 0.3s;
+            z-index: 1000;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar.collapsed {
+            left: calc(-1 * var(--sidebar-width));
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            background: rgba(0,0,0,0.1);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .sidebar-header h4 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+        }
+        
+        .sidebar-menu li {
+            margin: 5px 15px;
+        }
+        
+        .sidebar-menu a {
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        
+        .sidebar-menu a:hover,
+        .sidebar-menu a.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        .sidebar-menu a i {
+            font-size: 20px;
+            margin-right: 12px;
+            width: 24px;
+            text-align: center;
+        }
+        
+        .sidebar-menu .menu-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.4);
+            padding: 15px 15px 5px;
+            letter-spacing: 1px;
+        }
+        
+        .main-content {
+            margin-left: var(--sidebar-width);
+            transition: all 0.3s;
+            min-height: 100vh;
+            background: #f8f9fa;
+        }
+        
+        .main-content.expanded {
+            margin-left: 0;
+        }
+        
+        .top-navbar {
+            background: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #2c3e50;
+            cursor: pointer;
+            padding: 5px;
+        }
+        
+        .content-wrapper {
+            padding: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                left: calc(-1 * var(--sidebar-width));
+            }
+            
+            .sidebar.show {
+                left: 0;
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                z-index: 999;
+                display: none;
+            }
+            
+            .overlay.show {
+                display: block;
+            }
+        }
+        
+        @media (min-width: 769px) {
+            .sidebar {
+                left: 0;
+            }
+            
+            .sidebar.collapsed {
+                left: calc(-1 * var(--sidebar-width));
+            }
+            
+            .main-content {
+                margin-left: var(--sidebar-width);
+            }
+            
+            .main-content.expanded {
+                margin-left: 0;
+            }
+        }
+    </style>
+    @stack('styles')
+</head>
+<body>
+    <div class="overlay" id="overlay"></div>
+    
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h4><i class="bi bi-shop"></i> {{ $business->business_name }}</h4>
+        </div>
+        
+        <ul class="sidebar-menu">
+            <li class="menu-label">Principal</li>
+            <li>
+                <a href="{{ route('dashboard.index') }}" class="{{ request()->routeIs('dashboard.*') ? 'active' : '' }}">
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('pos.index') }}" class="{{ request()->routeIs('pos.*') ? 'active' : '' }}">
+                    <i class="bi bi-cart"></i>
+                    <span>Punto de Venta</span>
+                </a>
+            </li>
+            
+            <li class="menu-label">Inventario</li>
+            <li>
+                <a href="{{ route('products.index') }}" class="{{ request()->routeIs('products.*') ? 'active' : '' }}">
+                    <i class="bi bi-box"></i>
+                    <span>Productos</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('categories.index') }}" class="{{ request()->routeIs('categories.*') ? 'active' : '' }}">
+                    <i class="bi bi-tags"></i>
+                    <span>Categorías</span>
+                </a>
+            </li>
+            
+            <li class="menu-label">Ventas</li>
+            <li>
+                <a href="{{ route('sales.index') }}" class="{{ request()->routeIs('sales.*') ? 'active' : '' }}">
+                    <i class="bi bi-receipt"></i>
+                    <span>Historial</span>
+                </a>
+            </li>
+            
+            <li class="menu-label">Reportes</li>
+            <li>
+                <a href="{{ route('reports.sales') }}" class="{{ request()->routeIs('reports.sales') ? 'active' : '' }}">
+                    <i class="bi bi-graph-up"></i>
+                    <span>Ventas</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('reports.inventory') }}" class="{{ request()->routeIs('reports.inventory') ? 'active' : '' }}">
+                    <i class="bi bi-bar-chart"></i>
+                    <span>Inventario</span>
+                </a>
+            </li>
+            
+            <li class="menu-label">Configuración</li>
+            <li>
+                <a href="{{ route('printers.index') }}" class="{{ request()->routeIs('printers.*') ? 'active' : '' }}">
+                    <i class="bi bi-printer"></i>
+                    <span>Impresoras</span>
+                </a>
+            </li>
+        </ul>
+    </aside>
+    
+    <div class="main-content" id="mainContent">
+        <div class="top-navbar">
+            <button class="toggle-btn" id="toggleSidebar">
+                <i class="bi bi-list"></i>
+            </button>
+            <div>
+                <span class="text-muted">@yield('breadcrumb')</span>
+            </div>
+        </div>
+        
+        <div class="content-wrapper">
+            @if(session('success'))
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    {{ session('success') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+            
+            @if(session('error'))
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    {{ session('error') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+            
+            @if($errors->any())
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <ul class="mb-0">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+            
+            @yield('content')
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleBtn = document.getElementById('toggleSidebar');
+        const overlay = document.getElementById('overlay');
+        
+        const isMobile = () => window.innerWidth <= 768;
+        
+        toggleBtn.addEventListener('click', () => {
+            if (isMobile()) {
+                sidebar.classList.toggle('show');
+                overlay.classList.toggle('show');
+            } else {
+                sidebar.classList.toggle('collapsed');
+                mainContent.classList.toggle('expanded');
+            }
+        });
+        
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('show');
+            overlay.classList.remove('show');
+        });
+        
+        window.addEventListener('resize', () => {
+            if (!isMobile()) {
+                sidebar.classList.remove('show');
+                overlay.classList.remove('show');
+            }
+        });
+    </script>
+    @stack('scripts')
+</body>
+</html>

@@ -1,0 +1,116 @@
+@extends('layouts.app')
+
+@section('title', 'Dashboard')
+
+@section('content')
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h6 class="card-title">Ventas Hoy</h6>
+                <h2 class="mb-0">{{ $salesToday }}</h2>
+                <small>${{ number_format($revenueToday, 2) }}</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h6 class="card-title">Ventas del Mes</h6>
+                <h2 class="mb-0">{{ $salesMonth }}</h2>
+                <small>${{ number_format($revenueMonth, 2) }}</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <h6 class="card-title">Productos</h6>
+                <h2 class="mb-0">{{ $productsCount }}</h2>
+                <small>{{ $categoriesCount }} categorías</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h6 class="card-title">Stock Bajo</h6>
+                <h2 class="mb-0">{{ $lowStockProducts->count() }}</h2>
+                <small>Productos ≤ 10 unidades</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Ventas Recientes</h5>
+            </div>
+            <div class="card-body">
+                @if($recentSales->count() > 0)
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Ticket</th>
+                                    <th>Total</th>
+                                    <th>Fecha</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($recentSales as $sale)
+                                    <tr>
+                                        <td>{{ $sale->ticket_number }}</td>
+                                        <td>${{ number_format($sale->total, 2) }}</td>
+                                        <td>{{ $sale->created_at->format('d/m H:i') }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <p class="text-muted text-center">No hay ventas aún</p>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Productos con Stock Bajo</h5>
+            </div>
+            <div class="card-body">
+                @if($lowStockProducts->count() > 0)
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Stock</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($lowStockProducts as $product)
+                                    <tr>
+                                        <td>{{ $product->name }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ $product->stock == 0 ? 'danger' : 'warning' }}">
+                                                {{ $product->stock }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <p class="text-muted text-center">Todo el inventario está bien surtido</p>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
