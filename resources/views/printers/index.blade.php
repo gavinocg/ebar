@@ -115,7 +115,7 @@
                                             @endif
                                         </td>
                                         <td>
-                                            <button class="btn btn-sm btn-outline-success test-printer-btn" data-printer-id="{{ $printer->id }}">
+                                            <button class="btn btn-sm btn-outline-success test-printer-btn" data-printer-id="{{ $printer->id }}" data-connection-type="{{ $printer->tipo_conexion }}">
                                                 <i class="bi bi-printer"></i> Probar
                                             </button>
                                             <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ $printer->id }}">
@@ -228,6 +228,10 @@ document.querySelectorAll('.test-printer-btn').forEach(btn => {
         this.innerHTML = '<i class="bi bi-hourglass-split"></i> Probando...';
         
         try {
+            if (this.dataset.connectionType === 'bluetooth') {
+                await conectarImpresoraBluetooth();
+            }
+
             const response = await fetch(`{{ url('/impresoras') }}/${printerId}/probar`, {
                 method: 'POST',
                 headers: {
@@ -309,25 +313,36 @@ function printTestTicketHtml(htmlContent) {
 }
 
 async function printViaBluetooth(commands, macAddress) {
-    if (!navigator.bluetooth) {
-        throw new Error('Web Bluetooth no soportado en este navegador');
+    if (!bluetoothCharacteristic) {
+        throw new Error('Conecta la impresora Bluetooth antes de probarla.');
     }
-    
-    const device = await navigator.bluetooth.requestDevice({
-        filters: [{ services: ['000018f0-0000-1000-8000-00805f9b34fb'] }]
-    });
-    
-    const server = await device.gatt.connect();
-    const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
-    const characteristic = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
     
     const data = Uint8Array.from(commands, character => character.charCodeAt(0));
     
     const chunkSize = 512;
     for (let i = 0; i < data.length; i += chunkSize) {
         const chunk = data.slice(i, i + chunkSize);
-        await characteristic.writeValue(chunk);
+        await bluetoothCharacteristic.writeValue(chunk);
     }
+}
+
+let bluetoothDevice = null;
+let bluetoothCharacteristic = null;
+const bluetoothServiceUuid = '000018f0-0000-1000-8000-00805f9b34fb';
+const bluetoothCharacteristicUuid = '00002af1-0000-1000-8000-00805f9b34fb';
+
+async function conectarImpresoraBluetooth() {
+    if (!navigator.bluetooth) {
+        throw new Error('Web Bluetooth no está disponible en este navegador.');
+    }
+
+    bluetoothDevice = await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: [bluetoothServiceUuid]
+    });
+    const server = await bluetoothDevice.gatt.connect();
+    const service = await server.getPrimaryService(bluetoothServiceUuid);
+    bluetoothCharacteristic = await service.getCharacteristic(bluetoothCharacteristicUuid);
 }
 
 async function printViaNetwork(commands, ip, port) {

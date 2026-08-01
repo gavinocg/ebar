@@ -165,6 +165,10 @@
 let cart = [];
 let currentTotal = 0;
 let lastSaleHtml = null;
+let bluetoothDevice = null;
+let bluetoothCharacteristic = null;
+const bluetoothServiceUuid = '000018f0-0000-1000-8000-00805f9b34fb';
+const bluetoothCharacteristicUuid = '00002af1-0000-1000-8000-00805f9b34fb';
 const printerConfig = {!! $printer ? json_encode([
     'tipo' => $printer->tipo_conexion,
     'direccion' => $printer->direccion,
@@ -175,6 +179,22 @@ const printerConfig = {!! $printer ? json_encode([
 @endphp
 const chargeTax = {{ $business->cobrar_impuesto ? 'true' : 'false' }};
 const taxPercentage = {{ $business->porcentaje_impuesto }};
+
+document.getElementById('conectarBluetoothBtn')?.addEventListener('click', async function () {
+    const button = this;
+    button.disabled = true;
+    button.innerHTML = '<i class="bi bi-hourglass-split"></i> Conectando...';
+
+    try {
+        await conectarImpresoraBluetooth();
+        button.innerHTML = '<i class="bi bi-check-circle"></i> Impresora conectada';
+        button.classList.replace('btn-outline-info', 'btn-outline-success');
+    } catch (error) {
+        button.disabled = false;
+        button.innerHTML = '<i class="bi bi-bluetooth"></i> Conectar impresora';
+        alert('No se pudo conectar la impresora: ' + error.message);
+    }
+});
 
 document.querySelectorAll('.category-btn').forEach(btn => {
     btn.addEventListener('click', function() {
@@ -439,25 +459,44 @@ async function printTicket(ticketBase64, printerData) {
 }
 
 async function printViaBluetooth(commands, macAddress) {
-    if (!navigator.bluetooth) {
-        throw new Error('Web Bluetooth no soportado en este navegador');
+    if (!bluetoothCharacteristic) {
+        throw new Error('Conecta la impresora Bluetooth antes de cobrar.');
     }
-    
-    const device = await navigator.bluetooth.requestDevice({
-        filters: [{ services: ['000018f0-0000-1000-8000-00805f9b34fb'] }]
-    });
-    
-    const server = await device.gatt.connect();
-    const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
-    const characteristic = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
     
     const data = Uint8Array.from(commands, character => character.charCodeAt(0));
     
     const chunkSize = 512;
     for (let i = 0; i < data.length; i += chunkSize) {
         const chunk = data.slice(i, i + chunkSize);
-        await characteristic.writeValue(chunk);
+        await bluetoothCharacteristic.writeValue(chunk);
     }
+}
+
+async function conectarImpresoraBluetooth() {
+    if (!navigator.bluetooth) {
+        throw new Error('Web Bluetooth no está disponible en este navegador.');
+    }
+
+    if (bluetoothCharacteristic && bluetoothDevice?.gatt?.connected) {
+        return;
+    }
+
+    bluetoothDevice = await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: [bluetoothServiceUuid]
+    });
+    bluetoothDevice.addEventListener('gattserverdisconnected', () => {
+        bluetoothCharacteristic = null;
+        const button = document.getElementById('conectarBluetoothBtn');
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = '<i class="bi bi-bluetooth"></i> Reconectar impresora';
+        }
+    });
+
+    const server = await bluetoothDevice.gatt.connect();
+    const service = await server.getPrimaryService(bluetoothServiceUuid);
+    bluetoothCharacteristic = await service.getCharacteristic(bluetoothCharacteristicUuid);
 }
 
 async function printViaNetwork(commands, ip, port) {

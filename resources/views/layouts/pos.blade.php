@@ -409,6 +409,11 @@
                 <i class="bi bi-shop"></i> {{ $business->nombre_negocio }}
             </a>
             <div class="d-flex align-items-center">
+                @if($printer && $printer->tipo_conexion === 'bluetooth')
+                    <button id="conectarBluetoothBtn" type="button" class="btn btn-outline-info btn-sm me-2">
+                        <i class="bi bi-bluetooth"></i> Conectar impresora
+                    </button>
+                @endif
                 <a href="{{ route('ventas.index') }}" class="btn btn-outline-light btn-sm me-2">
                     <i class="bi bi-receipt"></i> Ventas
                 </a>

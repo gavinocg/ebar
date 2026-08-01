@@ -47,6 +47,7 @@ Convertir el TPV en un sistema seguro, multi-tenant y orientado a dispositivos m
 - [x] `COMPLETADO` Imágenes, colores, iconos y distintivos para productos y categorías.
 - [x] `COMPLETADO` Comprobante térmico compacto para papel de 58 mm.
 - [x] `COMPLETADO` Columnas izquierda/derecha para artículos e importes en tickets térmicos.
+- [ ] `EN_PROGRESO` Conexión Bluetooth previa para Android Chrome.
 
 ### Operación De Caja
 
@@ -224,3 +225,10 @@ La siguiente unidad recomendada es **movimientos manuales de efectivo**, porque 
 - Se agregó vista HTML compacta para impresión alternativa.
 - Se corrigieron las claves de conexión Bluetooth y la ruta de prueba de impresoras.
 - Se agregaron pruebas de formato del comprobante.
+
+### 2026-08-01 - Bluetooth Android
+
+- Se agregó conexión Bluetooth iniciada por una acción directa del usuario.
+- El POS ya permite conectar la impresora antes de cobrar.
+- La prueba de impresora conecta antes de solicitar el ticket.
+- Se dejó pendiente validar físicamente la WDT-492 y confirmar si utiliza BLE o Bluetooth clásico.
