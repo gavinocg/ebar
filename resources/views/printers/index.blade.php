@@ -268,17 +268,14 @@ document.querySelectorAll('.test-printer-btn').forEach(btn => {
 });
 
 async function printTestTicket(ticketBase64, printerData) {
-    try {
-        const commands = atob(ticketBase64);
-        
-        if (printerData.tipo === 'bluetooth') {
-            await printViaBluetooth(commands, printerData.direccion);
-        } else if (printerData.tipo === 'wifi' || printerData.tipo === 'lan') {
-            await printViaNetwork(commands, printerData.direccion, printerData.puerto);
-        }
-    } catch (error) {
-        console.error('Error de impresión:', error);
-        showPrintFallback(ticketBase64);
+    const commands = atob(ticketBase64);
+
+    if (printerData.tipo === 'bluetooth') {
+        await printViaBluetooth(commands, printerData.direccion);
+    } else if (printerData.tipo === 'wifi' || printerData.tipo === 'lan') {
+        await printViaNetwork(commands, printerData.direccion, printerData.puerto);
+    } else {
+        throw new Error('La impresora predeterminada no tiene una conexión compatible.');
     }
 }
 

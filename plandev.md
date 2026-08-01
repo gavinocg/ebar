@@ -48,6 +48,7 @@ Convertir el TPV en un sistema seguro, multi-tenant y orientado a dispositivos m
 - [x] `COMPLETADO` Comprobante térmico compacto para papel de 58 mm.
 - [x] `COMPLETADO` Columnas izquierda/derecha para artículos e importes en tickets térmicos.
 - [x] `COMPLETADO` Conexión Bluetooth previa para Android Chrome.
+- [x] `COMPLETADO` Envío térmico directo sin vista previa cuando existe impresora conectada.
 
 ### Operación De Caja
 
@@ -239,3 +240,5 @@ La siguiente unidad recomendada es **movimientos manuales de efectivo**, porque 
 - Se confirmó el servicio de impresión `0x18F0`.
 - Se confirmó impresión correcta desde Chrome Android.
 - La conexión debe desconectarse previamente de nRF Connect antes de usar el TPV.
+- Se eliminó la vista previa como fallback de la impresión térmica directa.
+- Si no existe impresora predeterminada, el TPV informa el estado sin imprimir el carrito.

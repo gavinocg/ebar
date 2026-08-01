@@ -419,8 +419,19 @@ async function processSale() {
                 lastSaleHtml = data.ticket_html;
             }
             
+            if (data.type === 'none') {
+                alert('Venta registrada, pero no hay una impresora seleccionada por defecto.');
+                cart = [];
+                renderCart();
+                return;
+            }
+
             if (data.type === 'thermal' && data.ticket && data.printer) {
-                await printTicket(data.ticket, data.printer);
+                try {
+                    await printTicket(data.ticket, data.printer);
+                } catch (printError) {
+                    alert('Venta registrada, pero no se pudo imprimir: ' + printError.message);
+                }
             } else if (data.type === 'normal' && data.ticket_html) {
                 printTicketHtml(data.ticket_html);
             }
@@ -440,21 +451,14 @@ async function processSale() {
 }
 
 async function printTicket(ticketBase64, printerData) {
-    try {
-        const commands = atob(ticketBase64);
-        
-        if (printerData.tipo === 'bluetooth') {
-            await printViaBluetooth(commands, printerData.direccion);
-        } else if (printerData.tipo === 'wifi' || printerData.tipo === 'lan') {
-            await printViaNetwork(commands, printerData.direccion, printerData.puerto);
-        }
-    } catch (error) {
-        console.error('Error de impresión:', error);
-        if (lastSaleHtml) {
-            printTicketHtml(lastSaleHtml);
-        } else {
-            showPrintFallback(ticketBase64);
-        }
+    const commands = atob(ticketBase64);
+
+    if (printerData.tipo === 'bluetooth') {
+        await printViaBluetooth(commands, printerData.direccion);
+    } else if (printerData.tipo === 'wifi' || printerData.tipo === 'lan') {
+        await printViaNetwork(commands, printerData.direccion, printerData.puerto);
+    } else {
+        throw new Error('La impresora predeterminada no tiene una conexión compatible.');
     }
 }
 
