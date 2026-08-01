@@ -15,6 +15,8 @@ Convertir el TPV en un sistema seguro, multi-tenant y orientado a dispositivos m
 - Las migraciones productivas usarán `php artisan migrate --force`.
 - Después de cada unidad se actualizará este archivo.
 - Un cambio llega a producción únicamente mediante merge hacia `prod`.
+- La limpieza de pruebas se ejecutará con `php artisan clean-transactional`.
+- `clean-transactional` no elimina configuración, usuarios, impresoras, cajas ni migraciones.
 
 ## Estados
 
