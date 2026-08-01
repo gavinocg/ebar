@@ -165,3 +165,17 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.querySelectorAll('.selector-icono-comida').forEach(select => {
+    const preview = document.getElementById(select.dataset.preview);
+    const actualizar = () => {
+        preview.className = `${select.value} fs-5`;
+    };
+
+    select.addEventListener('change', actualizar);
+    actualizar();
+});
+</script>
+@endpush

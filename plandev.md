@@ -47,6 +47,7 @@ Convertir el TPV en un sistema seguro, multi-tenant y orientado a dispositivos m
 - [x] `COMPLETADO` Diseño POS responsive para móvil y tableta.
 - [x] `COMPLETADO` Backoffice con navegación lateral consistente con el POS.
 - [x] `COMPLETADO` Imágenes, colores, iconos y distintivos para productos y categorías.
+- [x] `COMPLETADO` Selector visual de iconos gastronómicos para categorías.
 - [x] `COMPLETADO` Comprobante térmico compacto para papel de 58 mm.
 - [x] `COMPLETADO` Columnas izquierda/derecha para artículos e importes en tickets térmicos.
 - [x] `COMPLETADO` Conexión Bluetooth previa para Android Chrome.
