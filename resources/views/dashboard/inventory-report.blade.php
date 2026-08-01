@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.sidebar')
 
 @section('title', 'Reporte de Inventario')
 
@@ -62,9 +62,9 @@
                             <tbody>
                                 @foreach($byCategory as $cat)
                                     <tr>
-                                        <td>{{ $cat->category_name }}</td>
-                                        <td><span class="badge bg-info">{{ $cat->count }}</span></td>
-                                        <td>{{ $cat->total_stock }}</td>
+                                        <td>{{ $cat->nombre_categoria }}</td>
+                                        <td><span class="badge bg-info">{{ $cat->cantidad }}</span></td>
+                                        <td>{{ $cat->existencias_totales }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>

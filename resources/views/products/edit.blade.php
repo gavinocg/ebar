@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.sidebar')
 
 @section('title', 'Editar Producto')
 
@@ -14,7 +14,7 @@
         <h5 class="mb-0">Editar Producto: {{ $product->nombre }}</h5>
     </div>
     <div class="card-body">
-        <form action="{{ route('productos.update', $product) }}" method="POST">
+        <form action="{{ route('productos.update', $product) }}" method="POST" enctype="multipart/form-data">
             @csrf
             @method('PUT')
             
@@ -44,6 +44,40 @@
             <div class="mb-3">
                 <label class="form-label">Descripción</label>
                 <textarea name="descripcion" class="form-control" rows="3">{{ $product->descripcion }}</textarea>
+            </div>
+
+            <div class="card bg-light border-0 mb-3">
+                <div class="card-body">
+                    <h6 class="card-title">Apariencia en el TPV</h6>
+                    @if($product->imagen_path)
+                        <img src="{{ asset('storage/' . $product->imagen_path) }}" alt="{{ $product->nombre }}" class="rounded mb-3" width="120" height="120" style="object-fit:cover">
+                    @endif
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Reemplazar imagen</label>
+                            <input type="file" name="imagen" class="form-control" accept="image/jpeg,image/png,image/webp">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Color de tarjeta</label>
+                            <input type="color" name="color" class="form-control form-control-color w-100" value="{{ $product->color ?: '#ffffff' }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Distintivo</label>
+                            <input type="text" name="distintivo" class="form-control" maxlength="40" value="{{ $product->distintivo }}">
+                        </div>
+                    </div>
+                    <div class="row align-items-end">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Color del distintivo</label>
+                            <input type="color" name="distintivo_color" class="form-control form-control-color w-100" value="{{ $product->distintivo_color ?: '#16a34a' }}">
+                        </div>
+                        <div class="col-md-4 mb-3 form-check form-switch">
+                            <input type="hidden" name="destacado" value="0">
+                            <input type="checkbox" name="destacado" class="form-check-input" value="1" {{ $product->destacado ? 'checked' : '' }}>
+                            <label class="form-check-label">Producto destacado</label>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <div class="row">

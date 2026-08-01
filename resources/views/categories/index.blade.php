@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.sidebar')
 
 @section('title', 'Categorías')
 
@@ -10,7 +10,7 @@
                 <h5 class="mb-0">Nueva Categoría</h5>
             </div>
             <div class="card-body">
-                <form action="{{ route('categorias.store') }}" method="POST">
+                <form action="{{ route('categorias.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="mb-3">
                         <label class="form-label">Nombre</label>
@@ -19,6 +19,32 @@
                     <div class="mb-3">
                         <label class="form-label">Descripción</label>
                         <textarea name="descripcion" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6 mb-3">
+                            <label class="form-label">Color</label>
+                            <input type="color" name="color" class="form-control form-control-color w-100" value="#334155" title="Color de categoría">
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <label class="form-label">Icono Bootstrap</label>
+                            <input type="text" name="icono" class="form-control" value="bi bi-tag" pattern="bi bi-[a-z0-9-]+" placeholder="bi bi-cup-straw">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Imagen</label>
+                        <input type="file" name="imagen" class="form-control" accept="image/jpeg,image/png,image/webp">
+                        <small class="text-muted">JPG, PNG o WebP. Máximo 2 MB.</small>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6 mb-3">
+                            <label class="form-label">Orden</label>
+                            <input type="number" name="orden" class="form-control" min="0" value="0">
+                        </div>
+                        <div class="col-sm-6 mb-3 form-check form-switch pt-4">
+                            <input type="hidden" name="esta_activa" value="0">
+                            <input type="checkbox" name="esta_activa" class="form-check-input" value="1" checked>
+                            <label class="form-check-label">Categoría activa</label>
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-plus-circle"></i> Crear
@@ -48,7 +74,16 @@
                             <tbody>
                                 @foreach($categories as $category)
                                     <tr>
-                                        <td>{{ $category->nombre }}</td>
+                                        <td>
+                                            <span class="d-inline-flex align-items-center gap-2">
+                                                @if($category->imagen_path)
+                                                    <img src="{{ asset('storage/' . $category->imagen_path) }}" alt="" width="36" height="36" class="rounded" style="object-fit:cover">
+                                                @else
+                                                    <span class="rounded d-inline-flex align-items-center justify-content-center text-white" style="width:36px;height:36px;background:{{ $category->color }}"><i class="{{ $category->icono ?: 'bi bi-tag' }}"></i></span>
+                                                @endif
+                                                {{ $category->nombre }}
+                                            </span>
+                                        </td>
                                         <td>{{ $category->descripcion ?? '-' }}</td>
                                         <td><span class="badge bg-info">{{ $category->productos_count }}</span></td>
                                         <td>
@@ -68,7 +103,7 @@
                                     <div class="modal fade" id="editModal{{ $category->id }}" tabindex="-1">
                                         <div class="modal-dialog">
                                             <div class="modal-content">
-                                                <form action="{{ route('categorias.update', $category) }}" method="POST">
+                                                <form action="{{ route('categorias.update', $category) }}" method="POST" enctype="multipart/form-data">
                                                     @csrf
                                                     @method('PUT')
                                                     <div class="modal-header">
@@ -83,6 +118,31 @@
                                                         <div class="mb-3">
                                                             <label class="form-label">Descripción</label>
                                                             <textarea name="descripcion" class="form-control" rows="3">{{ $category->descripcion }}</textarea>
+                                                        </div>
+                                                        <div class="row">
+                                                            <div class="col-sm-6 mb-3">
+                                                                <label class="form-label">Color</label>
+                                                                <input type="color" name="color" class="form-control form-control-color w-100" value="{{ $category->color }}">
+                                                            </div>
+                                                            <div class="col-sm-6 mb-3">
+                                                                <label class="form-label">Icono Bootstrap</label>
+                                                                <input type="text" name="icono" class="form-control" value="{{ $category->icono }}" pattern="bi bi-[a-z0-9-]+">
+                                                            </div>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label class="form-label">Reemplazar imagen</label>
+                                                            <input type="file" name="imagen" class="form-control" accept="image/jpeg,image/png,image/webp">
+                                                        </div>
+                                                        <div class="row">
+                                                            <div class="col-sm-6 mb-3">
+                                                                <label class="form-label">Orden</label>
+                                                                <input type="number" name="orden" class="form-control" min="0" value="{{ $category->orden }}">
+                                                            </div>
+                                                            <div class="col-sm-6 mb-3 form-check form-switch pt-4">
+                                                                <input type="hidden" name="esta_activa" value="0">
+                                                                <input type="checkbox" name="esta_activa" class="form-check-input" value="1" {{ $category->esta_activa ? 'checked' : '' }}>
+                                                                <label class="form-check-label">Categoría activa</label>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                     <div class="modal-footer">

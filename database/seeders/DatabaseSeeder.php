@@ -6,12 +6,15 @@ use App\Models\User;
 use App\Models\Categoria as Category;
 use App\Models\Producto as Product;
 use App\Models\Impresora as Printer;
+use App\Models\Caja;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        Caja::create(['nombre' => 'Caja principal', 'esta_activa' => true]);
+
         $bebidas = Category::create(['nombre' => 'Bebidas', 'descripcion' => 'Bebidas frías y calientes']);
         $alimentos = Category::create(['nombre' => 'Alimentos', 'descripcion' => 'Comida y snacks']);
         $postres = Category::create(['nombre' => 'Postres', 'descripcion' => 'Dulces y postres']);

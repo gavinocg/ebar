@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.sidebar')
 
 @section('title', 'Comprobante ' . $sale->numero_comprobante)
 
@@ -81,10 +81,10 @@
             </table>
         </div>
 
-        @if($sale->notes)
+        @if($sale->notas)
             <div class="mt-3">
                 <strong>Notas:</strong>
-                <p>{{ $sale->notes }}</p>
+                <p>{{ $sale->notas }}</p>
             </div>
         @endif
     </div>

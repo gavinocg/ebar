@@ -62,6 +62,13 @@
         .category-btn i {
             font-size: 24px;
         }
+
+        .category-btn .category-image {
+            width: 34px;
+            height: 34px;
+            object-fit: cover;
+            border-radius: 10px;
+        }
         
         .category-btn.active,
         .category-btn:hover {
@@ -82,7 +89,9 @@
             cursor: pointer;
             transition: all 0.2s;
             border: 2px solid transparent;
-            height: 130px;
+            height: 210px;
+            position: relative;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -98,6 +107,35 @@
         .product-card.out-of-stock {
             opacity: 0.5;
             pointer-events: none;
+        }
+
+        .product-card .product-image,
+        .product-card .product-fallback {
+            width: 92px;
+            height: 92px;
+            border-radius: 14px;
+            object-fit: cover;
+            margin-bottom: 8px;
+            background: #f1f5f9;
+        }
+
+        .product-card .product-fallback {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-size: 32px;
+        }
+
+        .product-card .product-badge {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            color: white;
+            border-radius: 999px;
+            padding: 3px 8px;
+            font-size: 10px;
+            font-weight: 700;
         }
         
         .product-card .name {
@@ -282,10 +320,22 @@
             .category-btn i {
                 font-size: 20px;
             }
+
+            .category-btn .category-image {
+                width: 28px;
+                height: 28px;
+            }
             
             .product-card {
-                height: 110px;
+                height: 190px;
                 padding: 10px;
+            }
+
+            .product-card .product-image,
+            .product-card .product-fallback {
+                width: 68px;
+                height: 68px;
+                font-size: 25px;
             }
             
             .product-card .name {

@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.sidebar')
 
 @section('title', 'Nuevo Producto')
 
@@ -14,7 +14,7 @@
         <h5 class="mb-0">Nuevo Producto</h5>
     </div>
     <div class="card-body">
-        <form action="{{ route('productos.store') }}" method="POST">
+        <form action="{{ route('productos.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
             
             <div class="row">
@@ -43,6 +43,38 @@
                 <label class="form-label">Descripción</label>
                 <textarea name="descripcion" class="form-control" rows="3"></textarea>
             </div>
+
+            <div class="card bg-light border-0 mb-3">
+                <div class="card-body">
+                    <h6 class="card-title">Apariencia en el TPV</h6>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Imagen</label>
+                            <input type="file" name="imagen" class="form-control" accept="image/jpeg,image/png,image/webp">
+                            <small class="text-muted">Máximo 2 MB.</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Color de tarjeta</label>
+                            <input type="color" name="color" class="form-control form-control-color w-100" value="#ffffff">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Distintivo</label>
+                            <input type="text" name="distintivo" class="form-control" maxlength="40" placeholder="Popular, Nuevo...">
+                        </div>
+                    </div>
+                    <div class="row align-items-end">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Color del distintivo</label>
+                            <input type="color" name="distintivo_color" class="form-control form-control-color w-100" value="#16a34a">
+                        </div>
+                        <div class="col-md-4 mb-3 form-check form-switch">
+                            <input type="hidden" name="destacado" value="0">
+                            <input type="checkbox" name="destacado" class="form-check-input" value="1">
+                            <label class="form-check-label">Producto destacado</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
             
             <div class="row">
                 <div class="col-md-6 mb-3">
@@ -59,6 +91,7 @@
                 </div>
             </div>
             
+            <input type="hidden" name="esta_activo" value="1">
             <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                 <a href="{{ route('productos.index') }}" class="btn btn-secondary">Cancelar</a>
                 <button type="submit" class="btn btn-primary">

@@ -9,11 +9,25 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Producto extends Model
 {
     protected $table = 'productos';
-    protected $fillable = ['categoria_id', 'nombre', 'descripcion', 'precio', 'existencias', 'codigo_barras', 'esta_activo'];
+    protected $fillable = [
+        'categoria_id',
+        'nombre',
+        'descripcion',
+        'imagen_path',
+        'color',
+        'distintivo',
+        'distintivo_color',
+        'destacado',
+        'precio',
+        'existencias',
+        'codigo_barras',
+        'esta_activo',
+    ];
 
     protected $casts = [
         'esta_activo' => 'boolean',
         'precio' => 'decimal:2',
+        'destacado' => 'boolean',
     ];
 
     public function categoria(): BelongsTo

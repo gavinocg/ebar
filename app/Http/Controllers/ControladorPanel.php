@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Venta as Sale;
 use App\Models\Producto as Product;
 use App\Models\Categoria as Category;
+use App\Models\Caja;
+use App\Models\TurnoCaja;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class ControladorPanel extends Controller
@@ -36,6 +39,12 @@ class ControladorPanel extends Controller
             ->limit(10)
             ->get();
 
+        $cajaActiva = Caja::where('esta_activa', true)->orderBy('id')->first();
+        $turnoCaja = TurnoCaja::where('usuario_id', Auth::id())
+            ->where('estado', 'abierta')
+            ->latest('id')
+            ->first();
+
         return view('dashboard.index', compact(
             'salesToday',
             'revenueToday',
@@ -44,7 +53,9 @@ class ControladorPanel extends Controller
             'productsCount',
             'categoriesCount',
             'recentSales',
-            'lowStockProducts'
+            'lowStockProducts',
+            'cajaActiva',
+            'turnoCaja'
         ));
     }
 

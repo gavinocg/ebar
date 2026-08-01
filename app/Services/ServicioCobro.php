@@ -6,6 +6,8 @@ use App\Models\ConfiguracionNegocio as BusinessSetting;
 use App\Models\MovimientoInventario as InventoryMovement;
 use App\Models\Producto as Product;
 use App\Models\Venta as Sale;
+use App\Models\TurnoCaja;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -18,6 +20,15 @@ class ServicioCobro
 
             if ($existingSale) {
                 return $existingSale->load('detalles');
+            }
+
+            $turnoCaja = TurnoCaja::where('usuario_id', Auth::id())
+                ->where('estado', 'abierta')
+                ->latest('id')
+                ->first();
+
+            if (!$turnoCaja) {
+                throw new \RuntimeException('Debes abrir un turno de caja antes de registrar ventas.');
             }
 
             $quantities = collect($itemsData)
@@ -68,6 +79,8 @@ class ServicioCobro
             $sale = Sale::create([
                 'numero_comprobante' => 'PENDING-' . Str::uuid(),
                 'clave_idempotencia' => $idempotencyKey,
+                'turno_caja_id' => $turnoCaja->id,
+                'usuario_id' => Auth::id(),
                 'subtotal' => $subtotal,
                 'impuesto' => $tax,
                 'impuesto_habilitado' => $taxEnabled,

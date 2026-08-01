@@ -238,6 +238,12 @@
                     <span>Impresoras</span>
                 </a>
             </li>
+            <li>
+                <a href="{{ route('configuracion.negocio') }}" class="{{ request()->routeIs('configuracion.*') ? 'active' : '' }}">
+                    <i class="bi bi-gear"></i>
+                    <span>Configuración</span>
+                </a>
+            </li>
         </ul>
     </aside>
     
@@ -246,8 +252,18 @@
             <button class="toggle-btn" id="toggleSidebar">
                 <i class="bi bi-list"></i>
             </button>
-            <div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="fw-semibold">Administración</span>
                 <span class="text-muted">@yield('breadcrumb')</span>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <span class="small text-muted d-none d-md-inline">{{ auth()->user()->nombre ?? '' }}</span>
+                <form method="POST" action="{{ route('cerrar_sesion') }}" class="m-0">
+                    @csrf
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-box-arrow-right"></i> Salir
+                    </button>
+                </form>
             </div>
         </div>
         

@@ -18,7 +18,7 @@ class ControladorPuntoVenta extends Controller
             ->where('esta_activo', true)
             ->orderBy('nombre')
             ->get();
-        $categories = Category::orderBy('nombre')->get();
+        $categories = Category::where('esta_activa', true)->orderBy('orden')->orderBy('nombre')->get();
         $printer = Printer::predeterminada()->first();
         $business = BusinessSetting::obtenerConfiguracion();
         

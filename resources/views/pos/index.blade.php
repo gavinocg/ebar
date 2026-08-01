@@ -10,8 +10,12 @@
             <span>Todos</span>
         </button>
         @foreach($categories as $category)
-            <button class="category-btn" data-category="{{ $category->id }}">
-                <i class="bi bi-tag"></i>
+            <button class="category-btn" data-category="{{ $category->id }}" style="background-color: {{ $category->color }}">
+                @if($category->imagen_path)
+                    <img src="{{ asset('storage/' . $category->imagen_path) }}" alt="" class="category-image">
+                @else
+                    <i class="{{ $category->icono ?: 'bi bi-tag' }}"></i>
+                @endif
                 <span>{{ $category->nombre }}</span>
             </button>
         @endforeach
@@ -33,7 +37,16 @@
                              data-id="{{ $product->id }}"
                               data-name="{{ $product->nombre }}"
                               data-price="{{ $product->precio }}"
-                              data-stock="{{ $product->existencias }}">
+                              data-stock="{{ $product->existencias }}"
+                              style="background-color: {{ $product->color ?: '#ffffff' }}">
+                            @if($product->distintivo)
+                                <span class="product-badge" style="background-color: {{ $product->distintivo_color ?: '#16a34a' }}">{{ $product->distintivo }}</span>
+                            @endif
+                            @if($product->imagen_path)
+                                <img src="{{ asset('storage/' . $product->imagen_path) }}" alt="{{ $product->nombre }}" class="product-image">
+                            @else
+                                <span class="product-fallback"><i class="bi bi-bag"></i></span>
+                            @endif
                             <div class="name">{{ $product->nombre }}</div>
                             <div class="price">${{ number_format($product->precio, 2) }}</div>
                             <div class="stock">Existencias: {{ $product->existencias }}</div>
