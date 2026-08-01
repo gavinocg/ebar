@@ -302,10 +302,11 @@ async function printViaBluetooth(commands, macAddress) {
     
     const data = Uint8Array.from(commands, character => character.charCodeAt(0));
     
-    const chunkSize = 512;
+    const chunkSize = 20;
     for (let i = 0; i < data.length; i += chunkSize) {
         const chunk = data.slice(i, i + chunkSize);
         await bluetoothCharacteristic.writeValue(chunk);
+        await new Promise(resolve => setTimeout(resolve, 10));
     }
 }
 

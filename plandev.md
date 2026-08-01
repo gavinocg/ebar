@@ -49,6 +49,7 @@ Convertir el TPV en un sistema seguro, multi-tenant y orientado a dispositivos m
 - [x] `COMPLETADO` Columnas izquierda/derecha para artículos e importes en tickets térmicos.
 - [x] `COMPLETADO` Conexión Bluetooth previa para Android Chrome.
 - [x] `COMPLETADO` Envío térmico directo sin vista previa cuando existe impresora conectada.
+- [x] `COMPLETADO` Transporte BLE en paquetes compactos para impresoras portátiles.
 
 ### Operación De Caja
 
@@ -242,3 +243,4 @@ La siguiente unidad recomendada es **movimientos manuales de efectivo**, porque 
 - La conexión debe desconectarse previamente de nRF Connect antes de usar el TPV.
 - Se eliminó la vista previa como fallback de la impresión térmica directa.
 - Si no existe impresora predeterminada, el TPV informa el estado sin imprimir el carrito.
+- Se redujo el envío BLE a paquetes de 20 bytes con pausa para evitar cortes de ticket.
