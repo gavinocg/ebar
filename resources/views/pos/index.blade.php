@@ -385,6 +385,11 @@ async function processSale() {
             })
         });
         
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || `El servidor respondió ${response.status}`);
+        }
+
         const data = await response.json();
         
         if (data.success) {
@@ -403,6 +408,8 @@ async function processSale() {
             alert('Venta registrada: ' + data.sale.numero_comprobante);
             cart = [];
             renderCart();
+        } else {
+            throw new Error(data.message || 'No se pudo registrar la venta.');
         }
     } catch (error) {
         alert('Error al procesar la venta: ' + error.message);
