@@ -20,6 +20,10 @@ class ServicioImpresoraTermica
 
     public function imprimirComprobante($sale)
     {
+        if ($this->printer->ancho_papel === '58mm') {
+            return $this->imprimirComprobante58($sale);
+        }
+
         $this->inicializar();
         $this->agregarEncabezado($sale);
         $this->agregarDetalles($sale);
@@ -32,6 +36,26 @@ class ServicioImpresoraTermica
 
     public function imprimirComprobantePrueba()
     {
+        if ($this->printer->ancho_papel === '58mm') {
+            $this->inicializar();
+            $this->centrar();
+            $this->commands[] = "\x1B\x21\x10";
+            $this->commands[] = "PRUEBA DE IMPRESION\n";
+            $this->commands[] = "\x1B\x21\x00";
+            $this->commands[] = $this->separador() . "\n";
+            $this->commands[] = "Fecha: " . now()->format('d/m/Y H:i') . "\n";
+            $this->commands[] = "\x1B\x61\x00";
+            $this->commands[] = $this->separador() . "\n";
+            $this->commands[] = $this->alinearColumnas('1xProducto', '$0.50') . "\n";
+            $this->commands[] = $this->alinearColumnas('2xProducto', '$1.00') . "\n";
+            $this->commands[] = $this->separador() . "\n";
+            $this->commands[] = $this->alinearColumnas('Total', '$1.50') . "\n";
+            $this->commands[] = "\n";
+            $this->cortarPapel();
+
+            return $this->obtenerComandos();
+        }
+
         $this->inicializar();
 
         $this->commands[] = "\x1D\x21\x11";
@@ -72,6 +96,72 @@ class ServicioImpresoraTermica
     {
         $this->commands[] = "\x1B\x40"; // Initialize
         $this->commands[] = "\x1B\x61\x01"; // Center alignment
+    }
+
+    private function imprimirComprobante58($sale): string
+    {
+        $this->inicializar();
+        $this->centrar();
+        $this->commands[] = "\x1B\x21\x10";
+        $this->commands[] = $this->texto($this->business->nombre_negocio) . "\n";
+        $this->commands[] = "\x1B\x21\x00";
+        $this->commands[] = $this->texto($sale->created_at->format('d/m/Y H:i')) . "\n";
+        $this->commands[] = $this->separador() . "\n";
+        $this->commands[] = "\x1B\x61\x00";
+
+        foreach ($sale->detalles as $item) {
+            $descripcion = $item->cantidad . 'x' . $item->nombre_producto;
+            $importe = '$' . number_format((float) $item->subtotal, 2, '.', '');
+            $this->commands[] = $this->alinearColumnas($descripcion, $importe) . "\n";
+        }
+
+        $this->commands[] = $this->separador() . "\n";
+        $this->commands[] = $this->alinearColumnas('Total', '$' . number_format((float) $sale->total, 2, '.', '')) . "\n";
+        $this->commands[] = $this->alinearColumnas('Pago', '$' . number_format((float) $sale->pagado, 2, '.', '')) . "\n";
+        $this->commands[] = $this->alinearColumnas('Cambio', '$' . number_format((float) $sale->cambio, 2, '.', '')) . "\n";
+        $this->commands[] = "\n";
+        $this->centrar();
+        if ($this->business->mensaje_comprobante) {
+            $this->commands[] = $this->texto($this->business->mensaje_comprobante) . "\n";
+        }
+        $this->commands[] = "\n";
+        $this->cortarPapel();
+
+        return $this->obtenerComandos();
+    }
+
+    private function centrar(): void
+    {
+        $this->commands[] = "\x1B\x61\x01";
+    }
+
+    private function separador(): string
+    {
+        return str_repeat('-', 32);
+    }
+
+    private function alinearColumnas(string $izquierda, string $derecha): string
+    {
+        $izquierda = $this->limpiar($izquierda);
+        $derecha = $this->limpiar($derecha);
+        $anchoDerecha = mb_strwidth($derecha, 'UTF-8');
+        $maxIzquierda = 32 - $anchoDerecha - 1;
+        $izquierda = mb_strimwidth($izquierda, 0, max(1, $maxIzquierda), '', 'UTF-8');
+        $espacios = max(1, 32 - mb_strwidth($izquierda, 'UTF-8') - $anchoDerecha);
+
+        return $this->texto($izquierda . str_repeat(' ', $espacios) . $derecha);
+    }
+
+    private function texto(string $texto): string
+    {
+        $texto = $this->limpiar($texto);
+
+        return iconv('UTF-8', 'CP850//TRANSLIT//IGNORE', $texto) ?: $texto;
+    }
+
+    private function limpiar(string $texto): string
+    {
+        return preg_replace('/[\x00-\x1F\x7F]/u', '', $texto) ?? '';
     }
 
     private function agregarEncabezado($sale)

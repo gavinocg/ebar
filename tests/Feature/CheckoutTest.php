@@ -7,6 +7,9 @@ use App\Models\Categoria as Category;
 use App\Models\Producto as Product;
 use App\Models\Caja;
 use App\Models\TurnoCaja;
+use App\Models\Impresora;
+use App\Models\Venta;
+use App\Services\ServicioImpresoraTermica;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -168,6 +171,50 @@ class CheckoutTest extends TestCase
             'destacado' => 1,
             'color' => '#fef3c7',
         ]);
+    }
+
+    public function test_comprobante_termico_de_58mm_usa_columnas_compactas(): void
+    {
+        $impresora = Impresora::create([
+            'nombre' => 'Bluetooth 58mm',
+            'tipo_conexion' => 'bluetooth',
+            'tipo_impresora' => 'termica',
+            'ancho_papel' => '58mm',
+            'esta_activa' => true,
+            'es_predeterminada' => true,
+        ]);
+        $venta = Venta::create([
+            'numero_comprobante' => 'CMP-000001',
+            'clave_idempotencia' => 'ticket-format-test',
+            'subtotal' => 1.25,
+            'impuesto' => 0,
+            'impuesto_habilitado' => false,
+            'porcentaje_impuesto' => 0,
+            'total' => 1.25,
+            'metodo_pago' => 'efectivo',
+            'pagado' => 2,
+            'cambio' => 0.75,
+        ]);
+        $venta->detalles()->create([
+            'producto_id' => $this->product()->id,
+            'nombre_producto' => 'Producto1',
+            'cantidad' => 1,
+            'precio' => 0.50,
+            'subtotal' => 0.50,
+        ]);
+        $venta->detalles()->create([
+            'producto_id' => $this->product()->id,
+            'nombre_producto' => 'Producto2',
+            'cantidad' => 1,
+            'precio' => 0.75,
+            'subtotal' => 0.75,
+        ]);
+
+        $comprobante = (new ServicioImpresoraTermica($impresora))->imprimirComprobante($venta->load('detalles'));
+
+        $this->assertStringContainsString(str_repeat('-', 32), $comprobante);
+        $this->assertStringContainsString('1xProducto1', $comprobante);
+        $this->assertStringContainsString('Total', $comprobante);
     }
 
     private function product(int $price = 10, int $stock = 10): Product

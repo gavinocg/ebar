@@ -228,7 +228,7 @@ document.querySelectorAll('.test-printer-btn').forEach(btn => {
         this.innerHTML = '<i class="bi bi-hourglass-split"></i> Probando...';
         
         try {
-            const response = await fetch(`/printers/${printerId}/test`, {
+            const response = await fetch(`{{ url('/impresoras') }}/${printerId}/probar`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -238,6 +238,10 @@ document.querySelectorAll('.test-printer-btn').forEach(btn => {
                 }
             });
             
+            if (!response.ok) {
+                throw new Error(`El servidor respondió ${response.status}`);
+            }
+
             const data = await response.json();
             
             if (data.success) {
@@ -263,10 +267,10 @@ async function printTestTicket(ticketBase64, printerData) {
     try {
         const commands = atob(ticketBase64);
         
-        if (printerData.type === 'bluetooth') {
-            await printViaBluetooth(commands, printerData.address);
-        } else if (printerData.type === 'wifi' || printerData.type === 'lan') {
-            await printViaNetwork(commands, printerData.address, printerData.port);
+        if (printerData.tipo === 'bluetooth') {
+            await printViaBluetooth(commands, printerData.direccion);
+        } else if (printerData.tipo === 'wifi' || printerData.tipo === 'lan') {
+            await printViaNetwork(commands, printerData.direccion, printerData.puerto);
         }
     } catch (error) {
         console.error('Error de impresión:', error);

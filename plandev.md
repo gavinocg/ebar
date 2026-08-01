@@ -45,6 +45,8 @@ Convertir el TPV en un sistema seguro, multi-tenant y orientado a dispositivos m
 - [x] `COMPLETADO` Diseño POS responsive para móvil y tableta.
 - [x] `COMPLETADO` Backoffice con navegación lateral consistente con el POS.
 - [x] `COMPLETADO` Imágenes, colores, iconos y distintivos para productos y categorías.
+- [x] `COMPLETADO` Comprobante térmico compacto para papel de 58 mm.
+- [x] `COMPLETADO` Columnas izquierda/derecha para artículos e importes en tickets térmicos.
 
 ### Operación De Caja
 
@@ -212,3 +214,13 @@ La siguiente unidad recomendada es **movimientos manuales de efectivo**, porque 
 
 - Reapertura autorizada de turnos cerrados.
 - Reporte de arqueos y diferencias por cajero.
+
+### 2026-08-01 - Ticket Térmico 58 mm
+
+- Se implementó formato compacto para rollos térmicos de 58 mm.
+- Se agregó encabezado centrado con nombre del negocio y fecha.
+- Se agregaron columnas alineadas para descripción e importe.
+- Se redujo el espaciado y se limitaron separadores a 32 columnas.
+- Se agregó vista HTML compacta para impresión alternativa.
+- Se corrigieron las claves de conexión Bluetooth y la ruta de prueba de impresoras.
+- Se agregaron pruebas de formato del comprobante.

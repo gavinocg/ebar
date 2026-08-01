@@ -78,7 +78,8 @@ class ControladorPuntoVenta extends Controller
                     $servicioImpresora = new ServicioImpresoraTermica($printer);
                     $ticketData = $servicioImpresora->imprimirComprobante($sale);
                     $connectionData = $servicioImpresora->obtenerDatosConexion();
-                    $ticketHtml = view('printers.ticket-a4', compact('sale'))->render();
+                    $ticketView = $printer->ancho_papel === '58mm' ? 'printers.ticket-58' : 'printers.ticket-a4';
+                    $ticketHtml = view($ticketView, compact('sale'))->render();
                     
                     return response()->json([
                         'success' => true,
