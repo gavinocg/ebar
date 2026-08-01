@@ -27,7 +27,17 @@
                         </div>
                         <div class="col-sm-6 mb-3">
                             <label class="form-label">Icono Bootstrap</label>
-                            <input type="text" name="icono" class="form-control" value="bi bi-tag" pattern="bi bi-[a-z0-9-]+" placeholder="bi bi-cup-straw">
+                            <select name="icono" class="form-select selector-icono-comida" data-preview="vista-icono-nueva">
+                                <option value="bi bi-cup-straw">Bebida</option>
+                                <option value="bi bi-cup-hot">Café o bebida caliente</option>
+                                <option value="bi bi-egg-fried">Alimentos</option>
+                                <option value="bi bi-cake2">Postres</option>
+                                <option value="bi bi-ice-cream">Helados</option>
+                                <option value="bi bi-apple">Frutas</option>
+                                <option value="bi bi-basket2">Canasta o compras</option>
+                                <option value="bi bi-people">Servicio</option>
+                            </select>
+                            <div class="mt-2 text-muted small">Vista previa: <i id="vista-icono-nueva" class="bi bi-cup-straw fs-5"></i></div>
                         </div>
                     </div>
                     <div class="mb-3">
@@ -126,7 +136,21 @@
                                                             </div>
                                                             <div class="col-sm-6 mb-3">
                                                                 <label class="form-label">Icono Bootstrap</label>
-                                                                <input type="text" name="icono" class="form-control" value="{{ $category->icono }}" pattern="bi bi-[a-z0-9-]+">
+                                                                <select name="icono" class="form-select selector-icono-comida" data-preview="vista-icono-{{ $category->id }}">
+                                                                    @foreach([
+                                                                        'bi bi-cup-straw' => 'Bebida',
+                                                                        'bi bi-cup-hot' => 'Café o bebida caliente',
+                                                                        'bi bi-egg-fried' => 'Alimentos',
+                                                                        'bi bi-cake2' => 'Postres',
+                                                                        'bi bi-ice-cream' => 'Helados',
+                                                                        'bi bi-apple' => 'Frutas',
+                                                                        'bi bi-basket2' => 'Canasta o compras',
+                                                                        'bi bi-people' => 'Servicio',
+                                                                    ] as $icono => $etiqueta)
+                                                                        <option value="{{ $icono }}" {{ ($category->icono ?: 'bi bi-cup-straw') === $icono ? 'selected' : '' }}>{{ $etiqueta }}</option>
+                                                                    @endforeach
+                                                                </select>
+                                                                <div class="mt-2 text-muted small">Vista previa: <i id="vista-icono-{{ $category->id }}" class="{{ $category->icono ?: 'bi bi-cup-straw' }} fs-5"></i></div>
                                                             </div>
                                                         </div>
                                                         <div class="mb-3">
