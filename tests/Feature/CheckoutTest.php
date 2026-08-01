@@ -215,6 +215,7 @@ class CheckoutTest extends TestCase
         $this->assertStringContainsString(str_repeat('-', 32), $comprobante);
         $this->assertStringContainsString('1xProducto1', $comprobante);
         $this->assertStringContainsString('Total', $comprobante);
+        $this->assertStringNotContainsString('¡', $comprobante);
     }
 
     private function product(int $price = 10, int $stock = 10): Product

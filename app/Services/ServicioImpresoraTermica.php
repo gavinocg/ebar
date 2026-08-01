@@ -156,7 +156,9 @@ class ServicioImpresoraTermica
     {
         $texto = $this->limpiar($texto);
 
-        return iconv('UTF-8', 'CP850//TRANSLIT//IGNORE', $texto) ?: $texto;
+        $texto = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $texto) ?: $texto;
+
+        return preg_replace('/[^\x20-\x7E]/', '', $texto) ?? '';
     }
 
     private function limpiar(string $texto): string
@@ -167,14 +169,14 @@ class ServicioImpresoraTermica
     private function agregarEncabezado($sale)
     {
         $this->commands[] = "\x1D\x21\x11";
-        $this->commands[] = $this->business->nombre_negocio . "\n";
+        $this->commands[] = $this->texto($this->business->nombre_negocio) . "\n";
         $this->commands[] = "\x1D\x21\x00";
         
-        $this->commands[] = "RFC: " . $this->business->rfc . "\n";
-        $this->commands[] = "Tel: " . $this->business->telefono . "\n";
+        $this->commands[] = "RFC: " . $this->texto($this->business->rfc) . "\n";
+        $this->commands[] = "Tel: " . $this->texto($this->business->telefono) . "\n";
         
         if ($this->business->direccion) {
-            $this->commands[] = $this->business->direccion . "\n";
+            $this->commands[] = $this->texto($this->business->direccion) . "\n";
         }
         
         $this->commands[] = "\n";
@@ -188,7 +190,7 @@ class ServicioImpresoraTermica
     private function agregarDetalles($sale)
     {
         foreach ($sale->detalles as $item) {
-            $this->commands[] = "{$item->cantidad} x {$item->nombre_producto}\n";
+            $this->commands[] = $this->texto("{$item->cantidad} x {$item->nombre_producto}") . "\n";
             $this->commands[] = "  P.U.: $" . number_format($item->precio, 2) . "\n";
             $this->commands[] = "\x1B\x61\x02"; // Right alignment
             $this->commands[] = "  $" . number_format($item->subtotal, 2) . "\n";
@@ -223,7 +225,7 @@ class ServicioImpresoraTermica
     {
         $this->commands[] = "\x1B\x61\x01";
         $this->commands[] = "\n";
-        $this->commands[] = $this->business->mensaje_comprobante . "\n";
+        $this->commands[] = $this->texto($this->business->mensaje_comprobante) . "\n";
         $this->commands[] = "\n";
         $this->commands[] = "\n";
     }
