@@ -16,6 +16,26 @@
             @endif
         </div>
         @if($turnoCaja)
+            <form method="POST" action="{{ route('caja.movimiento') }}" class="d-flex gap-2 align-items-end flex-wrap">
+                @csrf
+                <div>
+                    <label class="form-label small mb-1" for="tipo">Movimiento</label>
+                    <select class="form-select" id="tipo" name="tipo" required>
+                        <option value="entrada">Entrada</option>
+                        <option value="retiro">Retiro</option>
+                        <option value="gasto">Gasto</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label small mb-1" for="monto">Monto</label>
+                    <input class="form-control" id="monto" name="monto" type="number" min="0.01" step="0.01" required>
+                </div>
+                <div>
+                    <label class="form-label small mb-1" for="motivo">Motivo</label>
+                    <input class="form-control" id="motivo" name="motivo" type="text" maxlength="255" required>
+                </div>
+                <button class="btn btn-outline-primary" type="submit"><i class="bi bi-cash-coin"></i> Registrar</button>
+            </form>
             <form method="POST" action="{{ route('caja.cerrar') }}" class="d-flex gap-2 align-items-end">
                 @csrf
                 <div>

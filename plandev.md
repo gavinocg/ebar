@@ -53,7 +53,7 @@ Convertir el TPV en un sistema seguro, multi-tenant y orientado a dispositivos m
 - [x] `COMPLETADO` Cierre de turno con efectivo contado.
 - [x] `COMPLETADO` Cálculo de efectivo esperado y diferencia.
 - [x] `COMPLETADO` Asociación de venta con usuario y turno.
-- [ ] `PENDIENTE` Entradas y retiros manuales de efectivo.
+- [x] `COMPLETADO` Entradas y retiros manuales de efectivo.
 - [ ] `PENDIENTE` Reapertura autorizada de turnos cerrados.
 - [ ] `PENDIENTE` Reporte de arqueos y diferencias por cajero.
 
@@ -111,10 +111,10 @@ Convertir el TPV en un sistema seguro, multi-tenant y orientado a dispositivos m
 
 ## Fase 3: Efectivo Y Arqueos
 
-- [ ] Crear `movimientos_efectivo`.
-- [ ] Registrar ventas en efectivo.
-- [ ] Registrar retiros, gastos y entradas.
-- [ ] Exigir motivo en retiros y ajustes.
+- [x] Crear `movimientos_efectivo`.
+- [x] Registrar ventas en efectivo.
+- [x] Registrar retiros, gastos y entradas.
+- [x] Exigir motivo en retiros y ajustes.
 - [ ] Mejorar cálculo de efectivo esperado.
 - [ ] Crear reporte de turno.
 - [ ] Crear reporte de diferencias por usuario, caja y sucursal.
@@ -199,3 +199,16 @@ La siguiente unidad recomendada es **movimientos manuales de efectivo**, porque 
 - Se documentó la estrategia multi-tenant.
 - Se documentó el flujo de caja y cajeros.
 - Se excluyó deliberadamente el módulo de clientes específicos.
+
+### 2026-08-01 - Completado
+
+- Se implementó la unidad de movimientos manuales de efectivo.
+- Se agregaron entradas, retiros y gastos con motivo obligatorio.
+- Las ventas en efectivo generan movimientos automáticos.
+- El cierre calcula el efectivo esperado a partir del libro de movimientos.
+- Se agregaron pruebas de caja, movimientos y checkout.
+
+### 2026-08-01 - Siguiente Unidad
+
+- Reapertura autorizada de turnos cerrados.
+- Reporte de arqueos y diferencias por cajero.

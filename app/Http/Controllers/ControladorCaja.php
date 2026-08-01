@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Caja;
 use App\Models\TurnoCaja;
+use App\Models\MovimientoEfectivo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,6 +32,16 @@ class ControladorCaja extends Controller
             'estado' => 'abierta',
         ]);
 
+        $turno = $this->turnoAbierto();
+        MovimientoEfectivo::create([
+            'caja_id' => $caja->id,
+            'turno_caja_id' => $turno->id,
+            'usuario_id' => Auth::id(),
+            'tipo' => 'fondo_inicial',
+            'monto' => $datos['fondo_inicial'],
+            'motivo' => 'Apertura de caja',
+        ]);
+
         return back()->with('success', 'Turno de caja abierto correctamente.');
     }
 
@@ -47,10 +58,7 @@ class ControladorCaja extends Controller
             return back()->withErrors(['caja' => 'No tienes un turno de caja abierto.']);
         }
 
-        $efectivoVendido = $turno->ventas()
-            ->where('metodo_pago', 'efectivo')
-            ->sum('pagado');
-        $esperado = round((float) $turno->fondo_inicial + (float) $efectivoVendido, 2);
+        $esperado = round((float) $turno->movimientosEfectivo()->sum('monto'), 2);
         $contado = round((float) $datos['efectivo_contado'], 2);
 
         $turno->update([
@@ -63,6 +71,35 @@ class ControladorCaja extends Controller
         ]);
 
         return back()->with('success', 'Turno de caja cerrado correctamente.');
+    }
+
+    public function movimiento(Request $request): RedirectResponse
+    {
+        $datos = $request->validate([
+            'tipo' => 'required|in:entrada,retiro,gasto',
+            'monto' => 'required|numeric|min:0.01|max:99999999.99',
+            'motivo' => 'required|string|max:255',
+        ]);
+        $turno = $this->turnoAbierto();
+
+        if (!$turno) {
+            return back()->withErrors(['caja' => 'Debes abrir un turno antes de registrar efectivo.']);
+        }
+
+        $monto = in_array($datos['tipo'], ['retiro', 'gasto'], true)
+            ? -abs((float) $datos['monto'])
+            : abs((float) $datos['monto']);
+
+        MovimientoEfectivo::create([
+            'caja_id' => $turno->caja_id,
+            'turno_caja_id' => $turno->id,
+            'usuario_id' => Auth::id(),
+            'tipo' => $datos['tipo'],
+            'monto' => $monto,
+            'motivo' => $datos['motivo'],
+        ]);
+
+        return back()->with('success', 'Movimiento de efectivo registrado.');
     }
 
     private function turnoAbierto(): ?TurnoCaja

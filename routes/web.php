@@ -31,6 +31,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/punto-venta/cobrar', [PosController::class, 'cobrar'])->name('punto_venta.cobrar');
     Route::post('/caja/abrir', [ControladorCaja::class, 'abrir'])->name('caja.abrir');
     Route::post('/caja/cerrar', [ControladorCaja::class, 'cerrar'])->name('caja.cerrar');
+    Route::post('/caja/movimiento', [ControladorCaja::class, 'movimiento'])->name('caja.movimiento');
 
     Route::get('/panel', [DashboardController::class, 'index'])->name('panel.inicio');
     Route::get('/reportes/ventas', [DashboardController::class, 'reporteVentas'])->name('reportes.ventas');

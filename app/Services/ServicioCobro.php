@@ -7,6 +7,7 @@ use App\Models\MovimientoInventario as InventoryMovement;
 use App\Models\Producto as Product;
 use App\Models\Venta as Sale;
 use App\Models\TurnoCaja;
+use App\Models\MovimientoEfectivo;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -108,6 +109,19 @@ class ServicioCobro
                     'cantidad' => -$item['cantidad'],
                     'existencias_anteriores' => $stockBefore,
                     'existencias_posteriores' => $stockBefore - $item['cantidad'],
+                    'tipo_referencia' => Sale::class,
+                    'id_referencia' => $sale->id,
+                ]);
+            }
+
+            if ($paymentMethod === 'efectivo') {
+                MovimientoEfectivo::create([
+                    'caja_id' => $turnoCaja->caja_id,
+                    'turno_caja_id' => $turnoCaja->id,
+                    'usuario_id' => Auth::id(),
+                    'tipo' => 'venta',
+                    'monto' => $paidAmount,
+                    'motivo' => 'Venta ' . $sale->numero_comprobante,
                     'tipo_referencia' => Sale::class,
                     'id_referencia' => $sale->id,
                 ]);

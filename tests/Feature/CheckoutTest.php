@@ -92,6 +92,11 @@ class CheckoutTest extends TestCase
             'existencias_posteriores' => 1,
         ]);
         $this->assertDatabaseHas('productos', ['id' => $product->id, 'existencias' => 1]);
+        $this->assertDatabaseHas('movimientos_efectivo', [
+            'tipo' => 'venta',
+            'monto' => 25,
+            'turno_caja_id' => $this->turnoActual($usuario)->id,
+        ]);
     }
 
     public function test_caja_se_puede_abrir_y_cerrar_con_arqueo(): void
@@ -108,12 +113,18 @@ class CheckoutTest extends TestCase
             'fondo_inicial' => 100,
         ]);
 
-        $this->post(route('caja.cerrar'), ['efectivo_contado' => '100.00'])
+        $this->post(route('caja.movimiento'), [
+            'tipo' => 'entrada',
+            'monto' => '25.00',
+            'motivo' => 'Cambio adicional',
+        ])->assertRedirect();
+
+        $this->post(route('caja.cerrar'), ['efectivo_contado' => '125.00'])
             ->assertRedirect();
         $this->assertDatabaseHas('turnos_caja', [
             'usuario_id' => $usuario->id,
             'estado' => 'cerrada',
-            'efectivo_esperado' => 100,
+            'efectivo_esperado' => 125,
             'diferencia' => 0,
         ]);
     }
@@ -183,5 +194,10 @@ class CheckoutTest extends TestCase
             'abierto_en' => now(),
             'estado' => 'abierta',
         ]);
+    }
+
+    private function turnoActual(User $usuario): TurnoCaja
+    {
+        return TurnoCaja::where('usuario_id', $usuario->id)->where('estado', 'abierta')->latest('id')->firstOrFail();
     }
 }
