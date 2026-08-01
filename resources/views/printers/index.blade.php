@@ -321,8 +321,7 @@ async function printViaBluetooth(commands, macAddress) {
     const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
     const characteristic = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
     
-    const encoder = new TextEncoder();
-    const data = encoder.encode(commands);
+    const data = Uint8Array.from(commands, character => character.charCodeAt(0));
     
     const chunkSize = 512;
     for (let i = 0; i < data.length; i += chunkSize) {
