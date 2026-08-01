@@ -283,32 +283,18 @@ async function printTestTicket(ticketBase64, printerData) {
 }
 
 function printTestTicketHtml(htmlContent) {
-    let iframe = document.getElementById('print-iframe');
-    if (iframe) {
-        iframe.remove();
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        throw new Error('El navegador bloqueó la ventana de impresión. Permite ventanas emergentes para este sitio.');
     }
-    
-    iframe = document.createElement('iframe');
-    iframe.id = 'print-iframe';
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = '0';
-    document.body.appendChild(iframe);
-    
-    const doc = iframe.contentWindow.document;
-    doc.open();
-    doc.write(htmlContent);
-    doc.close();
-    
+
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
     setTimeout(() => {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-        setTimeout(() => {
-            iframe.remove();
-        }, 1000);
+        printWindow.focus();
+        printWindow.print();
+        setTimeout(() => printWindow.close(), 1000);
     }, 500);
 }
 
