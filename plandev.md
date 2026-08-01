@@ -47,7 +47,7 @@ Convertir el TPV en un sistema seguro, multi-tenant y orientado a dispositivos m
 - [x] `COMPLETADO` Imágenes, colores, iconos y distintivos para productos y categorías.
 - [x] `COMPLETADO` Comprobante térmico compacto para papel de 58 mm.
 - [x] `COMPLETADO` Columnas izquierda/derecha para artículos e importes en tickets térmicos.
-- [ ] `EN_PROGRESO` Conexión Bluetooth previa para Android Chrome.
+- [x] `COMPLETADO` Conexión Bluetooth previa para Android Chrome.
 
 ### Operación De Caja
 
@@ -232,3 +232,10 @@ La siguiente unidad recomendada es **movimientos manuales de efectivo**, porque 
 - El POS ya permite conectar la impresora antes de cobrar.
 - La prueba de impresora conecta antes de solicitar el ticket.
 - Se dejó pendiente validar físicamente la WDT-492 y confirmar si utiliza BLE o Bluetooth clásico.
+
+### 2026-08-01 - WDT-492 Validada
+
+- Se confirmó que la WDT-492 expone Bluetooth BLE.
+- Se confirmó el servicio de impresión `0x18F0`.
+- Se confirmó impresión correcta desde Chrome Android.
+- La conexión debe desconectarse previamente de nRF Connect antes de usar el TPV.
