@@ -12,7 +12,7 @@
         @foreach($categories as $category)
             <button class="category-btn" data-category="{{ $category->id }}">
                 <i class="bi bi-tag"></i>
-                <span>{{ $category->name }}</span>
+                <span>{{ $category->nombre }}</span>
             </button>
         @endforeach
     </div>
@@ -26,17 +26,17 @@
             <div class="row g-3" id="productsGrid">
                 @foreach($products as $product)
                     <div class="col-6 col-md-4 col-lg-3 product-item" 
-                         data-category="{{ $product->category_id }}" 
-                         data-name="{{ strtolower($product->name) }}"
-                         data-barcode="{{ $product->barcode }}">
-                        <div class="product-card {{ $product->stock == 0 ? 'out-of-stock' : '' }}" 
+                         data-category="{{ $product->categoria_id }}"
+                         data-name="{{ strtolower($product->nombre) }}"
+                         data-barcode="{{ $product->codigo_barras }}">
+                        <div class="product-card {{ $product->existencias == 0 ? 'out-of-stock' : '' }}"
                              data-id="{{ $product->id }}"
-                             data-name="{{ $product->name }}"
-                             data-price="{{ $product->price }}"
-                             data-stock="{{ $product->stock }}">
-                            <div class="name">{{ $product->name }}</div>
-                            <div class="price">${{ number_format($product->price, 2) }}</div>
-                            <div class="stock">Stock: {{ $product->stock }}</div>
+                              data-name="{{ $product->nombre }}"
+                              data-price="{{ $product->precio }}"
+                              data-stock="{{ $product->existencias }}">
+                            <div class="name">{{ $product->nombre }}</div>
+                            <div class="price">${{ number_format($product->precio, 2) }}</div>
+                            <div class="stock">Existencias: {{ $product->existencias }}</div>
                         </div>
                     </div>
                 @endforeach
@@ -71,9 +71,9 @@
                 <span>Subtotal:</span>
                 <span id="subtotal">$0.00</span>
             </div>
-            @if($business->charge_tax)
+            @if($business->cobrar_impuesto)
             <div class="d-flex justify-content-between mb-2" id="taxRow">
-                <span id="taxLabel">IVA ({{ $business->tax_percentage }}%):</span>
+                <span id="taxLabel">Impuesto ({{ $business->porcentaje_impuesto }}%):</span>
                 <span id="tax">$0.00</span>
             </div>
             @endif
@@ -83,9 +83,9 @@
             
             <div class="d-flex gap-2 mb-2">
                 <select id="paymentMethod" class="form-select">
-                    <option value="cash">Efectivo</option>
-                    <option value="card">Tarjeta</option>
-                    <option value="transfer">Transferencia</option>
+                    <option value="efectivo">Efectivo</option>
+                    <option value="tarjeta">Tarjeta</option>
+                    <option value="transferencia">Transferencia</option>
                 </select>
             </div>
             
@@ -153,15 +153,15 @@ let cart = [];
 let currentTotal = 0;
 let lastSaleHtml = null;
 const printerConfig = {!! $printer ? json_encode([
-    'type' => $printer->connection_type,
-    'address' => $printer->address,
-    'port' => $printer->port,
+    'tipo' => $printer->tipo_conexion,
+    'direccion' => $printer->direccion,
+    'puerto' => $printer->puerto,
 ]) : 'null' !!};
 @php
-    $business = \App\Models\BusinessSetting::getSettings();
+    $business = \App\Models\ConfiguracionNegocio::obtenerConfiguracion();
 @endphp
-const chargeTax = {{ $business->charge_tax ? 'true' : 'false' }};
-const taxPercentage = {{ $business->tax_percentage }};
+const chargeTax = {{ $business->cobrar_impuesto ? 'true' : 'false' }};
+const taxPercentage = {{ $business->porcentaje_impuesto }};
 
 document.querySelectorAll('.category-btn').forEach(btn => {
     btn.addEventListener('click', function() {
@@ -350,12 +350,13 @@ async function processSale() {
         return;
     }
     
-    const btn = event.target;
+    const btn = document.querySelector('#checkoutModal button[onclick="processSale()"]');
+    const idempotencyKey = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
     btn.disabled = true;
     btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Procesando...';
     
     try {
-        const response = await fetch('{{ route("pos.checkout") }}', {
+        const response = await fetch('{{ route("punto_venta.cobrar") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -364,9 +365,10 @@ async function processSale() {
                 'X-Requested-With': 'XMLHttpRequest'
             },
             body: JSON.stringify({
-                items: cart.map(item => ({ product_id: item.id, quantity: item.qty })),
-                payment_method: document.getElementById('paymentMethod').value,
-                paid: paid.toFixed(2)
+                items: cart.map(item => ({ producto_id: item.id, cantidad: item.qty })),
+                metodo_pago: document.getElementById('paymentMethod').value,
+                pagado: paid.toFixed(2),
+                clave_idempotencia: idempotencyKey
             })
         });
         
@@ -385,7 +387,7 @@ async function processSale() {
                 printTicketHtml(data.ticket_html);
             }
             
-            alert('Venta registrada: ' + data.sale.ticket_number);
+            alert('Venta registrada: ' + data.sale.numero_comprobante);
             cart = [];
             renderCart();
         }
@@ -401,10 +403,10 @@ async function printTicket(ticketBase64, printerData) {
     try {
         const commands = atob(ticketBase64);
         
-        if (printerData.type === 'bluetooth') {
-            await printViaBluetooth(commands, printerData.address);
-        } else if (printerData.type === 'wifi' || printerData.type === 'lan') {
-            await printViaNetwork(commands, printerData.address, printerData.port);
+        if (printerData.tipo === 'bluetooth') {
+            await printViaBluetooth(commands, printerData.direccion);
+        } else if (printerData.tipo === 'wifi' || printerData.tipo === 'lan') {
+            await printViaNetwork(commands, printerData.direccion, printerData.puerto);
         }
     } catch (error) {
         console.error('Error de impresión:', error);

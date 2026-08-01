@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Sale;
-use App\Models\Product;
-use App\Models\Category;
+use App\Models\Venta as Sale;
+use App\Models\Producto as Product;
+use App\Models\Categoria as Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
-class DashboardController extends Controller
+class ControladorPanel extends Controller
 {
     public function index()
     {
@@ -22,17 +22,17 @@ class DashboardController extends Controller
         $salesMonth = Sale::where('created_at', '>=', $monthStart)->count();
         $revenueMonth = Sale::where('created_at', '>=', $monthStart)->sum('total');
 
-        $productsCount = Product::where('is_active', true)->count();
+        $productsCount = Product::where('esta_activo', true)->count();
         $categoriesCount = Category::count();
 
-        $recentSales = Sale::with('items')
+        $recentSales = Sale::with('detalles')
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
 
-        $lowStockProducts = Product::where('stock', '<=', 10)
-            ->where('is_active', true)
-            ->orderBy('stock', 'asc')
+        $lowStockProducts = Product::where('existencias', '<=', 10)
+            ->where('esta_activo', true)
+            ->orderBy('existencias', 'asc')
             ->limit(10)
             ->get();
 
@@ -48,12 +48,12 @@ class DashboardController extends Controller
         ));
     }
 
-    public function salesReport(Request $request)
+    public function reporteVentas(Request $request)
     {
         $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->toDateString());
         $endDate = $request->get('end_date', Carbon::now()->toDateString());
 
-        $sales = Sale::with('items')
+        $sales = Sale::with('detalles')
             ->whereBetween('created_at', [$startDate, $endDate])
             ->orderBy('created_at', 'desc')
             ->get();
@@ -83,32 +83,32 @@ class DashboardController extends Controller
         ));
     }
 
-    public function inventoryReport()
+    public function reporteInventario()
     {
-        $products = Product::with('category')
-            ->where('is_active', true)
-            ->orderBy('name')
+        $products = Product::with('categoria')
+            ->where('esta_activo', true)
+            ->orderBy('nombre')
             ->get();
 
         $totalProducts = $products->count();
-        $totalStock = $products->sum('stock');
+        $totalStock = $products->sum('existencias');
         $totalValue = $products->sum(function ($product) {
-            return $product->stock * $product->price;
+            return $product->existencias * $product->precio;
         });
 
         $lowStock = $products->filter(function ($product) {
-            return $product->stock <= 10;
+            return $product->existencias <= 10;
         });
 
         $outOfStock = $products->filter(function ($product) {
-            return $product->stock == 0;
+            return $product->existencias == 0;
         });
 
-        $byCategory = Product::select('categories.name as category_name', DB::raw('COUNT(*) as count'), DB::raw('SUM(stock) as total_stock'))
-            ->join('categories', 'products.category_id', '=', 'categories.id')
-            ->where('products.is_active', true)
-            ->groupBy('categories.id', 'categories.name')
-            ->orderBy('categories.name')
+        $byCategory = Product::select('categorias.nombre as nombre_categoria', DB::raw('COUNT(*) as cantidad'), DB::raw('SUM(productos.existencias) as existencias_totales'))
+            ->join('categorias', 'productos.categoria_id', '=', 'categorias.id')
+            ->where('productos.esta_activo', true)
+            ->groupBy('categorias.id', 'categorias.nombre')
+            ->orderBy('categorias.nombre')
             ->get();
 
         return view('dashboard.inventory-report', compact(

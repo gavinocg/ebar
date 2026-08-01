@@ -1,10 +1,10 @@
 @extends('layouts.app')
 
-@section('title', 'Ticket ' . $sale->ticket_number)
+@section('title', 'Comprobante ' . $sale->numero_comprobante)
 
 @section('content')
 <div class="mb-3">
-    <a href="{{ route('sales.index') }}" class="btn btn-outline-secondary">
+    <a href="{{ route('ventas.index') }}" class="btn btn-outline-secondary">
         <i class="bi bi-arrow-left"></i> Volver
     </a>
     <button class="btn btn-primary" onclick="window.print()">
@@ -14,16 +14,16 @@
 
 <div class="card">
     <div class="card-header">
-        <h5 class="mb-0">Ticket {{ $sale->ticket_number }}</h5>
+        <h5 class="mb-0">Comprobante {{ $sale->numero_comprobante }}</h5>
     </div>
     <div class="card-body">
         <div class="row mb-4">
             <div class="col-md-6">
                 <p><strong>Fecha:</strong> {{ $sale->created_at->format('d/m/Y H:i:s') }}</p>
                 <p><strong>Método de pago:</strong> 
-                    @if($sale->payment_method == 'cash')
+                    @if($sale->metodo_pago == 'efectivo')
                         Efectivo
-                    @elseif($sale->payment_method == 'card')
+                    @elseif($sale->metodo_pago == 'tarjeta')
                         Tarjeta
                     @else
                         Transferencia
@@ -47,11 +47,11 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($sale->items as $item)
+                    @foreach($sale->detalles as $item)
                         <tr>
-                            <td>{{ $item->product_name }}</td>
-                            <td class="text-center">{{ $item->quantity }}</td>
-                            <td class="text-end">${{ number_format($item->price, 2) }}</td>
+                            <td>{{ $item->nombre_producto }}</td>
+                            <td class="text-center">{{ $item->cantidad }}</td>
+                            <td class="text-end">${{ number_format($item->precio, 2) }}</td>
                             <td class="text-end">${{ number_format($item->subtotal, 2) }}</td>
                         </tr>
                     @endforeach
@@ -62,8 +62,8 @@
                         <td class="text-end">${{ number_format($sale->subtotal, 2) }}</td>
                     </tr>
                     <tr>
-                        <td colspan="3" class="text-end"><strong>IVA (16%):</strong></td>
-                        <td class="text-end">${{ number_format($sale->tax, 2) }}</td>
+                        <td colspan="3" class="text-end"><strong>{{ $sale->impuesto_habilitado ? 'Impuesto (' . number_format($sale->porcentaje_impuesto, 2) . '%):' : 'Impuestos:' }}</strong></td>
+                        <td class="text-end">${{ number_format($sale->impuesto, 2) }}</td>
                     </tr>
                     <tr class="table-success">
                         <td colspan="3" class="text-end"><strong>Total:</strong></td>
@@ -71,11 +71,11 @@
                     </tr>
                     <tr>
                         <td colspan="3" class="text-end">Pagado:</td>
-                        <td class="text-end">${{ number_format($sale->paid, 2) }}</td>
+                        <td class="text-end">${{ number_format($sale->pagado, 2) }}</td>
                     </tr>
                     <tr>
                         <td colspan="3" class="text-end">Cambio:</td>
-                        <td class="text-end">${{ number_format($sale->change, 2) }}</td>
+                        <td class="text-end">${{ number_format($sale->cambio, 2) }}</td>
                     </tr>
                 </tfoot>
             </table>

@@ -8,17 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('printers', function (Blueprint $table) {
-            $table->enum('connection_type', ['bluetooth', 'wifi', 'lan', 'normal'])->change();
-            $table->string('printer_type')->default('thermal')->after('connection_type');
+        Schema::table('impresoras', function (Blueprint $table) {
+            $table->enum('tipo_conexion', ['bluetooth', 'wifi', 'lan', 'normal'])->change();
+            $table->string('tipo_impresora')->default('termica')->after('tipo_conexion');
         });
     }
 
     public function down(): void
     {
-        Schema::table('printers', function (Blueprint $table) {
-            $table->dropColumn('printer_type');
-            $table->enum('connection_type', ['bluetooth', 'wifi', 'lan'])->change();
+        Schema::table('impresoras', function (Blueprint $table) {
+            $table->dropColumn('tipo_impresora');
+            $table->enum('tipo_conexion', ['bluetooth', 'wifi', 'lan'])->change();
         });
     }
 };

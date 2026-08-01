@@ -95,10 +95,10 @@
                             <tbody>
                                 @foreach($lowStock as $product)
                                     <tr>
-                                        <td>{{ $product->name }}</td>
+                                        <td>{{ $product->nombre }}</td>
                                         <td>
-                                            <span class="badge bg-{{ $product->stock == 0 ? 'danger' : 'warning' }}">
-                                                {{ $product->stock }}
+                                            <span class="badge bg-{{ $product->existencias == 0 ? 'danger' : 'warning' }}">
+                                                {{ $product->existencias }}
                                             </span>
                                         </td>
                                     </tr>
@@ -133,15 +133,15 @@
                 <tbody>
                     @foreach($products as $product)
                         <tr>
-                            <td>{{ $product->name }}</td>
-                            <td>{{ $product->category->name }}</td>
-                            <td>${{ number_format($product->price, 2) }}</td>
+                            <td>{{ $product->nombre }}</td>
+                            <td>{{ $product->categoria->nombre }}</td>
+                            <td>${{ number_format($product->precio, 2) }}</td>
                             <td>
-                                <span class="badge bg-{{ $product->stock == 0 ? 'danger' : ($product->stock <= 10 ? 'warning' : 'success') }}">
-                                    {{ $product->stock }}
+                                <span class="badge bg-{{ $product->existencias == 0 ? 'danger' : ($product->existencias <= 10 ? 'warning' : 'success') }}">
+                                    {{ $product->existencias }}
                                 </span>
                             </td>
-                            <td>${{ number_format($product->stock * $product->price, 2) }}</td>
+                            <td>${{ number_format($product->existencias * $product->precio, 2) }}</td>
                         </tr>
                     @endforeach
                 </tbody>

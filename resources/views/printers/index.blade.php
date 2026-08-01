@@ -10,20 +10,20 @@
                 <h5 class="mb-0">Nueva Impresora</h5>
             </div>
             <div class="card-body">
-                <form action="{{ route('printers.store') }}" method="POST">
+                <form action="{{ route('impresoras.store') }}" method="POST">
                     @csrf
                     <div class="mb-3">
                         <label class="form-label">Nombre</label>
-                        <input type="text" name="name" class="form-control" required placeholder="Ej: Impresora Cocina">
+                        <input type="text" name="nombre" class="form-control" required placeholder="Ej: Impresora Cocina">
                     </div>
                     
                     <div class="mb-3">
                         <label class="form-label">Tipo de Impresora</label>
-                        <select name="connection_type" class="form-select" id="connectionType" required onchange="toggleFields()">
+                        <select name="tipo_conexion" class="form-select" id="connectionType" required onchange="toggleFields()">
                             <option value="bluetooth">POS - Bluetooth</option>
                             <option value="wifi">POS - WiFi</option>
                             <option value="lan">POS - LAN</option>
-                            <option value="normal">Normal - Inkjet/Láser (A5)</option>
+                            <option value="normal">Convencional - Inyección/Láser (A5)</option>
                         </select>
                         <small class="text-muted">POS: Impresoras térmicas de tickets | Normal: Impresoras de inyección o láser</small>
                     </div>
@@ -31,20 +31,20 @@
                     <div id="networkFields">
                         <div class="mb-3">
                             <label class="form-label">Dirección</label>
-                            <input type="text" name="address" class="form-control" placeholder="MAC o IP">
+                            <input type="text" name="direccion" class="form-control" placeholder="MAC o IP">
                             <small class="text-muted">Bluetooth: 00:11:22:33:44:55 | WiFi/LAN: 192.168.1.100</small>
                         </div>
                         
                         <div class="mb-3">
                             <label class="form-label">Puerto</label>
-                            <input type="number" name="port" class="form-control" value="9100">
+                            <input type="number" name="puerto" class="form-control" value="9100">
                             <small class="text-muted">Estándar: 9100 para impresoras POS de red</small>
                         </div>
                     </div>
                     
                     <div class="mb-3">
                         <label class="form-label">Tamaño de Papel</label>
-                        <select name="paper_width" class="form-select" required>
+                        <select name="ancho_papel" class="form-select" required>
                             <option value="80mm">80mm (POS térmica)</option>
                             <option value="58mm">58mm (POS térmica)</option>
                             <option value="a5">A5 (148mm x 210mm)</option>
@@ -54,7 +54,7 @@
                     </div>
                     
                     <div class="mb-3 form-check">
-                        <input type="checkbox" name="is_default" class="form-check-input" value="1">
+                        <input type="checkbox" name="es_predeterminada" class="form-check-input" value="1">
                         <label class="form-check-label">Impresora principal</label>
                     </div>
                     
@@ -90,25 +90,25 @@
                                 @foreach($printers as $printer)
                                     <tr>
                                         <td>
-                                            {{ $printer->name }}
-                                            @if($printer->is_default)
+                                            {{ $printer->nombre }}
+                                            @if($printer->es_predeterminada)
                                                 <span class="badge bg-success">Principal</span>
                                             @endif
                                         </td>
                                         <td>
-                                            @if($printer->connection_type == 'bluetooth')
+                                            @if($printer->tipo_conexion == 'bluetooth')
                                                 <i class="bi bi-bluetooth text-primary"></i> Bluetooth
-                                            @elseif($printer->connection_type == 'wifi')
+                                            @elseif($printer->tipo_conexion == 'wifi')
                                                 <i class="bi bi-wifi text-success"></i> WiFi
                                             @else
                                                 <i class="bi bi-ethernet text-info"></i> LAN
                                             @endif
                                         </td>
-                                        <td><code>{{ $printer->address }}</code></td>
-                                        <td>{{ $printer->port }}</td>
-                                        <td>{{ $printer->paper_width }}</td>
+                                        <td><code>{{ $printer->direccion }}</code></td>
+                                        <td>{{ $printer->puerto }}</td>
+                                        <td>{{ $printer->ancho_papel }}</td>
                                         <td>
-                                            @if($printer->is_active)
+                                            @if($printer->esta_activa)
                                                 <span class="badge bg-success">Activa</span>
                                             @else
                                                 <span class="badge bg-secondary">Inactiva</span>
@@ -121,7 +121,7 @@
                                             <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ $printer->id }}">
                                                 <i class="bi bi-pencil"></i>
                                             </button>
-                                            <form action="{{ route('printers.destroy', $printer) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Eliminar impresora?')">
+                                            <form action="{{ route('impresoras.destroy', $printer) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Eliminar impresora?')">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">
@@ -134,7 +134,7 @@
                                     <div class="modal fade" id="editModal{{ $printer->id }}" tabindex="-1">
                                         <div class="modal-dialog">
                                             <div class="modal-content">
-                                                <form action="{{ route('printers.update', $printer) }}" method="POST">
+                                                <form action="{{ route('impresoras.update', $printer) }}" method="POST">
                                                     @csrf
                                                     @method('PUT')
                                                     <div class="modal-header">
@@ -144,41 +144,41 @@
                                                     <div class="modal-body">
                                                         <div class="mb-3">
                                                             <label class="form-label">Nombre</label>
-                                                            <input type="text" name="name" class="form-control" value="{{ $printer->name }}" required>
+                                                            <input type="text" name="nombre" class="form-control" value="{{ $printer->nombre }}" required>
                                                         </div>
                                                         
                                                         <div class="mb-3">
                                                             <label class="form-label">Tipo de Conexión</label>
-                                                            <select name="connection_type" class="form-select" required>
-                                                                <option value="bluetooth" {{ $printer->connection_type == 'bluetooth' ? 'selected' : '' }}>Bluetooth</option>
-                                                                <option value="wifi" {{ $printer->connection_type == 'wifi' ? 'selected' : '' }}>WiFi</option>
-                                                                <option value="lan" {{ $printer->connection_type == 'lan' ? 'selected' : '' }}>LAN</option>
+                                                            <select name="tipo_conexion" class="form-select" required>
+                                                                <option value="bluetooth" {{ $printer->tipo_conexion == 'bluetooth' ? 'selected' : '' }}>Bluetooth</option>
+                                                                <option value="wifi" {{ $printer->tipo_conexion == 'wifi' ? 'selected' : '' }}>WiFi</option>
+                                                                <option value="lan" {{ $printer->tipo_conexion == 'lan' ? 'selected' : '' }}>LAN</option>
                                                             </select>
                                                         </div>
                                                         
                                                         <div class="mb-3">
                                                             <label class="form-label">Dirección</label>
-                                                            <input type="text" name="address" class="form-control" value="{{ $printer->address }}" required>
+                                                            <input type="text" name="direccion" class="form-control" value="{{ $printer->direccion }}" required>
                                                         </div>
                                                         
                                                         <div class="mb-3">
                                                             <label class="form-label">Puerto</label>
-                                                            <input type="number" name="port" class="form-control" value="{{ $printer->port }}" required>
+                                                            <input type="number" name="puerto" class="form-control" value="{{ $printer->puerto }}" required>
                                                         </div>
                                                         
                                                         <div class="mb-3">
                                                             <label class="form-label">Tamaño de Papel</label>
-                                                            <select name="paper_width" class="form-select" required>
-                                                                <option value="80mm" {{ $printer->paper_width == '80mm' ? 'selected' : '' }}>80mm (POS térmica)</option>
-                                                                <option value="58mm" {{ $printer->paper_width == '58mm' ? 'selected' : '' }}>58mm (POS térmica)</option>
-                                                                <option value="a5" {{ $printer->paper_width == 'a5' ? 'selected' : '' }}>A5 (148mm x 210mm)</option>
-                                                                <option value="a4" {{ $printer->paper_width == 'a4' ? 'selected' : '' }}>A4 (210mm x 297mm)</option>
-                                                                <option value="letter" {{ $printer->paper_width == 'letter' ? 'selected' : '' }}>Carta (216mm x 279mm)</option>
+                                                            <select name="ancho_papel" class="form-select" required>
+                                                                <option value="80mm" {{ $printer->ancho_papel == '80mm' ? 'selected' : '' }}>80mm (POS térmica)</option>
+                                                                <option value="58mm" {{ $printer->ancho_papel == '58mm' ? 'selected' : '' }}>58mm (POS térmica)</option>
+                                                                <option value="a5" {{ $printer->ancho_papel == 'a5' ? 'selected' : '' }}>A5 (148mm x 210mm)</option>
+                                                                <option value="a4" {{ $printer->ancho_papel == 'a4' ? 'selected' : '' }}>A4 (210mm x 297mm)</option>
+                                                                <option value="letter" {{ $printer->ancho_papel == 'letter' ? 'selected' : '' }}>Carta (216mm x 279mm)</option>
                                                             </select>
                                                         </div>
                                                         
                                                         <div class="mb-3 form-check">
-                                                            <input type="checkbox" name="is_default" class="form-check-input" value="1" {{ $printer->is_default ? 'checked' : '' }}>
+                                                            <input type="checkbox" name="es_predeterminada" class="form-check-input" value="1" {{ $printer->es_predeterminada ? 'checked' : '' }}>
                                                             <label class="form-check-label">Impresora principal</label>
                                                         </div>
                                                     </div>

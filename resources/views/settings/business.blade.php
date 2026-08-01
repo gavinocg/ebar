@@ -10,23 +10,23 @@
                 <h5 class="mb-0">Configuración del Negocio</h5>
             </div>
             <div class="card-body">
-                <form action="{{ route('settings.business.update') }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('configuracion.negocio.actualizar') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     
                     <div class="mb-3">
                         <label class="form-label">Nombre del Negocio *</label>
-                        <input type="text" name="business_name" class="form-control" value="{{ $settings->business_name ?? '' }}" required>
+                        <input type="text" name="nombre_negocio" class="form-control" value="{{ $settings->nombre_negocio ?? '' }}" required>
                         <small class="text-muted">Este nombre aparecerá en los tickets</small>
                     </div>
                     
                     <div class="mb-3">
                         <label class="form-label">Logo del Negocio</label>
-                        @if($settings && $settings->logo)
+                        @if($settings && $settings->logotipo)
                             <div class="mb-2">
-                                <img src="{{ asset('storage/' . $settings->logo) }}" alt="Logo" style="max-width: 200px; max-height: 100px;">
+                                <img src="{{ asset('storage/' . $settings->logotipo) }}" alt="Logotipo" style="max-width: 200px; max-height: 100px;">
                             </div>
                         @endif
-                        <input type="file" name="logo" class="form-control" accept="image/*">
+                        <input type="file" name="logotipo" class="form-control" accept="image/*">
                         <small class="text-muted">Formatos: JPG, PNG, GIF. Máximo 2MB. Se imprimirá en el encabezado de los tickets</small>
                     </div>
                     
@@ -38,18 +38,18 @@
                         
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Teléfono</label>
-                            <input type="text" name="phone" class="form-control" value="{{ $settings->phone ?? '' }}">
+                        <input type="text" name="telefono" class="form-control" value="{{ $settings->telefono ?? '' }}">
                         </div>
                     </div>
                     
                     <div class="mb-3">
                         <label class="form-label">Dirección</label>
-                        <textarea name="address" class="form-control" rows="2">{{ $settings->address ?? '' }}</textarea>
+                        <textarea name="direccion" class="form-control" rows="2">{{ $settings->direccion ?? '' }}</textarea>
                     </div>
                     
                     <div class="mb-3">
                         <label class="form-label">Mensaje del Ticket</label>
-                        <textarea name="ticket_message" class="form-control" rows="2">{{ $settings->ticket_message ?? '¡GRACIAS POR SU COMPRA!' }}</textarea>
+                        <textarea name="mensaje_comprobante" class="form-control" rows="2">{{ $settings->mensaje_comprobante ?? '¡GRACIAS POR SU COMPRA!' }}</textarea>
                         <small class="text-muted">Mensaje que aparecerá al final del ticket</small>
                     </div>
                     
@@ -59,14 +59,14 @@
                         </div>
                         <div class="card-body">
                             <div class="mb-3 form-check form-switch">
-                                <input type="hidden" name="charge_tax" value="0">
-                                <input type="checkbox" name="charge_tax" class="form-check-input" id="chargeTax" value="1" {{ ($settings->charge_tax ?? true) ? 'checked' : '' }} onchange="toggleTaxPercentage()">
+                                <input type="hidden" name="cobrar_impuesto" value="0">
+                                <input type="checkbox" name="cobrar_impuesto" class="form-check-input" id="chargeTax" value="1" {{ ($settings->cobrar_impuesto ?? true) ? 'checked' : '' }} onchange="toggleTaxPercentage()">
                                 <label class="form-check-label" for="chargeTax">Cobrar IVA</label>
                             </div>
                             
                             <div class="mb-3" id="taxPercentageGroup">
                                 <label class="form-label">Porcentaje de IVA (%)</label>
-                                <input type="number" name="tax_percentage" class="form-control" value="{{ $settings->tax_percentage ?? 16 }}" step="0.01" min="0" max="100">
+                                <input type="number" name="porcentaje_impuesto" class="form-control" value="{{ $settings->porcentaje_impuesto ?? 15 }}" step="0.01" min="0" max="100">
                             </div>
                         </div>
                     </div>
@@ -87,14 +87,14 @@
             <div class="card-body">
                 <div style="font-family: 'Courier New', monospace; background: white; padding: 20px; border: 1px solid #333; max-width: 300px; margin: 0 auto;">
                     <div style="text-align: center;">
-                        @if($settings && $settings->logo)
+                        @if($settings && $settings->logotipo)
                             <div style="margin-bottom: 8px;">
-                                <img src="{{ asset('storage/' . $settings->logo) }}" style="max-width: 150px; max-height: 75px;">
+                                <img src="{{ asset('storage/' . $settings->logotipo) }}" style="max-width: 150px; max-height: 75px;">
                             </div>
                         @endif
-                        <strong style="font-size: 16px;">{{ $settings->business_name ?? 'MI NEGOCIO' }}</strong><br>
+                        <strong style="font-size: 16px;">{{ $settings->nombre_negocio ?? 'MI NEGOCIO' }}</strong><br>
                         <small>RFC: {{ $settings->rfc ?? 'XAXX010101000' }}</small><br>
-                        <small>Tel: {{ $settings->phone ?? '(555) 123-4567' }}</small>
+                        <small>Tel: {{ $settings->telefono ?? '(02) 000-0000' }}</small>
                     </div>
                     <hr style="border: none; border-top: 1px dashed #000; margin: 10px 0;">
                     <small>
@@ -113,20 +113,20 @@
                             <span>Subtotal:</span>
                             <span>$20.00</span>
                         </div>
-                        @if($settings->charge_tax ?? true)
+                        @if($settings->cobrar_impuesto ?? true)
                         <div style="display: flex; justify-content: space-between;">
-                            <span>IVA ({{ $settings->tax_percentage ?? 16 }}%):</span>
+                            <span>Impuesto ({{ $settings->porcentaje_impuesto ?? 15 }}%):</span>
                             <span>$3.20</span>
                         </div>
                         @endif
                         <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold;">
                             <span>TOTAL:</span>
-                            <span>${{ ($settings->charge_tax ?? true) ? '23.20' : '20.00' }}</span>
+                            <span>${{ ($settings->cobrar_impuesto ?? true) ? '23.00' : '20.00' }}</span>
                         </div>
                     </small>
                     <hr style="border: none; border-top: 1px dashed #000; margin: 10px 0;">
                     <div style="text-align: center; font-weight: bold;">
-                        <small>{{ $settings->ticket_message ?? '¡GRACIAS POR SU COMPRA!' }}</small>
+                        <small>{{ $settings->mensaje_comprobante ?? '¡GRACIAS POR SU COMPRA!' }}</small>
                     </div>
                 </div>
             </div>

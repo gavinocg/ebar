@@ -1,12 +1,12 @@
 @php
-    $business = \App\Models\BusinessSetting::getSettings();
+    $business = \App\Models\ConfiguracionNegocio::obtenerConfiguracion();
 @endphp
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Dashboard') - {{ $business->business_name }}</title>
+    <title>@yield('title', 'Panel') - {{ $business->nombre_negocio }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -177,19 +177,19 @@
     
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <h4><i class="bi bi-shop"></i> {{ $business->business_name }}</h4>
+            <h4><i class="bi bi-shop"></i> {{ $business->nombre_negocio }}</h4>
         </div>
         
         <ul class="sidebar-menu">
             <li class="menu-label">Principal</li>
             <li>
-                <a href="{{ route('dashboard.index') }}" class="{{ request()->routeIs('dashboard.*') ? 'active' : '' }}">
+                <a href="{{ route('panel.inicio') }}" class="{{ request()->routeIs('panel.*') ? 'active' : '' }}">
                     <i class="bi bi-speedometer2"></i>
                     <span>Dashboard</span>
                 </a>
             </li>
             <li>
-                <a href="{{ route('pos.index') }}" class="{{ request()->routeIs('pos.*') ? 'active' : '' }}">
+                <a href="{{ route('punto_venta.inicio') }}" class="{{ request()->routeIs('punto_venta.*') ? 'active' : '' }}">
                     <i class="bi bi-cart"></i>
                     <span>Punto de Venta</span>
                 </a>
@@ -197,13 +197,13 @@
             
             <li class="menu-label">Inventario</li>
             <li>
-                <a href="{{ route('products.index') }}" class="{{ request()->routeIs('products.*') ? 'active' : '' }}">
+                <a href="{{ route('productos.index') }}" class="{{ request()->routeIs('productos.*') ? 'active' : '' }}">
                     <i class="bi bi-box"></i>
                     <span>Productos</span>
                 </a>
             </li>
             <li>
-                <a href="{{ route('categories.index') }}" class="{{ request()->routeIs('categories.*') ? 'active' : '' }}">
+                <a href="{{ route('categorias.index') }}" class="{{ request()->routeIs('categorias.*') ? 'active' : '' }}">
                     <i class="bi bi-tags"></i>
                     <span>Categorías</span>
                 </a>
@@ -211,7 +211,7 @@
             
             <li class="menu-label">Ventas</li>
             <li>
-                <a href="{{ route('sales.index') }}" class="{{ request()->routeIs('sales.*') ? 'active' : '' }}">
+                <a href="{{ route('ventas.index') }}" class="{{ request()->routeIs('ventas.*') ? 'active' : '' }}">
                     <i class="bi bi-receipt"></i>
                     <span>Historial</span>
                 </a>
@@ -219,13 +219,13 @@
             
             <li class="menu-label">Reportes</li>
             <li>
-                <a href="{{ route('reports.sales') }}" class="{{ request()->routeIs('reports.sales') ? 'active' : '' }}">
+                <a href="{{ route('reportes.ventas') }}" class="{{ request()->routeIs('reportes.ventas') ? 'active' : '' }}">
                     <i class="bi bi-graph-up"></i>
                     <span>Ventas</span>
                 </a>
             </li>
             <li>
-                <a href="{{ route('reports.inventory') }}" class="{{ request()->routeIs('reports.inventory') ? 'active' : '' }}">
+                <a href="{{ route('reportes.inventario') }}" class="{{ request()->routeIs('reportes.inventario') ? 'active' : '' }}">
                     <i class="bi bi-bar-chart"></i>
                     <span>Inventario</span>
                 </a>
@@ -233,7 +233,7 @@
             
             <li class="menu-label">Configuración</li>
             <li>
-                <a href="{{ route('printers.index') }}" class="{{ request()->routeIs('printers.*') ? 'active' : '' }}">
+                <a href="{{ route('impresoras.index') }}" class="{{ request()->routeIs('impresoras.*') ? 'active' : '' }}">
                     <i class="bi bi-printer"></i>
                     <span>Impresoras</span>
                 </a>

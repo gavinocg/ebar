@@ -8,20 +8,20 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('business_settings', function (Blueprint $table) {
+        Schema::create('configuraciones_negocio', function (Blueprint $table) {
             $table->id();
-            $table->string('business_name');
-            $table->string('logo')->nullable();
+            $table->string('nombre_negocio');
+            $table->string('logotipo')->nullable();
             $table->string('rfc')->nullable();
-            $table->string('phone')->nullable();
-            $table->string('address')->nullable();
-            $table->text('ticket_message')->nullable();
+            $table->string('telefono')->nullable();
+            $table->string('direccion')->nullable();
+            $table->text('mensaje_comprobante')->nullable();
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('business_settings');
+        Schema::dropIfExists('configuraciones_negocio');
     }
 };

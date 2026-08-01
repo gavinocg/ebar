@@ -1,11 +1,11 @@
 @php
-    $business = \App\Models\BusinessSetting::getSettings();
+    $business = \App\Models\ConfiguracionNegocio::obtenerConfiguracion();
 @endphp
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Ticket {{ $sale->ticket_number }}</title>
+    <title>Comprobante {{ $sale->numero_comprobante }}</title>
     <style>
         @page {
             size: A5 portrait;
@@ -102,25 +102,25 @@
 </head>
 <body>
     <div class="header">
-        @if($business->logo)
-            <img src="{{ public_path('storage/' . $business->logo) }}" class="logo" alt="Logo">
+        @if($business->logotipo)
+            <img src="{{ asset('storage/' . $business->logotipo) }}" class="logo" alt="Logotipo">
         @endif
-        <h1>{{ $business->business_name }}</h1>
+        <h1>{{ $business->nombre_negocio }}</h1>
         <p>RFC: {{ $business->rfc }}</p>
-        <p>Tel: {{ $business->phone }}</p>
+        <p>Tel: {{ $business->telefono }}</p>
     </div>
     
     <hr class="separator">
     
-    <div>Ticket: {{ $sale->ticket_number }}</div>
+    <div>Comprobante: {{ $sale->numero_comprobante }}</div>
     <div>Fecha: {{ $sale->created_at->format('d/m/Y H:i:s') }}</div>
     
     <hr class="separator">
     
-    @foreach($sale->items as $item)
+    @foreach($sale->detalles as $item)
         <div class="item">
-            <div class="item-name">{{ $item->quantity }} x {{ $item->product_name }}</div>
-            <div class="item-detail">P.U.: ${{ number_format($item->price, 2) }}</div>
+            <div class="item-name">{{ $item->cantidad }} x {{ $item->nombre_producto }}</div>
+            <div class="item-detail">P.U.: ${{ number_format($item->precio, 2) }}</div>
             <div class="item-subtotal">${{ number_format($item->subtotal, 2) }}</div>
         </div>
     @endforeach
@@ -132,10 +132,10 @@
             <span>Subtotal:</span>
             <span>${{ number_format($sale->subtotal, 2) }}</span>
         </div>
-        @if($business->charge_tax)
+        @if($sale->impuesto_habilitado)
         <div>
-            <span>IVA ({{ $business->tax_percentage }}%):</span>
-            <span>${{ number_format($sale->tax, 2) }}</span>
+            <span>Impuesto ({{ $sale->porcentaje_impuesto }}%):</span>
+            <span>${{ number_format($sale->impuesto, 2) }}</span>
         </div>
         @endif
         <div class="grand-total">
@@ -147,7 +147,7 @@
     <hr class="separator">
     
     <div class="footer">
-        {{ $business->ticket_message ?? '¡GRACIAS POR SU COMPRA!' }}
+        {{ $business->mensaje_comprobante ?? '¡GRACIAS POR SU COMPRA!' }}
     </div>
 </body>
 </html>

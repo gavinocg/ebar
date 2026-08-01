@@ -1,5 +1,5 @@
 @php
-    $business = \App\Models\BusinessSetting::getSettings();
+    $business = \App\Models\ConfiguracionNegocio::obtenerConfiguracion();
 @endphp
 <!DOCTYPE html>
 <html lang="es">
@@ -9,7 +9,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>@yield('title', 'TPV') - {{ $business->business_name }}</title>
+    <title>@yield('title', 'TPV') - {{ $business->nombre_negocio }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -355,14 +355,14 @@
 <body>
     <nav class="navbar navbar-dark bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{{ route('dashboard.index') }}">
-                <i class="bi bi-shop"></i> {{ $business->business_name }}
+            <a class="navbar-brand" href="{{ route('panel.inicio') }}">
+                <i class="bi bi-shop"></i> {{ $business->nombre_negocio }}
             </a>
             <div class="d-flex align-items-center">
-                <a href="{{ route('sales.index') }}" class="btn btn-outline-light btn-sm me-2">
+                <a href="{{ route('ventas.index') }}" class="btn btn-outline-light btn-sm me-2">
                     <i class="bi bi-receipt"></i> Ventas
                 </a>
-                <a href="{{ route('products.index') }}" class="btn btn-outline-light btn-sm">
+                <a href="{{ route('productos.index') }}" class="btn btn-outline-light btn-sm">
                     <i class="bi bi-gear"></i> Admin
                 </a>
             </div>

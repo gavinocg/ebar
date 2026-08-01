@@ -1,12 +1,12 @@
 @php
-    $business = \App\Models\BusinessSetting::getSettings();
+    $business = \App\Models\ConfiguracionNegocio::obtenerConfiguracion();
 @endphp
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'TPV') - {{ $business->business_name }}</title>
+    <title>@yield('title', 'TPV') - {{ $business->nombre_negocio }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     @stack('styles')
@@ -14,8 +14,8 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{{ route('dashboard.index') }}">
-                <i class="bi bi-shop"></i> {{ $business->business_name }}
+            <a class="navbar-brand" href="{{ route('panel.inicio') }}">
+                <i class="bi bi-shop"></i> {{ $business->nombre_negocio }}
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -23,32 +23,32 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('pos.index') }}">
+                        <a class="nav-link" href="{{ route('punto_venta.inicio') }}">
                             <i class="bi bi-cart"></i> Punto de Venta
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('products.index') }}">
+                        <a class="nav-link" href="{{ route('productos.index') }}">
                             <i class="bi bi-box"></i> Productos
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('categories.index') }}">
+                        <a class="nav-link" href="{{ route('categorias.index') }}">
                             <i class="bi bi-tags"></i> Categorías
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('sales.index') }}">
+                        <a class="nav-link" href="{{ route('ventas.index') }}">
                             <i class="bi bi-receipt"></i> Ventas
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('printers.index') }}">
+                        <a class="nav-link" href="{{ route('impresoras.index') }}">
                             <i class="bi bi-printer"></i> Impresoras
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('settings.business') }}">
+                        <a class="nav-link" href="{{ route('configuracion.negocio') }}">
                             <i class="bi bi-gear"></i> Configuración
                         </a>
                     </li>
@@ -57,9 +57,9 @@
                             <i class="bi bi-graph-up"></i> Reportes
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ route('dashboard.index') }}">Dashboard</a></li>
-                            <li><a class="dropdown-item" href="{{ route('reports.sales') }}">Ventas</a></li>
-                            <li><a class="dropdown-item" href="{{ route('reports.inventory') }}">Inventario</a></li>
+                            <li><a class="dropdown-item" href="{{ route('panel.inicio') }}">Panel</a></li>
+                            <li><a class="dropdown-item" href="{{ route('reportes.ventas') }}">Ventas</a></li>
+                            <li><a class="dropdown-item" href="{{ route('reportes.inventario') }}">Inventario</a></li>
                         </ul>
                     </li>
                 </ul>

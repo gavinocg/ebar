@@ -8,21 +8,21 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('printers', function (Blueprint $table) {
+        Schema::create('impresoras', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->enum('connection_type', ['bluetooth', 'wifi', 'lan', 'a5']);
-            $table->string('address')->nullable();
-            $table->integer('port')->default(9100);
-            $table->string('paper_width')->default('80mm');
-            $table->boolean('is_active')->default(true);
-            $table->boolean('is_default')->default(false);
+            $table->string('nombre');
+            $table->enum('tipo_conexion', ['bluetooth', 'wifi', 'lan', 'a5']);
+            $table->string('direccion')->nullable();
+            $table->integer('puerto')->default(9100);
+            $table->string('ancho_papel')->default('80mm');
+            $table->boolean('esta_activa')->default(true);
+            $table->boolean('es_predeterminada')->default(false);
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('printers');
+        Schema::dropIfExists('impresoras');
     }
 };

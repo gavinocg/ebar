@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
-use App\Models\Sale;
-use App\Models\Printer;
-use App\Models\BusinessSetting;
+use App\Models\Venta as Sale;
+use App\Models\Impresora as Printer;
+use App\Models\ConfiguracionNegocio as BusinessSetting;
 
-class ThermalPrinterService
+class ServicioImpresoraTermica
 {
     private $printer;
     private $business;
@@ -15,24 +15,24 @@ class ThermalPrinterService
     public function __construct(Printer $printer)
     {
         $this->printer = $printer;
-        $this->business = BusinessSetting::getSettings();
+        $this->business = BusinessSetting::obtenerConfiguracion();
     }
 
-    public function printTicket($sale)
+    public function imprimirComprobante($sale)
     {
-        $this->initialize();
-        $this->addHeader($sale);
-        $this->addItems($sale);
-        $this->addTotals($sale);
-        $this->addFooter($sale);
-        $this->cutPaper();
+        $this->inicializar();
+        $this->agregarEncabezado($sale);
+        $this->agregarDetalles($sale);
+        $this->agregarTotales($sale);
+        $this->agregarPie($sale);
+        $this->cortarPapel();
 
-        return $this->getCommands();
+        return $this->obtenerComandos();
     }
 
-    public function printTestTicket()
+    public function imprimirComprobantePrueba()
     {
-        $this->initialize();
+        $this->inicializar();
 
         $this->commands[] = "\x1D\x21\x11";
         $this->commands[] = "PRUEBA DE IMPRESION\n";
@@ -42,11 +42,11 @@ class ThermalPrinterService
         $this->commands[] = "\n";
         $this->commands[] = "\x1B\x61\x00";
         $this->commands[] = "Fecha: " . now()->format('d/m/Y H:i:s') . "\n";
-        $this->commands[] = "Impresora: " . $this->printer->name . "\n";
-        $this->commands[] = "Conexion: " . strtoupper($this->printer->connection_type) . "\n";
-        $this->commands[] = "Direccion: " . $this->printer->address . "\n";
-        $this->commands[] = "Puerto: " . $this->printer->port . "\n";
-        $this->commands[] = "Papel: " . $this->printer->paper_width . "\n";
+        $this->commands[] = "Impresora: " . $this->printer->nombre . "\n";
+        $this->commands[] = "Conexión: " . strtoupper($this->printer->tipo_conexion) . "\n";
+        $this->commands[] = "Dirección: " . $this->printer->direccion . "\n";
+        $this->commands[] = "Puerto: " . $this->printer->puerto . "\n";
+        $this->commands[] = "Papel: " . $this->printer->ancho_papel . "\n";
         $this->commands[] = "\n";
         $this->commands[] = str_repeat('-', 42) . "\n";
         $this->commands[] = "\n";
@@ -63,43 +63,43 @@ class ThermalPrinterService
         $this->commands[] = "\n";
         $this->commands[] = "\n";
 
-        $this->cutPaper();
+        $this->cortarPapel();
 
-        return $this->getCommands();
+        return $this->obtenerComandos();
     }
 
-    private function initialize()
+    private function inicializar()
     {
         $this->commands[] = "\x1B\x40"; // Initialize
         $this->commands[] = "\x1B\x61\x01"; // Center alignment
     }
 
-    private function addHeader($sale)
+    private function agregarEncabezado($sale)
     {
         $this->commands[] = "\x1D\x21\x11";
-        $this->commands[] = $this->business->business_name . "\n";
+        $this->commands[] = $this->business->nombre_negocio . "\n";
         $this->commands[] = "\x1D\x21\x00";
         
         $this->commands[] = "RFC: " . $this->business->rfc . "\n";
-        $this->commands[] = "Tel: " . $this->business->phone . "\n";
+        $this->commands[] = "Tel: " . $this->business->telefono . "\n";
         
-        if ($this->business->address) {
-            $this->commands[] = $this->business->address . "\n";
+        if ($this->business->direccion) {
+            $this->commands[] = $this->business->direccion . "\n";
         }
         
         $this->commands[] = "\n";
         
         $this->commands[] = "\x1B\x61\x00";
-        $this->commands[] = "Ticket: {$sale->ticket_number}\n";
+        $this->commands[] = "Comprobante: {$sale->numero_comprobante}\n";
         $this->commands[] = "Fecha: " . $sale->created_at->format('d/m/Y H:i:s') . "\n";
         $this->commands[] = str_repeat('-', 42) . "\n";
     }
 
-    private function addItems($sale)
+    private function agregarDetalles($sale)
     {
-        foreach ($sale->items as $item) {
-            $this->commands[] = "{$item->quantity} x {$item->product_name}\n";
-            $this->commands[] = "  P.U.: $" . number_format($item->price, 2) . "\n";
+        foreach ($sale->detalles as $item) {
+            $this->commands[] = "{$item->cantidad} x {$item->nombre_producto}\n";
+            $this->commands[] = "  P.U.: $" . number_format($item->precio, 2) . "\n";
             $this->commands[] = "\x1B\x61\x02"; // Right alignment
             $this->commands[] = "  $" . number_format($item->subtotal, 2) . "\n";
             $this->commands[] = "\x1B\x61\x00"; // Left alignment
@@ -108,14 +108,14 @@ class ThermalPrinterService
         $this->commands[] = str_repeat('-', 42) . "\n";
     }
 
-    private function addTotals($sale)
+    private function agregarTotales($sale)
     {
         $this->commands[] = "\x1B\x61\x02";
         
         $this->commands[] = "Subtotal:" . str_repeat(' ', 25) . "$" . number_format($sale->subtotal, 2) . "\n";
         
-        if ($this->business->charge_tax) {
-            $this->commands[] = "IVA (" . $this->business->tax_percentage . "%):" . str_repeat(' ', 24) . "$" . number_format($sale->tax, 2) . "\n";
+        if ($sale->impuesto_habilitado) {
+            $this->commands[] = "Impuesto (" . $sale->porcentaje_impuesto . "%):" . str_repeat(' ', 20) . "$" . number_format($sale->impuesto, 2) . "\n";
         }
         
         $this->commands[] = "\x1D\x21\x11";
@@ -124,36 +124,36 @@ class ThermalPrinterService
         
         $this->commands[] = "\n";
         $this->commands[] = "\x1B\x61\x00";
-        $this->commands[] = "Pago: " . strtoupper($sale->payment_method) . "\n";
-        $this->commands[] = "Recibido: $" . number_format($sale->paid, 2) . "\n";
-        $this->commands[] = "Cambio: $" . number_format($sale->change, 2) . "\n";
+        $this->commands[] = "Pago: " . strtoupper($sale->metodo_pago) . "\n";
+        $this->commands[] = "Recibido: $" . number_format($sale->pagado, 2) . "\n";
+        $this->commands[] = "Cambio: $" . number_format($sale->cambio, 2) . "\n";
     }
 
-    private function addFooter($sale)
+    private function agregarPie($sale)
     {
         $this->commands[] = "\x1B\x61\x01";
         $this->commands[] = "\n";
-        $this->commands[] = $this->business->ticket_message . "\n";
+        $this->commands[] = $this->business->mensaje_comprobante . "\n";
         $this->commands[] = "\n";
         $this->commands[] = "\n";
     }
 
-    private function cutPaper()
+    private function cortarPapel()
     {
         $this->commands[] = "\x1D\x56\x00"; // Cut paper
     }
 
-    public function getCommands()
+    public function obtenerComandos()
     {
         return implode('', $this->commands);
     }
 
-    public function getConnectionData()
+    public function obtenerDatosConexion()
     {
         return [
-            'type' => $this->printer->connection_type,
-            'address' => $this->printer->address,
-            'port' => $this->printer->port,
+            'tipo' => $this->printer->tipo_conexion,
+            'direccion' => $this->printer->direccion,
+            'puerto' => $this->printer->puerto,
         ];
     }
 }

@@ -25,21 +25,21 @@
                     <tbody>
                         @foreach($sales as $sale)
                             <tr>
-                                <td><strong>{{ $sale->ticket_number }}</strong></td>
+                                <td><strong>{{ $sale->numero_comprobante }}</strong></td>
                                 <td>{{ $sale->created_at->format('d/m/Y H:i') }}</td>
                                 <td><span class="badge bg-info">{{ $sale->items_count }}</span></td>
                                 <td><strong>${{ number_format($sale->total, 2) }}</strong></td>
                                 <td>
-                                    @if($sale->payment_method == 'cash')
+                                    @if($sale->metodo_pago == 'efectivo')
                                         <span class="badge bg-success">Efectivo</span>
-                                    @elseif($sale->payment_method == 'card')
+                                    @elseif($sale->metodo_pago == 'tarjeta')
                                         <span class="badge bg-primary">Tarjeta</span>
                                     @else
                                         <span class="badge bg-info">Transferencia</span>
                                     @endif
                                 </td>
                                 <td>
-                                    <a href="{{ route('sales.show', $sale) }}" class="btn btn-sm btn-outline-primary">
+                                    <a href="{{ route('ventas.show', $sale) }}" class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-eye"></i> Ver
                                     </a>
                                 </td>

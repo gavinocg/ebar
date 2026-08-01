@@ -11,16 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('sales', function (Blueprint $table) {
+        Schema::create('ventas', function (Blueprint $table) {
             $table->id();
-            $table->string('ticket_number')->unique();
+            $table->string('numero_comprobante')->unique();
             $table->decimal('subtotal', 10, 2);
-            $table->decimal('tax', 10, 2)->default(0);
+            $table->decimal('impuesto', 10, 2)->default(0);
             $table->decimal('total', 10, 2);
-            $table->string('payment_method');
-            $table->decimal('paid', 10, 2);
-            $table->decimal('change', 10, 2)->default(0);
-            $table->text('notes')->nullable();
+            $table->string('metodo_pago');
+            $table->decimal('pagado', 10, 2);
+            $table->decimal('cambio', 10, 2)->default(0);
+            $table->text('notas')->nullable();
             $table->timestamps();
         });
     }
@@ -30,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('sales');
+        Schema::dropIfExists('ventas');
     }
 };

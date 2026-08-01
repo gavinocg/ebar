@@ -62,7 +62,7 @@
                             <tbody>
                                 @foreach($recentSales as $sale)
                                     <tr>
-                                        <td>{{ $sale->ticket_number }}</td>
+                                        <td>{{ $sale->numero_comprobante }}</td>
                                         <td>${{ number_format($sale->total, 2) }}</td>
                                         <td>{{ $sale->created_at->format('d/m H:i') }}</td>
                                     </tr>
@@ -95,10 +95,10 @@
                             <tbody>
                                 @foreach($lowStockProducts as $product)
                                     <tr>
-                                        <td>{{ $product->name }}</td>
+                                        <td>{{ $product->nombre }}</td>
                                         <td>
-                                            <span class="badge bg-{{ $product->stock == 0 ? 'danger' : 'warning' }}">
-                                                {{ $product->stock }}
+                                            <span class="badge bg-{{ $product->existencias == 0 ? 'danger' : 'warning' }}">
+                                                {{ $product->existencias }}
                                             </span>
                                         </td>
                                     </tr>

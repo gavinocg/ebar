@@ -1,4 +1,4 @@
-# TPV - Sistema de Punto de Venta
+# TPV Ecuador - Sistema de Punto de Venta
 
 Sistema de punto de venta inspirado en Loyverse, desarrollado con Laravel + Blade + Bootstrap, optimizado para tablets y celulares con soporte para impresoras térmicas de 80mm.
 
@@ -13,7 +13,7 @@ Sistema de punto de venta inspirado en Loyverse, desarrollado con Laravel + Blad
 
 ## Requisitos
 
-- PHP >= 8.1
+- PHP >= 8.3
 - MySQL 5.7+ o SQLite
 - Composer
 - Navegador moderno (Chrome, Edge, Firefox)

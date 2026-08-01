@@ -8,17 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('printers', function (Blueprint $table) {
-            $table->string('address')->nullable()->change();
-            $table->integer('port')->nullable()->change();
+        Schema::table('impresoras', function (Blueprint $table) {
+            $table->string('direccion')->nullable()->change();
+            $table->integer('puerto')->nullable()->change();
         });
     }
 
     public function down(): void
     {
-        Schema::table('printers', function (Blueprint $table) {
-            $table->string('address')->nullable(false)->change();
-            $table->integer('port')->nullable(false)->change();
+        Schema::table('impresoras', function (Blueprint $table) {
+            $table->string('direccion')->nullable(false)->change();
+            $table->integer('puerto')->nullable(false)->change();
         });
     }
 };

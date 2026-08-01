@@ -3,99 +3,100 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use App\Models\Category;
-use App\Models\Product;
-use App\Models\Printer;
+use App\Models\Categoria as Category;
+use App\Models\Producto as Product;
+use App\Models\Impresora as Printer;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $bebidas = Category::create(['name' => 'Bebidas', 'description' => 'Bebidas frías y calientes']);
-        $alimentos = Category::create(['name' => 'Alimentos', 'description' => 'Comida y snacks']);
-        $postres = Category::create(['name' => 'Postres', 'description' => 'Dulces y postres']);
-        $otros = Category::create(['name' => 'Otros', 'description' => 'Productos diversos']);
+        $bebidas = Category::create(['nombre' => 'Bebidas', 'descripcion' => 'Bebidas frías y calientes']);
+        $alimentos = Category::create(['nombre' => 'Alimentos', 'descripcion' => 'Comida y snacks']);
+        $postres = Category::create(['nombre' => 'Postres', 'descripcion' => 'Dulces y postres']);
+        $otros = Category::create(['nombre' => 'Otros', 'descripcion' => 'Productos diversos']);
 
         Product::create([
-            'category_id' => $bebidas->id,
-            'name' => 'Coca-Cola 600ml',
-            'description' => 'Refresco de cola',
-            'price' => 25.00,
-            'stock' => 50,
-            'barcode' => '7501050345678',
+            'categoria_id' => $bebidas->id,
+            'nombre' => 'Coca-Cola 600ml',
+            'descripcion' => 'Refresco de cola',
+            'precio' => 25.00,
+            'existencias' => 50,
+            'codigo_barras' => '7501050345678',
         ]);
 
         Product::create([
-            'category_id' => $bebidas->id,
-            'name' => 'Agua Natural 500ml',
-            'description' => 'Agua purificada',
-            'price' => 15.00,
-            'stock' => 100,
-            'barcode' => '7501050345679',
+            'categoria_id' => $bebidas->id,
+            'nombre' => 'Agua Natural 500ml',
+            'descripcion' => 'Agua purificada',
+            'precio' => 15.00,
+            'existencias' => 100,
+            'codigo_barras' => '7501050345679',
         ]);
 
         Product::create([
-            'category_id' => $bebidas->id,
-            'name' => 'Café Americano',
-            'description' => 'Café caliente',
-            'price' => 35.00,
-            'stock' => 200,
+            'categoria_id' => $bebidas->id,
+            'nombre' => 'Café Americano',
+            'descripcion' => 'Café caliente',
+            'precio' => 35.00,
+            'existencias' => 200,
         ]);
 
         Product::create([
-            'category_id' => $alimentos->id,
-            'name' => 'Sandwich Jamón',
-            'description' => 'Sandwich de jamón y queso',
-            'price' => 45.00,
-            'stock' => 20,
+            'categoria_id' => $alimentos->id,
+            'nombre' => 'Sandwich Jamón',
+            'descripcion' => 'Sandwich de jamón y queso',
+            'precio' => 45.00,
+            'existencias' => 20,
         ]);
 
         Product::create([
-            'category_id' => $alimentos->id,
-            'name' => 'Papas Fritas',
-            'description' => 'Papas fritas grandes',
-            'price' => 35.00,
-            'stock' => 30,
+            'categoria_id' => $alimentos->id,
+            'nombre' => 'Papas Fritas',
+            'descripcion' => 'Papas fritas grandes',
+            'precio' => 35.00,
+            'existencias' => 30,
         ]);
 
         Product::create([
-            'category_id' => $postres->id,
-            'name' => 'Pastel Chocolate',
-            'description' => 'Rebanada de pastel',
-            'price' => 55.00,
-            'stock' => 15,
+            'categoria_id' => $postres->id,
+            'nombre' => 'Pastel Chocolate',
+            'descripcion' => 'Rebanada de pastel',
+            'precio' => 55.00,
+            'existencias' => 15,
         ]);
 
         Product::create([
-            'category_id' => $postres->id,
-            'name' => 'Galletas',
-            'description' => 'Paquete de galletas',
-            'price' => 20.00,
-            'stock' => 40,
+            'categoria_id' => $postres->id,
+            'nombre' => 'Galletas',
+            'descripcion' => 'Paquete de galletas',
+            'precio' => 20.00,
+            'existencias' => 40,
         ]);
 
         Product::create([
-            'category_id' => $otros->id,
-            'name' => 'Chicles',
-            'description' => 'Paquete de chicles',
-            'price' => 10.00,
-            'stock' => 80,
+            'categoria_id' => $otros->id,
+            'nombre' => 'Chicles',
+            'descripcion' => 'Paquete de chicles',
+            'precio' => 10.00,
+            'existencias' => 80,
         ]);
 
         Printer::create([
-            'name' => 'Impresora Principal',
-            'connection_type' => 'lan',
-            'address' => '192.168.1.100',
-            'port' => 9100,
-            'paper_width' => '80mm',
-            'is_active' => true,
-            'is_default' => true,
+            'nombre' => 'Impresora Principal',
+            'tipo_conexion' => 'lan',
+            'direccion' => '192.168.1.100',
+            'puerto' => 9100,
+            'ancho_papel' => '80mm',
+            'esta_activa' => true,
+            'es_predeterminada' => true,
         ]);
 
         User::factory()->create([
-            'name' => 'Admin',
-            'email' => 'admin@ebar.com',
+            'nombre' => 'Administrador',
+            'correo' => 'admin@ebar.com',
+            'rol' => 'administrador',
         ]);
     }
 }

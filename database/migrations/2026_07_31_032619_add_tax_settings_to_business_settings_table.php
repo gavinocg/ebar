@@ -8,16 +8,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('business_settings', function (Blueprint $table) {
-            $table->boolean('charge_tax')->default(true)->after('ticket_message');
-            $table->decimal('tax_percentage', 5, 2)->default(16.00)->after('charge_tax');
+        Schema::table('configuraciones_negocio', function (Blueprint $table) {
+            $table->boolean('cobrar_impuesto')->default(true)->after('mensaje_comprobante');
+            $table->decimal('porcentaje_impuesto', 5, 2)->default(16.00)->after('cobrar_impuesto');
         });
     }
 
     public function down(): void
     {
-        Schema::table('business_settings', function (Blueprint $table) {
-            $table->dropColumn(['charge_tax', 'tax_percentage']);
+        Schema::table('configuraciones_negocio', function (Blueprint $table) {
+            $table->dropColumn(['cobrar_impuesto', 'porcentaje_impuesto']);
         });
     }
 };

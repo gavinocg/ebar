@@ -1,0 +1,52 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\ConfiguracionNegocio as BusinessSetting;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+
+class ControladorConfiguracionNegocio extends Controller
+{
+    public function index()
+    {
+        $settings = BusinessSetting::first();
+        return view('settings.business', compact('settings'));
+    }
+
+    public function update(Request $request)
+    {
+        $request->validate([
+            'nombre_negocio' => 'required|string|max:255',
+            'logotipo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'rfc' => 'nullable|string|max:20',
+            'telefono' => 'nullable|string|max:20',
+            'direccion' => 'nullable|string',
+            'mensaje_comprobante' => 'nullable|string',
+            'cobrar_impuesto' => 'nullable|boolean',
+            'porcentaje_impuesto' => 'nullable|numeric|min:0|max:100',
+        ]);
+
+        $settings = BusinessSetting::firstOrNew();
+        
+        $settings->nombre_negocio = $request->nombre_negocio;
+        $settings->rfc = $request->rfc;
+        $settings->telefono = $request->telefono;
+        $settings->direccion = $request->direccion;
+        $settings->mensaje_comprobante = $request->mensaje_comprobante;
+        $settings->cobrar_impuesto = $request->cobrar_impuesto == '1';
+        $settings->porcentaje_impuesto = $request->porcentaje_impuesto ?? 15.00;
+
+        if ($request->hasFile('logotipo')) {
+            if ($settings->logotipo) {
+                Storage::disk('public')->delete($settings->logotipo);
+            }
+            $path = $request->file('logotipo')->store('logotipos', 'public');
+            $settings->logotipo = $path;
+        }
+
+        $settings->save();
+
+        return redirect()->route('configuracion.negocio')->with('success', 'Configuración actualizada');
+    }
+}

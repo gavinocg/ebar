@@ -10,15 +10,15 @@
                 <h5 class="mb-0">Nueva Categoría</h5>
             </div>
             <div class="card-body">
-                <form action="{{ route('categories.store') }}" method="POST">
+                <form action="{{ route('categorias.store') }}" method="POST">
                     @csrf
                     <div class="mb-3">
                         <label class="form-label">Nombre</label>
-                        <input type="text" name="name" class="form-control" required>
+                        <input type="text" name="nombre" class="form-control" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Descripción</label>
-                        <textarea name="description" class="form-control" rows="3"></textarea>
+                        <textarea name="descripcion" class="form-control" rows="3"></textarea>
                     </div>
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-plus-circle"></i> Crear
@@ -48,14 +48,14 @@
                             <tbody>
                                 @foreach($categories as $category)
                                     <tr>
-                                        <td>{{ $category->name }}</td>
-                                        <td>{{ $category->description ?? '-' }}</td>
-                                        <td><span class="badge bg-info">{{ $category->products_count }}</span></td>
+                                        <td>{{ $category->nombre }}</td>
+                                        <td>{{ $category->descripcion ?? '-' }}</td>
+                                        <td><span class="badge bg-info">{{ $category->productos_count }}</span></td>
                                         <td>
                                             <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ $category->id }}">
                                                 <i class="bi bi-pencil"></i>
                                             </button>
-                                            <form action="{{ route('categories.destroy', $category) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Eliminar categoría?')">
+                                            <form action="{{ route('categorias.destroy', $category) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Eliminar categoría?')">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">
@@ -68,7 +68,7 @@
                                     <div class="modal fade" id="editModal{{ $category->id }}" tabindex="-1">
                                         <div class="modal-dialog">
                                             <div class="modal-content">
-                                                <form action="{{ route('categories.update', $category) }}" method="POST">
+                                                <form action="{{ route('categorias.update', $category) }}" method="POST">
                                                     @csrf
                                                     @method('PUT')
                                                     <div class="modal-header">
@@ -78,11 +78,11 @@
                                                     <div class="modal-body">
                                                         <div class="mb-3">
                                                             <label class="form-label">Nombre</label>
-                                                            <input type="text" name="name" class="form-control" value="{{ $category->name }}" required>
+                                                            <input type="text" name="nombre" class="form-control" value="{{ $category->nombre }}" required>
                                                         </div>
                                                         <div class="mb-3">
                                                             <label class="form-label">Descripción</label>
-                                                            <textarea name="description" class="form-control" rows="3">{{ $category->description }}</textarea>
+                                                            <textarea name="descripcion" class="form-control" rows="3">{{ $category->descripcion }}</textarea>
                                                         </div>
                                                     </div>
                                                     <div class="modal-footer">

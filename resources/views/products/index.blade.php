@@ -5,7 +5,7 @@
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4>Productos</h4>
-    <a href="{{ route('products.create') }}" class="btn btn-primary">
+    <a href="{{ route('productos.create') }}" class="btn btn-primary">
         <i class="bi bi-plus-circle"></i> Nuevo Producto
     </a>
 </div>
@@ -29,27 +29,27 @@
                     <tbody>
                         @foreach($products as $product)
                             <tr>
-                                <td>{{ $product->name }}</td>
-                                <td>{{ $product->category->name }}</td>
-                                <td>${{ number_format($product->price, 2) }}</td>
+                                <td>{{ $product->nombre }}</td>
+                                <td>{{ $product->categoria->nombre }}</td>
+                                <td>${{ number_format($product->precio, 2) }}</td>
                                 <td>
-                                    <span class="badge bg-{{ $product->stock == 0 ? 'danger' : ($product->stock <= 10 ? 'warning' : 'success') }}">
-                                        {{ $product->stock }}
+                                    <span class="badge bg-{{ $product->existencias == 0 ? 'danger' : ($product->existencias <= 10 ? 'warning' : 'success') }}">
+                                        {{ $product->existencias }}
                                     </span>
                                 </td>
-                                <td>{{ $product->barcode ?? '-' }}</td>
+                                <td>{{ $product->codigo_barras ?? '-' }}</td>
                                 <td>
-                                    @if($product->is_active)
+                                    @if($product->esta_activo)
                                         <span class="badge bg-success">Activo</span>
                                     @else
                                         <span class="badge bg-secondary">Inactivo</span>
                                     @endif
                                 </td>
                                 <td>
-                                    <a href="{{ route('products.edit', $product) }}" class="btn btn-sm btn-outline-primary">
+                                    <a href="{{ route('productos.edit', $product) }}" class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-pencil"></i>
                                     </a>
-                                    <form action="{{ route('products.destroy', $product) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Eliminar producto?')">
+                                    <form action="{{ route('productos.destroy', $product) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Eliminar producto?')">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger">
