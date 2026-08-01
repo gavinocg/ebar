@@ -102,9 +102,11 @@ class ServicioImpresoraTermica
     {
         $this->inicializar();
         $this->centrar();
-        $this->commands[] = "\x1B\x21\x10";
+        // Bold keeps the bar name prominent without reducing the 32-column width.
+        $this->commands[] = "\x1B\x45\x01";
         $this->commands[] = $this->texto($this->business->nombre_negocio) . "\n";
-        $this->commands[] = "\x1B\x21\x00";
+        $this->commands[] = "\x1B\x45\x00";
+        $this->centrar();
         $this->commands[] = $this->texto($sale->created_at->format('d/m/Y H:i')) . "\n";
         $this->commands[] = $this->separador() . "\n";
         $this->commands[] = "\x1B\x61\x00";
