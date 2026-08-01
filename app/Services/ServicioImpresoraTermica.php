@@ -123,10 +123,9 @@ class ServicioImpresoraTermica
         $this->commands[] = $this->alinearColumnas('Cambio', '$' . number_format((float) $sale->cambio, 2, '.', '')) . "\n";
         $this->commands[] = "\n";
         $this->centrar();
-        if ($this->business->mensaje_comprobante) {
-            $this->commands[] = $this->texto($this->business->mensaje_comprobante) . "\n";
-        }
-        $this->commands[] = "\n";
+        $mensaje = trim((string) $this->business->mensaje_comprobante) ?: 'GRACIAS POR SU COMPRA!';
+        $this->commands[] = $this->texto($mensaje) . "\n";
+        $this->commands[] = "\n\n";
         $this->cortarPapel();
 
         return $this->obtenerComandos();

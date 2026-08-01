@@ -216,6 +216,7 @@ class CheckoutTest extends TestCase
         $this->assertStringContainsString('1xProducto1', $comprobante);
         $this->assertStringContainsString('Total', $comprobante);
         $this->assertStringContainsString("\x1B\x45\x01", $comprobante);
+        $this->assertStringContainsString('GRACIAS POR SU COMPRA!', $comprobante);
         $this->assertStringNotContainsString('¡', $comprobante);
     }
 
