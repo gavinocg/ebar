@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\PerteneceANegocio;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MovimientoEfectivo extends Model
 {
+    use PerteneceANegocio;
     protected $table = 'movimientos_efectivo';
 
     protected $fillable = [

@@ -7,12 +7,16 @@ use App\Models\Categoria as Category;
 use App\Models\Producto as Product;
 use App\Models\Impresora as Printer;
 use App\Models\Caja;
+use App\Models\MembresiaNegocio;
+use App\Services\ContextoNegocio;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        $negocio = \App\Models\Negocio::firstOrFail();
+        app(ContextoNegocio::class)->establecer($negocio->id);
         Caja::create(['nombre' => 'Caja principal', 'esta_activa' => true]);
 
         $bebidas = Category::create(['nombre' => 'Bebidas', 'descripcion' => 'Bebidas frías y calientes']);
@@ -96,10 +100,17 @@ class DatabaseSeeder extends Seeder
             'es_predeterminada' => true,
         ]);
 
-        User::factory()->create([
+        $usuario = User::factory()->create([
             'nombre' => 'Administrador',
             'correo' => 'admin@ebar.com',
             'rol' => 'administrador',
+        ]);
+
+        MembresiaNegocio::create([
+            'negocio_id' => $negocio->id,
+            'usuario_id' => $usuario->id,
+            'rol' => 'admin_bar',
+            'esta_activa' => true,
         ]);
     }
 }

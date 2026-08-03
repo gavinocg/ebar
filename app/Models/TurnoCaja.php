@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\PerteneceANegocio;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TurnoCaja extends Model
 {
+    use PerteneceANegocio;
     protected $table = 'turnos_caja';
 
     protected $fillable = [

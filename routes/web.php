@@ -16,7 +16,7 @@ Route::get('/inicio-sesion', [AuthController::class, 'create'])->name('inicio_se
 Route::post('/inicio-sesion', [AuthController::class, 'store'])->name('inicio_sesion.guardar');
 Route::post('/cerrar-sesion', [AuthController::class, 'destroy'])->middleware('auth')->name('cerrar_sesion');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'negocio'])->group(function () {
     Route::get('/', function () {
         return redirect()->route('punto_venta.inicio');
     });

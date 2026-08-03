@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\PerteneceANegocio;
 use Illuminate\Database\Eloquent\Model;
 
 class Impresora extends Model
 {
+    use PerteneceANegocio;
     protected $table = 'impresoras';
     protected $fillable = [
         'nombre',

@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\PerteneceANegocio;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Venta extends Model
 {
+    use PerteneceANegocio;
     protected $table = 'ventas';
     protected $fillable = [
         'numero_comprobante',

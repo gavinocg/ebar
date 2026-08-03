@@ -7,6 +7,8 @@ use App\Models\Categoria as Category;
 use App\Models\Producto as Product;
 use App\Models\Caja;
 use App\Models\TurnoCaja;
+use App\Models\Negocio;
+use App\Services\ContextoNegocio;
 use App\Models\Impresora;
 use App\Models\Venta;
 use App\Services\ServicioImpresoraTermica;
@@ -25,6 +27,31 @@ class CheckoutTest extends TestCase
         $this->actingAs(User::factory()->create());
 
         $this->get(route('punto_venta.inicio'))->assertOk();
+    }
+
+    public function test_los_datos_se_aislan_por_negocio(): void
+    {
+        $negocioUno = Negocio::create([
+            'nombre' => 'Negocio Uno',
+            'identificador' => 'negocio-uno',
+            'esta_activo' => true,
+        ]);
+        $negocioDos = Negocio::create([
+            'nombre' => 'Negocio Dos',
+            'identificador' => 'negocio-dos',
+            'esta_activo' => true,
+        ]);
+        $contexto = app(ContextoNegocio::class);
+
+        $contexto->establecer($negocioUno->id);
+        Category::create(['nombre' => 'Categoría Uno']);
+        $contexto->establecer($negocioDos->id);
+        Category::create(['nombre' => 'Categoría Dos']);
+
+        $contexto->establecer($negocioUno->id);
+        $this->assertSame(['Categoría Uno'], Category::pluck('nombre')->all());
+        $contexto->establecer($negocioDos->id);
+        $this->assertSame(['Categoría Dos'], Category::pluck('nombre')->all());
     }
 
     public function test_paginas_principales_renderizan(): void

@@ -76,37 +76,37 @@ Convertir el TPV en un sistema seguro, multi-tenant y orientado a dispositivos m
 - [x] `COMPLETADO` Cloudflare Tunnel configurado hacia `http://localhost:8001`.
 - [ ] `PENDIENTE` Rotar el token de Cloudflare compartido durante la configuración.
 
-## Fase 1: Multi-Tenant
+## Fase 1: Multi-Tenant `EN_PROGRESO`
 
 ### 1.1 Negocios
 
-- [ ] Crear tabla `negocios`.
-- [ ] Crear modelo `Negocio`.
+- [x] `COMPLETADO` Crear tabla `negocios`.
+- [x] `COMPLETADO` Crear modelo `Negocio`.
 - [ ] Crear CRUD administrativo de negocios.
 - [ ] Definir identificador único del negocio.
 - [ ] Definir zona horaria, moneda y configuración por negocio.
 
 ### 1.2 Sucursales
 
-- [ ] Crear tabla `sucursales` con `negocio_id`.
-- [ ] Crear modelo `Sucursal`.
+- [x] `COMPLETADO` Crear tabla `sucursales` con `negocio_id`.
+- [x] `COMPLETADO` Crear modelo `Sucursal`.
 - [ ] Crear CRUD de sucursales.
 - [ ] Asociar cajas, impresoras, productos y ventas a sucursales.
 
 ### 1.3 Membresías
 
-- [ ] Crear tabla `membresias_negocio`.
-- [ ] Permitir que un usuario pertenezca a uno o varios negocios.
+- [x] `COMPLETADO` Crear tabla `membresias_negocio`.
+- [x] `COMPLETADO` Permitir que un usuario pertenezca a uno o varios negocios.
 - [ ] Crear selector de negocio y sucursal después del login.
-- [ ] Crear `ContextoNegocio` para negocio, sucursal y usuario actuales.
+- [x] `COMPLETADO` Crear `ContextoNegocio` para negocio, sucursal y usuario actuales.
 
 ### 1.4 Aislamiento
 
-- [ ] Crear middleware de tenant.
-- [ ] Aplicar scopes obligatorios por `negocio_id`.
-- [ ] Validar relaciones dentro del negocio actual.
-- [ ] Crear índices compuestos de aislamiento.
-- [ ] Crear pruebas de lectura cruzada entre negocios.
+- [x] `COMPLETADO` Crear middleware de tenant.
+- [x] `COMPLETADO` Aplicar scopes obligatorios por `negocio_id`.
+- [x] `COMPLETADO` Validar relaciones dentro del negocio actual.
+- [x] `COMPLETADO` Crear índices compuestos de aislamiento.
+- [x] `COMPLETADO` Crear pruebas de lectura cruzada entre negocios.
 
 ## Fase 2: Cajeros Y Permisos
 
@@ -312,3 +312,12 @@ La siguiente fase es **flujo operativo de cajero y cobro**, comenzando por acces
 - Se documentó el flujo requerido de cajero, apertura, cobros y cierre.
 - Se definió crédito como cuenta por cobrar asociada a la venta, sin clientes permanentes.
 - Se actualizó el requerimiento: crédito usará una agenda mínima buscable de clientes.
+
+### 2026-08-01 - Fundación Multi-Tenant
+
+- Se crearon negocios, sucursales y membresías.
+- Se agregó contexto de negocio y middleware de aislamiento.
+- Se agregaron scopes globales por `negocio_id` a los modelos de dominio.
+- Se migró y vinculó el negocio principal existente.
+- Se agregaron pruebas de aislamiento entre negocios.
+- Queda pendiente el selector de negocio/sucursal y los CRUD administrativos.

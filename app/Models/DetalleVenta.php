@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\PerteneceANegocio;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DetalleVenta extends Model
 {
+    use PerteneceANegocio;
     protected $table = 'detalles_venta';
     protected $fillable = ['venta_id', 'producto_id', 'nombre_producto', 'cantidad', 'precio', 'subtotal'];
 
