@@ -33,7 +33,7 @@ class ControladorProductos extends Controller
             'distintivo_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'destacado' => 'nullable|boolean',
             'precio' => 'required|numeric|min:0',
-            'existencias' => 'required|integer|min:0',
+            'existencias' => 'required_if:maneja_existencias,1|nullable|integer|min:0',
             'maneja_existencias' => 'nullable|boolean',
             'codigo_barras' => 'nullable|string|unique:productos,codigo_barras',
         ]);
@@ -44,6 +44,7 @@ class ControladorProductos extends Controller
         ]);
         $datos['esta_activo'] = $request->boolean('esta_activo');
         $datos['maneja_existencias'] = $request->boolean('maneja_existencias');
+        $datos['existencias'] = $datos['maneja_existencias'] ? ($datos['existencias'] ?? 0) : 0;
         $datos['destacado'] = $request->boolean('destacado');
         if ($request->hasFile('imagen')) {
             $datos['imagen_path'] = $request->file('imagen')->store('productos', 'public');
@@ -71,7 +72,7 @@ class ControladorProductos extends Controller
             'distintivo_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'destacado' => 'nullable|boolean',
             'precio' => 'required|numeric|min:0',
-            'existencias' => 'required|integer|min:0',
+            'existencias' => 'required_if:maneja_existencias,1|nullable|integer|min:0',
             'maneja_existencias' => 'nullable|boolean',
             'codigo_barras' => 'nullable|string|unique:productos,codigo_barras,' . $product->id,
         ]);
@@ -82,6 +83,7 @@ class ControladorProductos extends Controller
         ]);
         $datos['esta_activo'] = $request->boolean('esta_activo');
         $datos['maneja_existencias'] = $request->boolean('maneja_existencias');
+        $datos['existencias'] = $datos['maneja_existencias'] ? ($datos['existencias'] ?? 0) : 0;
         $datos['destacado'] = $request->boolean('destacado');
         if ($request->hasFile('imagen')) {
             if ($product->imagen_path) {

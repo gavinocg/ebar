@@ -87,7 +87,7 @@
                 
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Stock Inicial</label>
-                    <input type="number" name="existencias" class="form-control" min="0" value="0" required>
+                    <input type="number" name="existencias" id="existenciasProducto" class="form-control" min="0" value="0" required>
                 </div>
             </div>
 
@@ -109,3 +109,17 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+const switchExistencias = document.getElementById('manejaExistencias');
+const campoExistencias = document.getElementById('existenciasProducto');
+const actualizarCampoExistencias = () => {
+    campoExistencias.disabled = !switchExistencias.checked;
+    campoExistencias.required = switchExistencias.checked;
+    if (!switchExistencias.checked) campoExistencias.value = 0;
+};
+switchExistencias.addEventListener('change', actualizarCampoExistencias);
+actualizarCampoExistencias();
+</script>
+@endpush
