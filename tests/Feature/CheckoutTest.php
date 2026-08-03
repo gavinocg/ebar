@@ -62,6 +62,33 @@ class CheckoutTest extends TestCase
         $this->assertDatabaseCount('ventas', 0);
     }
 
+    public function test_producto_sin_control_de_existencias_se_vende_sin_limite(): void
+    {
+        $usuario = User::factory()->create();
+        $this->actingAs($usuario);
+        $this->abrirTurno($usuario);
+        $categoria = Category::create(['nombre' => 'Ilimitados']);
+        $producto = Product::create([
+            'categoria_id' => $categoria->id,
+            'nombre' => 'Producto permanente',
+            'precio' => 10,
+            'existencias' => 0,
+            'maneja_existencias' => false,
+            'esta_activo' => true,
+        ]);
+
+        $response = $this->postJson(route('punto_venta.cobrar'), [
+            'items' => [['producto_id' => $producto->id, 'cantidad' => 50]],
+            'metodo_pago' => 'efectivo',
+            'pagado' => '600.00',
+            'clave_idempotencia' => 'producto-permanente-test',
+        ]);
+
+        $response->assertOk()->assertJsonPath('success', true);
+        $this->assertDatabaseHas('productos', ['id' => $producto->id, 'existencias' => 0]);
+        $this->assertDatabaseMissing('movimientos_inventario', ['producto_id' => $producto->id]);
+    }
+
     public function test_checkout_is_integral_and_idempotent(): void
     {
         $usuario = User::factory()->create();

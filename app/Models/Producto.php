@@ -20,6 +20,7 @@ class Producto extends Model
         'destacado',
         'precio',
         'existencias',
+        'maneja_existencias',
         'codigo_barras',
         'esta_activo',
     ];
@@ -28,6 +29,7 @@ class Producto extends Model
         'esta_activo' => 'boolean',
         'precio' => 'decimal:2',
         'destacado' => 'boolean',
+        'maneja_existencias' => 'boolean',
     ];
 
     public function categoria(): BelongsTo

@@ -34,14 +34,16 @@ class ControladorProductos extends Controller
             'destacado' => 'nullable|boolean',
             'precio' => 'required|numeric|min:0',
             'existencias' => 'required|integer|min:0',
+            'maneja_existencias' => 'nullable|boolean',
             'codigo_barras' => 'nullable|string|unique:productos,codigo_barras',
         ]);
 
         $datos = $request->only([
-            'categoria_id', 'nombre', 'descripcion', 'precio', 'existencias', 'codigo_barras',
+            'categoria_id', 'nombre', 'descripcion', 'precio', 'existencias', 'codigo_barras', 'maneja_existencias',
             'color', 'distintivo', 'distintivo_color',
         ]);
         $datos['esta_activo'] = $request->boolean('esta_activo');
+        $datos['maneja_existencias'] = $request->boolean('maneja_existencias');
         $datos['destacado'] = $request->boolean('destacado');
         if ($request->hasFile('imagen')) {
             $datos['imagen_path'] = $request->file('imagen')->store('productos', 'public');
@@ -70,14 +72,16 @@ class ControladorProductos extends Controller
             'destacado' => 'nullable|boolean',
             'precio' => 'required|numeric|min:0',
             'existencias' => 'required|integer|min:0',
+            'maneja_existencias' => 'nullable|boolean',
             'codigo_barras' => 'nullable|string|unique:productos,codigo_barras,' . $product->id,
         ]);
 
         $datos = $request->only([
-            'categoria_id', 'nombre', 'descripcion', 'precio', 'existencias', 'codigo_barras',
+            'categoria_id', 'nombre', 'descripcion', 'precio', 'existencias', 'codigo_barras', 'maneja_existencias',
             'color', 'distintivo', 'distintivo_color',
         ]);
         $datos['esta_activo'] = $request->boolean('esta_activo');
+        $datos['maneja_existencias'] = $request->boolean('maneja_existencias');
         $datos['destacado'] = $request->boolean('destacado');
         if ($request->hasFile('imagen')) {
             if ($product->imagen_path) {

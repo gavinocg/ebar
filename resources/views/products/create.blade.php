@@ -90,6 +90,13 @@
                     <input type="number" name="existencias" class="form-control" min="0" value="0" required>
                 </div>
             </div>
+
+            <div class="form-check form-switch mb-3">
+                <input type="hidden" name="maneja_existencias" value="0">
+                <input type="checkbox" name="maneja_existencias" class="form-check-input" id="manejaExistencias" value="1" checked>
+                <label class="form-check-label" for="manejaExistencias">Controlar existencias de este producto</label>
+                <div class="form-text">Desactívalo para venderlo sin límite de inventario.</div>
+            </div>
             
             <input type="hidden" name="esta_activo" value="1">
             <div class="d-grid gap-2 d-md-flex justify-content-md-end">

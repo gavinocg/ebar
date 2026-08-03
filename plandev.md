@@ -129,6 +129,7 @@ Convertir el TPV en un sistema seguro, multi-tenant y orientado a dispositivos m
 
 ## Fase 4: Inventario Avanzado
 
+- [x] Permitir productos con existencias controladas o disponibilidad indefinida.
 - [ ] Crear ajustes manuales auditados.
 - [ ] Crear pantalla de historial de inventario.
 - [ ] Agregar motivo, usuario y referencia a cada ajuste.

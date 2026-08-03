@@ -52,7 +52,7 @@ class ServicioCobro
                     throw new \RuntimeException('Uno de los productos ya no está disponible.');
                 }
 
-                if ($product->existencias < $quantity) {
+                if ($product->maneja_existencias && $product->existencias < $quantity) {
                     throw new \RuntimeException("Existencias insuficientes para {$product->nombre}.");
                 }
 
@@ -100,18 +100,20 @@ class ServicioCobro
             foreach ($saleItems as $item) {
                 $sale->detalles()->create($item);
                 $product = $products[$item['producto_id']];
-                $stockBefore = $product->existencias;
-                $product->decrement('existencias', $item['cantidad']);
+                if ($product->maneja_existencias) {
+                    $stockBefore = $product->existencias;
+                    $product->decrement('existencias', $item['cantidad']);
 
-                InventoryMovement::create([
-                    'producto_id' => $product->id,
-                    'tipo' => 'venta',
-                    'cantidad' => -$item['cantidad'],
-                    'existencias_anteriores' => $stockBefore,
-                    'existencias_posteriores' => $stockBefore - $item['cantidad'],
-                    'tipo_referencia' => Sale::class,
-                    'id_referencia' => $sale->id,
-                ]);
+                    InventoryMovement::create([
+                        'producto_id' => $product->id,
+                        'tipo' => 'venta',
+                        'cantidad' => -$item['cantidad'],
+                        'existencias_anteriores' => $stockBefore,
+                        'existencias_posteriores' => $stockBefore - $item['cantidad'],
+                        'tipo_referencia' => Sale::class,
+                        'id_referencia' => $sale->id,
+                    ]);
+                }
             }
 
             if ($paymentMethod === 'efectivo') {

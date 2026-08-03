@@ -33,11 +33,11 @@
                          data-category="{{ $product->categoria_id }}"
                          data-name="{{ strtolower($product->nombre) }}"
                          data-barcode="{{ $product->codigo_barras }}">
-                        <div class="product-card {{ $product->existencias == 0 ? 'out-of-stock' : '' }}"
+                        <div class="product-card {{ $product->maneja_existencias && $product->existencias == 0 ? 'out-of-stock' : '' }}"
                              data-id="{{ $product->id }}"
                               data-name="{{ $product->nombre }}"
                               data-price="{{ $product->precio }}"
-                              data-stock="{{ $product->existencias }}"
+                              data-stock="{{ $product->maneja_existencias ? $product->existencias : 999999 }}"
                               style="background-color: {{ $product->color ?: '#ffffff' }}">
                             @if($product->distintivo)
                                 <span class="product-badge" style="background-color: {{ $product->distintivo_color ?: '#16a34a' }}">{{ $product->distintivo }}</span>
@@ -49,7 +49,7 @@
                             @endif
                             <div class="name">{{ $product->nombre }}</div>
                             <div class="price">${{ number_format($product->precio, 2) }}</div>
-                            <div class="stock">Existencias: {{ $product->existencias }}</div>
+                            <div class="stock">{{ $product->maneja_existencias ? 'Existencias: ' . $product->existencias : 'Disponible' }}</div>
                         </div>
                     </div>
                 @endforeach

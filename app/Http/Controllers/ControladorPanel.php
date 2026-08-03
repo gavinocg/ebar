@@ -35,6 +35,7 @@ class ControladorPanel extends Controller
 
         $lowStockProducts = Product::where('existencias', '<=', 10)
             ->where('esta_activo', true)
+            ->where('maneja_existencias', true)
             ->orderBy('existencias', 'asc')
             ->limit(10)
             ->get();
@@ -103,21 +104,22 @@ class ControladorPanel extends Controller
 
         $totalProducts = $products->count();
         $totalStock = $products->sum('existencias');
-        $totalValue = $products->sum(function ($product) {
+        $totalValue = $products->where('maneja_existencias', true)->sum(function ($product) {
             return $product->existencias * $product->precio;
         });
 
         $lowStock = $products->filter(function ($product) {
-            return $product->existencias <= 10;
+            return $product->maneja_existencias && $product->existencias <= 10;
         });
 
         $outOfStock = $products->filter(function ($product) {
-            return $product->existencias == 0;
+            return $product->maneja_existencias && $product->existencias == 0;
         });
 
         $byCategory = Product::select('categorias.nombre as nombre_categoria', DB::raw('COUNT(*) as cantidad'), DB::raw('SUM(productos.existencias) as existencias_totales'))
             ->join('categorias', 'productos.categoria_id', '=', 'categorias.id')
             ->where('productos.esta_activo', true)
+            ->where('productos.maneja_existencias', true)
             ->groupBy('categorias.id', 'categorias.nombre')
             ->orderBy('categorias.nombre')
             ->get();

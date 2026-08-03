@@ -33,8 +33,8 @@
                                 <td>{{ $product->categoria->nombre }}</td>
                                 <td>${{ number_format($product->precio, 2) }}</td>
                                 <td>
-                                    <span class="badge bg-{{ $product->existencias == 0 ? 'danger' : ($product->existencias <= 10 ? 'warning' : 'success') }}">
-                                        {{ $product->existencias }}
+                                    <span class="badge bg-{{ !$product->maneja_existencias ? 'info' : ($product->existencias == 0 ? 'danger' : ($product->existencias <= 10 ? 'warning' : 'success')) }}">
+                                        {{ $product->maneja_existencias ? $product->existencias : 'Ilimitado' }}
                                     </span>
                                 </td>
                                 <td>{{ $product->codigo_barras ?? '-' }}</td>
