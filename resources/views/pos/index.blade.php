@@ -97,7 +97,7 @@
             <div class="d-flex gap-2 mb-2">
                 <select id="paymentMethod" class="form-select">
                     <option value="efectivo">Efectivo</option>
-                    <option value="tarjeta">Tarjeta</option>
+                    <option value="credito">Crédito</option>
                     <option value="transferencia">Transferencia</option>
                 </select>
             </div>
@@ -133,6 +133,22 @@
                 <div class="mb-3">
                     <label class="form-label">Monto recibido</label>
                     <input type="number" id="paidAmount" class="form-control form-control-lg text-center" step="0.01" min="0">
+                </div>
+
+                <div id="creditoFields" class="border rounded p-3 mb-3" hidden>
+                    <label class="form-label" for="clienteSearch">Cliente</label>
+                    <input type="search" id="clienteSearch" class="form-control" placeholder="Buscar por nombre..." autocomplete="off">
+                    <input type="hidden" id="clienteId">
+                    <div id="clienteResultados" class="list-group mt-2"></div>
+                    <label class="form-label mt-3" for="descripcionCliente">Descripción</label>
+                    <textarea id="descripcionCliente" class="form-control" rows="2" maxlength="255" placeholder="Detalle de la cuenta por cobrar"></textarea>
+                </div>
+
+                <div id="transferenciaFields" class="border rounded p-3 mb-3" hidden>
+                    <label class="form-label" for="entidadFinanciera">Entidad financiera</label>
+                    <input type="text" id="entidadFinanciera" class="form-control" maxlength="100" placeholder="Banco o cooperativa">
+                    <label class="form-label mt-3" for="numeroComprobantePago">Número de comprobante</label>
+                    <input type="text" id="numeroComprobantePago" class="form-control" maxlength="100">
                 </div>
                 
                 <div class="d-flex gap-2 mb-3 flex-wrap">
@@ -362,6 +378,52 @@ document.getElementById('paidAmount').addEventListener('input', function() {
     document.getElementById('changeAmount').textContent = '$' + Math.max(0, change).toFixed(2);
 });
 
+document.getElementById('paymentMethod').addEventListener('change', actualizarCamposPago);
+
+function actualizarCamposPago() {
+    const metodo = document.getElementById('paymentMethod').value;
+    const esCredito = metodo === 'credito';
+    const esTransferencia = metodo === 'transferencia';
+    document.getElementById('creditoFields').hidden = !esCredito;
+    document.getElementById('transferenciaFields').hidden = !esTransferencia;
+    document.getElementById('paidAmount').disabled = esCredito;
+    document.getElementById('paidAmount').value = esCredito ? '0.00' : currentTotal.toFixed(2);
+    document.querySelectorAll('.quick-amount').forEach(button => button.disabled = esCredito);
+    document.getElementById('changeAmount').textContent = '$' + (esCredito ? '0.00' : '0.00');
+}
+
+let temporizadorBusquedaCliente;
+document.getElementById('clienteSearch').addEventListener('input', function () {
+    clearTimeout(temporizadorBusquedaCliente);
+    const texto = this.value.trim();
+    const resultados = document.getElementById('clienteResultados');
+    document.getElementById('clienteId').value = '';
+    resultados.replaceChildren();
+    if (texto.length < 2) return;
+
+    temporizadorBusquedaCliente = setTimeout(async () => {
+        const response = await fetch(`{{ route('clientes.buscar') }}?q=${encodeURIComponent(texto)}`, {
+            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const clientes = await response.json();
+        clientes.forEach(cliente => {
+            const opcion = document.createElement('button');
+            opcion.type = 'button';
+            opcion.className = 'list-group-item list-group-item-action text-start';
+            opcion.innerHTML = `<strong></strong><span class="float-end btn btn-sm btn-outline-primary">Seleccionar</span><small class="d-block text-muted"></small>`;
+            opcion.querySelector('strong').textContent = cliente.nombre;
+            opcion.querySelector('small').textContent = `Descripción: ${cliente.descripcion || 'Sin descripción'}`;
+            opcion.addEventListener('click', () => {
+                document.getElementById('clienteId').value = cliente.id;
+                document.getElementById('clienteSearch').value = cliente.nombre;
+                document.getElementById('descripcionCliente').value = cliente.descripcion || '';
+                resultados.replaceChildren();
+            });
+            resultados.appendChild(opcion);
+        });
+    }, 250);
+});
+
 document.querySelectorAll('.quick-amount').forEach(btn => {
     btn.addEventListener('click', function() {
         const amount = this.dataset.amount;
@@ -401,7 +463,11 @@ async function processSale() {
                 items: cart.map(item => ({ producto_id: item.id, cantidad: item.qty })),
                 metodo_pago: document.getElementById('paymentMethod').value,
                 pagado: paid.toFixed(2),
-                clave_idempotencia: idempotencyKey
+                clave_idempotencia: idempotencyKey,
+                cliente_id: document.getElementById('clienteId').value || null,
+                descripcion_cliente: document.getElementById('descripcionCliente').value || null,
+                entidad_financiera: document.getElementById('entidadFinanciera').value || null,
+                numero_comprobante_pago: document.getElementById('numeroComprobantePago').value || null
             })
         });
         

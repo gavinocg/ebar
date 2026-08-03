@@ -14,6 +14,12 @@ class Venta extends Model
         'clave_idempotencia',
         'turno_caja_id',
         'usuario_id',
+        'cliente_id',
+        'nombre_cliente',
+        'descripcion_cliente',
+        'entidad_financiera',
+        'numero_comprobante_pago',
+        'estado_cobro',
         'subtotal',
         'impuesto',
         'impuesto_habilitado',
@@ -48,5 +54,10 @@ class Venta extends Model
     public function usuario(): BelongsTo
     {
         return $this->belongsTo(User::class, 'usuario_id');
+    }
+
+    public function cliente(): BelongsTo
+    {
+        return $this->belongsTo(Cliente::class, 'cliente_id');
     }
 }

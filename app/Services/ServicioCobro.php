@@ -8,15 +8,16 @@ use App\Models\Producto as Product;
 use App\Models\Venta as Sale;
 use App\Models\TurnoCaja;
 use App\Models\MovimientoEfectivo;
+use App\Models\Cliente;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class ServicioCobro
 {
-    public function crear(array $itemsData, string $paymentMethod, string $paid, ?string $notes, string $idempotencyKey): Sale
+    public function crear(array $itemsData, string $paymentMethod, string $paid, ?string $notes, string $idempotencyKey, ?int $clienteId = null, ?string $descripcionCliente = null, ?string $entidadFinanciera = null, ?string $numeroComprobantePago = null): Sale
     {
-        return DB::transaction(function () use ($itemsData, $paymentMethod, $paid, $notes, $idempotencyKey) {
+        return DB::transaction(function () use ($itemsData, $paymentMethod, $paid, $notes, $idempotencyKey, $clienteId, $descripcionCliente, $entidadFinanciera, $numeroComprobantePago) {
             $existingSale = Sale::where('clave_idempotencia', $idempotencyKey)->first();
 
             if ($existingSale) {
@@ -42,6 +43,9 @@ class ServicioCobro
                 ->keyBy('id');
 
             $business = BusinessSetting::obtenerConfiguracion();
+            $cliente = $paymentMethod === 'credito'
+                ? Cliente::where('esta_activo', true)->findOrFail($clienteId)
+                : null;
             $subtotal = 0;
             $saleItems = [];
 
@@ -71,9 +75,9 @@ class ServicioCobro
             $taxPercentage = $taxEnabled ? (float) $business->porcentaje_impuesto : 0;
             $tax = round($subtotal * ($taxPercentage / 100), 2);
             $total = round($subtotal + $tax, 2);
-            $paidAmount = round((float) $paid, 2);
+            $paidAmount = $paymentMethod === 'credito' ? 0 : round((float) $paid, 2);
 
-            if ($paidAmount < $total) {
+            if ($paymentMethod !== 'credito' && $paidAmount < $total) {
                 throw new \RuntimeException('El monto recibido es insuficiente.');
             }
 
@@ -91,6 +95,12 @@ class ServicioCobro
                 'pagado' => $paidAmount,
                 'cambio' => round($paidAmount - $total, 2),
                 'notas' => $notes,
+                'cliente_id' => $cliente?->id,
+                'nombre_cliente' => $cliente?->nombre,
+                'descripcion_cliente' => $descripcionCliente,
+                'entidad_financiera' => $entidadFinanciera,
+                'numero_comprobante_pago' => $numeroComprobantePago,
+                'estado_cobro' => $paymentMethod === 'credito' ? 'pendiente' : 'pagado',
             ]);
 
             $sale->update([

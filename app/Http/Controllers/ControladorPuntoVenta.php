@@ -47,10 +47,14 @@ class ControladorPuntoVenta extends Controller
                 'items' => 'required|array|min:1|max:100',
                 'items.*.producto_id' => 'required|integer|distinct|exists:productos,id',
                 'items.*.cantidad' => 'required|integer|min:1|max:10000',
-                'metodo_pago' => 'required|in:efectivo,tarjeta,transferencia',
+                'metodo_pago' => 'required|in:efectivo,credito,transferencia',
                 'pagado' => 'required|numeric|min:0|max:99999999.99',
                 'notas' => 'nullable|string|max:1000',
                 'clave_idempotencia' => 'required|string|max:100',
+                'cliente_id' => 'required_if:metodo_pago,credito|nullable|integer|exists:clientes,id',
+                'descripcion_cliente' => 'required_if:metodo_pago,credito|nullable|string|max:255',
+                'entidad_financiera' => 'required_if:metodo_pago,transferencia|nullable|string|max:100',
+                'numero_comprobante_pago' => 'required_if:metodo_pago,transferencia|nullable|string|max:100',
             ]);
 
             $sale = $servicioCobro->crear(
@@ -59,6 +63,10 @@ class ControladorPuntoVenta extends Controller
                 $request->input('pagado'),
                 $request->input('notas'),
                 $request->string('clave_idempotencia')->toString(),
+                $request->input('cliente_id'),
+                $request->input('descripcion_cliente'),
+                $request->input('entidad_financiera'),
+                $request->input('numero_comprobante_pago'),
             );
 
             $sale->load('detalles');

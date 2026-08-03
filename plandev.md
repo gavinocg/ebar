@@ -11,6 +11,7 @@ Convertir el TPV en un sistema seguro, multi-tenant y orientado a dispositivos m
 - Cada unidad debe incluir migración, lógica, interfaz y pruebas cuando corresponda.
 - Las ventas, existencias, cajas y permisos deben validarse en el servidor.
 - No se registrarán clientes específicos; las ventas usarán consumidor genérico.
+- Para ventas a crédito se usará una agenda mínima de clientes con nombre y descripción; no será un CRM.
 - No se ejecutará `migrate:fresh` en producción.
 - Las migraciones productivas usarán `php artisan migrate --force`.
 - Después de cada unidad se actualizará este archivo.
@@ -247,6 +248,15 @@ La siguiente fase es **flujo operativo de cajero y cobro**, comenzando por acces
 - [ ] Implementar reapertura autorizada por `admin_bar`.
 - [ ] Crear pruebas de acceso, caja, pagos y aislamiento.
 
+## Fase 11: Agenda Mínima Para Crédito
+
+- [x] `COMPLETADO` Crear tabla `clientes` con nombre, descripción y estado activo.
+- [x] `COMPLETADO` Crear búsqueda incremental por caracteres digitados.
+- [x] `COMPLETADO` Mostrar opciones con nombre, descripción y botón `Seleccionar`.
+- [x] `COMPLETADO` Exigir selección de cliente para una venta a crédito.
+- [x] `COMPLETADO` Guardar `cliente_id` y snapshot de nombre/descripción en la venta.
+- [ ] Mantener esta agenda separada de fidelización, puntos y CRM.
+
 ## Registro De Implementaciones
 
 ### 2026-08-01
@@ -301,3 +311,4 @@ La siguiente fase es **flujo operativo de cajero y cobro**, comenzando por acces
 
 - Se documentó el flujo requerido de cajero, apertura, cobros y cierre.
 - Se definió crédito como cuenta por cobrar asociada a la venta, sin clientes permanentes.
+- Se actualizó el requerimiento: crédito usará una agenda mínima buscable de clientes.
