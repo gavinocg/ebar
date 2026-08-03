@@ -197,7 +197,55 @@ Convertir el TPV en un sistema seguro, multi-tenant y orientado a dispositivos m
 
 ## Próximo Paso
 
-La siguiente unidad recomendada es **movimientos manuales de efectivo**, porque completa la apertura, manejo y cierre de caja antes de continuar con multi-tenant.
+La siguiente fase es **flujo operativo de cajero y cobro**, comenzando por acceso con cédula/PIN y apertura obligatoria de caja.
+
+## Flujo Operativo Definido
+
+### Acceso Del Cajero
+
+- El cajero inicia sesión con cédula y PIN numérico de 4 dígitos.
+- El PIN se almacena cifrado/hasheado; nunca se guarda en texto plano.
+- La cédula identifica al usuario y debe ser única dentro del negocio.
+- Los roles iniciales serán `cajero` y `admin_bar`.
+- `admin_bar` podrá administrar caja, cajeros, reportes y operaciones sensibles.
+
+### Inicio Del Turno
+
+- Después del login, si no hay turno abierto, el sistema lleva a apertura de caja.
+- El cajero selecciona la caja y registra el fondo inicial.
+- No se permite vender sin turno abierto.
+- La venta queda asociada a usuario, caja, turno y sucursal cuando exista multi-tenant.
+
+### Formas De Pago
+
+- `efectivo`: registra el dinero recibido y alimenta el cuadre de caja.
+- `credito`: no aumenta efectivo; crea una cuenta por cobrar con nombre y descripción de la operación.
+- `transferencia`: registra entidad financiera y número de comprobante; no aumenta efectivo.
+- Los datos del crédito serán propios de la venta y no crearán una base permanente de clientes.
+
+### Cierre Y Cuadre
+
+- El cajero o `admin_bar` solicita el cierre del turno.
+- El sistema calcula efectivo esperado usando fondo, ventas en efectivo, entradas, retiros y gastos.
+- El cajero registra efectivo contado.
+- Se calcula la diferencia.
+- El cierre queda inmutable salvo reapertura autorizada por `admin_bar`.
+- Se registra auditoría de cierres, diferencias y reaperturas.
+
+## Fase 10: Flujo De Cajero Y Cobros
+
+- [ ] Cambiar login a cédula y PIN de 4 dígitos.
+- [ ] Validar y hashear el PIN.
+- [ ] Crear gestión de roles `cajero` y `admin_bar`.
+- [ ] Llevar al cajero a apertura de caja después del login.
+- [ ] Bloquear el POS sin turno abierto.
+- [ ] Mantener efectivo como movimiento de caja.
+- [ ] Agregar crédito y cuenta por cobrar por venta.
+- [ ] Agregar entidad y comprobante para transferencias.
+- [ ] Separar pagos que afectan caja de pagos que no afectan caja.
+- [ ] Implementar cierre y cuadre por cajero.
+- [ ] Implementar reapertura autorizada por `admin_bar`.
+- [ ] Crear pruebas de acceso, caja, pagos y aislamiento.
 
 ## Registro De Implementaciones
 
@@ -248,3 +296,8 @@ La siguiente unidad recomendada es **movimientos manuales de efectivo**, porque 
 - Se eliminó la vista previa como fallback de la impresión térmica directa.
 - Si no existe impresora predeterminada, el TPV informa el estado sin imprimir el carrito.
 - Se redujo el envío BLE a paquetes de 20 bytes con pausa para evitar cortes de ticket.
+
+### 2026-08-01 - Flujo Operativo
+
+- Se documentó el flujo requerido de cajero, apertura, cobros y cierre.
+- Se definió crédito como cuenta por cobrar asociada a la venta, sin clientes permanentes.
