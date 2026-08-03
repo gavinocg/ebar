@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Convertir el TPV en un sistema seguro, multi-tenant y orientado a dispositivos móviles, tomando como referencia funcional las capacidades públicas de Loyverse sin copiar su identidad visual ni sus recursos propietarios.
+Convertir e-Bar en una plataforma SaaS multi-tenant para administrar bares escolares, segura y orientada a dispositivos móviles, tomando como referencia funcional las capacidades públicas de Loyverse sin copiar su identidad visual ni sus recursos propietarios.
 
 ## Reglas De Trabajo
 
@@ -12,6 +12,7 @@ Convertir el TPV en un sistema seguro, multi-tenant y orientado a dispositivos m
 - Las ventas, existencias, cajas y permisos deben validarse en el servidor.
 - No se registrarán clientes específicos; las ventas usarán consumidor genérico.
 - Para ventas a crédito se usará una agenda mínima de clientes con nombre y descripción; no será un CRM.
+- El `super_admin` administra la plataforma y vende membresías; cada bar es un tenant independiente.
 - No se ejecutará `migrate:fresh` en producción.
 - Las migraciones productivas usarán `php artisan migrate --force`.
 - Después de cada unidad se actualizará este archivo.
@@ -27,6 +28,15 @@ Convertir el TPV en un sistema seguro, multi-tenant y orientado a dispositivos m
 - `BLOQUEADO`: requiere una decisión, servicio externo o dato pendiente.
 
 ## Estado Actual
+
+### Modelo De Negocio e-Bar
+
+- `super_admin`: administra la plataforma, crea bares y vende membresías.
+- `admin_bar`: administra un bar, caja, catálogo, reportes y cajeros; también puede operar como cajero.
+- `cajero`: usuario limitado al POS y a sus turnos de caja.
+- `negocio`: representa un bar escolar y funciona como tenant aislado.
+- `membresia`: relaciona un bar con un plan, estado, fechas y límites de uso.
+- No habrá CRM general; los datos de crédito serán una agenda mínima por venta.
 
 ### Base Y Seguridad
 
@@ -82,9 +92,11 @@ Convertir el TPV en un sistema seguro, multi-tenant y orientado a dispositivos m
 
 - [x] `COMPLETADO` Crear tabla `negocios`.
 - [x] `COMPLETADO` Crear modelo `Negocio`.
-- [ ] Crear CRUD administrativo de negocios.
+- [ ] Crear CRUD administrativo de negocios para `super_admin`.
 - [ ] Definir identificador único del negocio.
 - [ ] Definir zona horaria, moneda y configuración por negocio.
+- [ ] Asociar administrador principal del bar.
+- [ ] Definir estados: prueba, activo, suspendido, vencido y cancelado.
 
 ### 1.2 Sucursales
 
@@ -108,9 +120,27 @@ Convertir el TPV en un sistema seguro, multi-tenant y orientado a dispositivos m
 - [x] `COMPLETADO` Crear índices compuestos de aislamiento.
 - [x] `COMPLETADO` Crear pruebas de lectura cruzada entre negocios.
 
+### 1.5 Membresías Y Super Administrador
+
+- [ ] Crear planes de membresía.
+- [ ] Crear fechas de inicio, vencimiento y renovación.
+- [ ] Crear límites por plan para cajeros, cajas, sucursales y almacenamiento.
+- [ ] Crear rol global `super_admin` fuera del tenant.
+- [ ] Crear panel global de bares.
+- [ ] Crear alta de bar y administrador inicial.
+- [ ] Activar, suspender y reactivar bares.
+- [ ] Bloquear bares vencidos o suspendidos.
+
 ## Fase 2: Cajeros Y Permisos
 
-- [ ] Definir roles: administrador, gerente, supervisor y cajero.
+- [ ] Definir roles por bar: `admin_bar` y `cajero`.
+- [ ] Permitir que `admin_bar` opere también como cajero.
+- [ ] Permitir registrar una cantidad de cajeros limitada por la membresía.
+- [ ] Desactivar cajeros sin borrar su historial.
+- [ ] Implementar PIN numérico de 4 dígitos.
+- [ ] Crear acceso de cajero exclusivo para POS.
+- [ ] Impedir que un cajero acceda al backoffice.
+- [ ] Permitir a `admin_bar` administrar sus cajeros.
 - [ ] Crear permisos por módulo y acción.
 - [ ] Aplicar policies a productos, ventas, cajas, reportes y configuración.
 - [ ] Implementar PIN de acceso rápido al POS.
@@ -306,6 +336,14 @@ La siguiente fase es **flujo operativo de cajero y cobro**, comenzando por acces
 - Se eliminó la vista previa como fallback de la impresión térmica directa.
 - Si no existe impresora predeterminada, el TPV informa el estado sin imprimir el carrito.
 - Se redujo el envío BLE a paquetes de 20 bytes con pausa para evitar cortes de ticket.
+
+### 2026-08-01 - Modelo SaaS e-Bar
+
+- Se definió e-Bar como plataforma para bares escolares.
+- Se definió `super_admin` como propietario global de la plataforma.
+- Se definió `admin_bar` como administrador y cajero autorizado de cada bar.
+- Se definió `cajero` como usuario exclusivo del POS.
+- Se incorporó al plan la venta, vencimiento y límites de membresías.
 
 ### 2026-08-01 - Flujo Operativo
 
