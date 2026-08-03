@@ -86,6 +86,28 @@ Convertir e-Bar en una plataforma SaaS multi-tenant para administrar bares escol
 - [x] `COMPLETADO` Cloudflare Tunnel configurado hacia `http://localhost:8001`.
 - [ ] `PENDIENTE` Rotar el token de Cloudflare compartido durante la configuración.
 
+## Programación De Fases
+
+| Fase | Alcance | Dependencia | Estado |
+|---|---|---|---|
+| 1 | Plataforma SaaS: super administrador, planes, bares y membresías | Fundación multi-tenant | EN_PROGRESO |
+| 2 | Cajeros, PIN, roles y permisos por bar | Fase 1 | PENDIENTE |
+| 3 | Caja, movimientos, cierres y arqueos avanzados | Fases 1 y 2 | PENDIENTE |
+| 4 | Inventario avanzado, compras y ajustes | Fase 1 | PENDIENTE |
+| 5 | Crédito, cuentas por cobrar, descuentos y devoluciones | Fases 2 y 3 | PENDIENTE |
+| 6 | Reportes, exportación y auditoría | Fases 2 a 5 | PENDIENTE |
+| 7 | Operación móvil, PWA y modo offline | Fases 1 a 6 | PENDIENTE |
+| 8 | Restaurante, cocina e integraciones | Según necesidad del negocio | PENDIENTE |
+
+## Criterios De Cierre Por Fase
+
+- Migraciones aplicadas sin `migrate:fresh` en producción.
+- Rutas protegidas y autorización validada en servidor.
+- Interfaz responsive validada en escritorio, tableta y Android.
+- Pruebas automáticas para el flujo principal y errores críticos.
+- Actualización de esta sección y del registro de implementaciones.
+- Commit en `dev`, pruebas aprobadas, merge a `prod` y verificación del servidor.
+
 ## Fase 1: Multi-Tenant `EN_PROGRESO`
 
 ### 1.1 Negocios
@@ -130,6 +152,16 @@ Convertir e-Bar en una plataforma SaaS multi-tenant para administrar bares escol
 - [ ] Crear alta de bar y administrador inicial.
 - [ ] Activar, suspender y reactivar bares.
 - [ ] Bloquear bares vencidos o suspendidos.
+
+### Unidades De Implementación De La Fase 1
+
+- [ ] 1A. Crear rol global `super_admin` y separar acceso de plataforma.
+- [ ] 1B. Crear planes de membresía y límites por plan.
+- [ ] 1C. Crear CRUD global de bares para `super_admin`.
+- [ ] 1D. Crear alta de administrador inicial de cada bar.
+- [ ] 1E. Crear alta, renovación, suspensión y vencimiento de membresías.
+- [ ] 1F. Crear selector de negocio y sucursal.
+- [ ] 1G. Aplicar pruebas de aislamiento y cierre de fase.
 
 ## Fase 2: Cajeros Y Permisos
 
@@ -344,6 +376,13 @@ La siguiente fase es **flujo operativo de cajero y cobro**, comenzando por acces
 - Se definió `admin_bar` como administrador y cajero autorizado de cada bar.
 - Se definió `cajero` como usuario exclusivo del POS.
 - Se incorporó al plan la venta, vencimiento y límites de membresías.
+
+### 2026-08-01 - Programación Por Fases
+
+- Se organizaron las actividades faltantes en ocho fases.
+- Se definieron dependencias y criterios de cierre por fase.
+- La Fase 1 quedó dividida en unidades 1A a 1G.
+- La unidad siguiente es 1A: rol global `super_admin`.
 
 ### 2026-08-01 - Flujo Operativo
 
