@@ -155,7 +155,7 @@ Convertir e-Bar en una plataforma SaaS multi-tenant para administrar bares escol
 
 ### Unidades De Implementación De La Fase 1
 
-- [ ] 1A. Crear rol global `super_admin` y separar acceso de plataforma.
+- [x] `COMPLETADO` 1A. Crear rol global `super_admin` y separar acceso de plataforma.
 - [ ] 1B. Crear planes de membresía y límites por plan.
 - [ ] 1C. Crear CRUD global de bares para `super_admin`.
 - [ ] 1D. Crear alta de administrador inicial de cada bar.
@@ -376,6 +376,13 @@ La siguiente fase es **flujo operativo de cajero y cobro**, comenzando por acces
 - Se definió `admin_bar` como administrador y cajero autorizado de cada bar.
 - Se definió `cajero` como usuario exclusivo del POS.
 - Se incorporó al plan la venta, vencimiento y límites de membresías.
+
+### 2026-08-01 - Unidad 1A
+
+- Se creó autorización global para `super_admin`.
+- Se agregó panel inicial de administración de la plataforma.
+- Se impidió el acceso al panel de plataforma a usuarios de los bares.
+- Se agregó usuario de prueba `superadmin@ebar.com` en el seeder.
 
 ### 2026-08-01 - Programación Por Fases
 

@@ -29,6 +29,20 @@ class CheckoutTest extends TestCase
         $this->get(route('punto_venta.inicio'))->assertOk();
     }
 
+    public function test_super_administrador_puede_ver_la_plataforma(): void
+    {
+        $this->actingAs(User::factory()->create(['rol' => 'super_admin']));
+
+        $this->get(route('plataforma.inicio'))->assertOk();
+    }
+
+    public function test_usuario_del_bar_no_puede_ver_la_plataforma(): void
+    {
+        $this->actingAs(User::factory()->create(['rol' => 'cajero']));
+
+        $this->get(route('plataforma.inicio'))->assertForbidden();
+    }
+
     public function test_los_datos_se_aislan_por_negocio(): void
     {
         $negocioUno = Negocio::create([

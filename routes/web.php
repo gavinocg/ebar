@@ -11,10 +11,14 @@ use App\Http\Controllers\ControladorConfiguracionNegocio as BusinessSettingContr
 use App\Http\Controllers\ControladorAutenticacion as AuthController;
 use App\Http\Controllers\ControladorCaja;
 use App\Http\Controllers\ControladorClientes;
+use App\Http\Controllers\ControladorPlataforma;
 
 Route::get('/inicio-sesion', [AuthController::class, 'create'])->name('inicio_sesion');
 Route::post('/inicio-sesion', [AuthController::class, 'store'])->name('inicio_sesion.guardar');
 Route::post('/cerrar-sesion', [AuthController::class, 'destroy'])->middleware('auth')->name('cerrar_sesion');
+Route::get('/plataforma', [ControladorPlataforma::class, 'index'])
+    ->middleware(['auth', 'super_admin'])
+    ->name('plataforma.inicio');
 
 Route::middleware(['auth', 'negocio'])->group(function () {
     Route::get('/', function () {

@@ -112,5 +112,11 @@ class DatabaseSeeder extends Seeder
             'rol' => 'admin_bar',
             'esta_activa' => true,
         ]);
+
+        User::factory()->create([
+            'nombre' => 'Super Administrador',
+            'correo' => 'superadmin@ebar.com',
+            'rol' => 'super_admin',
+        ]);
     }
 }

@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn () => route('inicio_sesion'));
         $middleware->alias([
             'negocio' => \App\Http\Middleware\EstablecerContextoNegocio::class,
+            'super_admin' => \App\Http\Middleware\AutorizarSuperAdministrador::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
