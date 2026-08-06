@@ -33,10 +33,11 @@ class ControladorPanel extends Controller
             ->limit(10)
             ->get();
 
-        $lowStockProducts = Product::where('existencias', '<=', 10)
+        $lowStockProducts = Product::where('maneja_existencias', true)
             ->where('esta_activo', true)
-            ->where('maneja_existencias', true)
-            ->orderBy('existencias', 'asc')
+            ->whereNotNull('nivel_minimo')
+            ->whereColumn('existencias', '<=', 'nivel_minimo')
+            ->orderByRaw('existencias - nivel_minimo asc')
             ->limit(10)
             ->get();
 
@@ -62,6 +63,7 @@ class ControladorPanel extends Controller
 
     public function reporteVentas(Request $request)
     {
+        $this->authorize('reportes.ver');
         $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->toDateString());
         $endDate = $request->get('end_date', Carbon::now()->toDateString());
 
@@ -95,8 +97,42 @@ class ControladorPanel extends Controller
         ));
     }
 
+    public function reportePorCajero(Request $request)
+    {
+        $this->authorize('reportes.ver');
+        $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->toDateString());
+        $endDate = $request->get('end_date', Carbon::now()->toDateString());
+
+        $porCajero = Sale::query()
+            ->join('usuarios', 'usuarios.id', '=', 'ventas.usuario_id')
+            ->whereBetween('ventas.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->select(
+                'usuarios.id as usuario_id',
+                'usuarios.nombre as nombre',
+                DB::raw('COUNT(*) as total_ventas'),
+                DB::raw('SUM(ventas.subtotal) as total_subtotal'),
+                DB::raw('SUM(ventas.impuesto) as total_impuesto'),
+                DB::raw('SUM(ventas.total) as total_ingresos'),
+            )
+            ->groupBy('usuarios.id', 'usuarios.nombre')
+            ->orderByDesc('total_ventas')
+            ->get();
+
+        $granTotalVentas = $porCajero->sum('total_ventas');
+        $granTotalIngresos = $porCajero->sum('total_ingresos');
+
+        return view('dashboard.cashier-report', compact(
+            'porCajero',
+            'granTotalVentas',
+            'granTotalIngresos',
+            'startDate',
+            'endDate',
+        ));
+    }
+
     public function reporteInventario()
     {
+        $this->authorize('reportes.ver');
         $products = Product::with('categoria')
             ->where('esta_activo', true)
             ->orderBy('nombre')
@@ -135,3 +171,5 @@ class ControladorPanel extends Controller
         ));
     }
 }
+
+

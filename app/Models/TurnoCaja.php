@@ -13,6 +13,7 @@ class TurnoCaja extends Model
     protected $table = 'turnos_caja';
 
     protected $fillable = [
+        'sucursal_id',
         'caja_id',
         'usuario_id',
         'fondo_inicial',

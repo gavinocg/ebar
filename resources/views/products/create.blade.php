@@ -29,6 +29,16 @@
                 </div>
                 
                 <div class="col-md-6 mb-3">
+                    <label class="form-label">Sucursal</label>
+                    <select name="sucursal_id" class="form-select">
+                        <option value="">Todas las sucursales</option>
+                        @foreach($sucursales as $sucursal)
+                            <option value="{{ $sucursal->id }}">{{ $sucursal->nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="col-md-6 mb-3">
                     <label class="form-label">Código de Barras</label>
                     <input type="text" name="codigo_barras" class="form-control" placeholder="Opcional">
                 </div>
@@ -86,8 +96,23 @@
                 </div>
                 
                 <div class="col-md-6 mb-3">
+                    <label class="form-label">Descuento (%)</label>
+                    <div class="input-group">
+                        <input type="number" name="descuento" class="form-control" step="0.01" min="0" max="100" value="0">
+                        <span class="input-group-text">%</span>
+                    </div>
+                    <div class="form-text">Descuento automático aplicado al vender este producto.</div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
                     <label class="form-label">Stock Inicial</label>
                     <input type="number" name="existencias" id="existenciasProducto" class="form-control" min="0" value="0" required>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Nivel mínimo</label>
+                    <input type="number" name="nivel_minimo" id="nivelMinimoProducto" class="form-control" min="0" value="0">
+                    <div class="form-text">Alerta cuando las existencias bajen de este valor.</div>
                 </div>
             </div>
 
@@ -114,10 +139,16 @@
 <script>
 const switchExistencias = document.getElementById('manejaExistencias');
 const campoExistencias = document.getElementById('existenciasProducto');
+const campoNivelMinimo = document.getElementById('nivelMinimoProducto');
 const actualizarCampoExistencias = () => {
-    campoExistencias.disabled = !switchExistencias.checked;
-    campoExistencias.required = switchExistencias.checked;
-    if (!switchExistencias.checked) campoExistencias.value = 0;
+    const activo = switchExistencias.checked;
+    campoExistencias.disabled = !activo;
+    campoExistencias.required = activo;
+    campoNivelMinimo.disabled = !activo;
+    if (!activo) {
+        campoExistencias.value = 0;
+        campoNivelMinimo.value = 0;
+    }
 };
 switchExistencias.addEventListener('change', actualizarCampoExistencias);
 actualizarCampoExistencias();

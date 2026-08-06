@@ -6,6 +6,8 @@ use App\Models\Producto as Product;
 use App\Models\Categoria as Category;
 use App\Models\Impresora as Printer;
 use App\Models\ConfiguracionNegocio as BusinessSetting;
+use App\Models\Sucursal;
+use App\Services\ContextoNegocio;
 use App\Services\ServicioImpresoraTermica;
 use App\Services\ServicioCobro;
 use Illuminate\Http\Request;
@@ -14,22 +16,40 @@ class ControladorPuntoVenta extends Controller
 {
     public function index()
     {
+        if (!session('pos_desbloqueado')) {
+            return view('pos.lock');
+        }
+
+        $sucursalId = app(ContextoNegocio::class)->sucursalId();
+
         $products = Product::with('categoria')
             ->where('esta_activo', true)
+            ->where(function ($q) use ($sucursalId) {
+                $q->whereNull('sucursal_id')
+                    ->when($sucursalId, fn ($query) => $query->orWhere('sucursal_id', $sucursalId));
+            })
             ->orderBy('nombre')
             ->get();
         $categories = Category::where('esta_activa', true)->orderBy('orden')->orderBy('nombre')->get();
         $printer = Printer::predeterminada()->first();
         $business = BusinessSetting::obtenerConfiguracion();
-        
-        return view('pos.index', compact('products', 'categories', 'printer', 'business'));
+
+        $sucursales = Sucursal::where('esta_activa', true)->orderBy('nombre')->get();
+        $sucursalActual = $sucursales->firstWhere('id', $sucursalId);
+
+        return view('pos.index', compact('products', 'categories', 'printer', 'business', 'sucursales', 'sucursalActual'));
     }
 
     public function buscar(Request $request)
     {
         $query = $request->get('q', '');
+        $sucursalId = app(ContextoNegocio::class)->sucursalId();
         $products = Product::with('categoria')
             ->where('esta_activo', true)
+            ->where(function ($q) use ($sucursalId) {
+                $q->whereNull('sucursal_id')
+                    ->when($sucursalId, fn ($query) => $query->orWhere('sucursal_id', $sucursalId));
+            })
             ->where(function ($q) use ($query) {
                 $q->where('nombre', 'like', "%{$query}%")
                   ->orWhere('codigo_barras', $query);
@@ -38,6 +58,29 @@ class ControladorPuntoVenta extends Controller
             ->get();
 
         return response()->json($products);
+    }
+
+    public function desbloquear(Request $request)
+    {
+        $datos = $request->validate([
+            'pin' => 'required|digits:4',
+        ]);
+
+        $usuario = $request->user();
+
+        abort_if(blank($usuario->pin), 422, 'Este usuario no tiene PIN configurado.');
+        abort_unless(password_verify($datos['pin'], $usuario->pin), 422, 'PIN incorrecto.');
+
+        $request->session()->put('pos_desbloqueado', true);
+
+        return redirect()->route('punto_venta.inicio');
+    }
+
+    public function bloquear(Request $request): RedirectResponse
+    {
+        $request->session()->forget('pos_desbloqueado');
+
+        return redirect()->route('punto_venta.inicio');
     }
 
     public function cobrar(Request $request, ServicioCobro $servicioCobro)
@@ -55,6 +98,7 @@ class ControladorPuntoVenta extends Controller
                 'descripcion_cliente' => 'required_if:metodo_pago,credito|nullable|string|max:255',
                 'entidad_financiera' => 'required_if:metodo_pago,transferencia|nullable|string|max:100',
                 'numero_comprobante_pago' => 'required_if:metodo_pago,transferencia|nullable|string|max:100',
+                'descuento' => 'nullable|numeric|min:0|max:100',
             ]);
 
             $sale = $servicioCobro->crear(
@@ -67,6 +111,7 @@ class ControladorPuntoVenta extends Controller
                 $request->input('descripcion_cliente'),
                 $request->input('entidad_financiera'),
                 $request->input('numero_comprobante_pago'),
+                $request->input('descuento'),
             );
 
             $sale->load('detalles');

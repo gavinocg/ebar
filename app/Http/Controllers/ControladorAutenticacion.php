@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\MembresiaNegocio;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,8 +27,25 @@ class ControladorAutenticacion extends Controller
         }
 
         $request->session()->regenerate();
+        $request->session()->put('pos_desbloqueado', true);
 
-        return redirect()->intended(route('punto_venta.inicio'));
+        $membresias = MembresiaNegocio::where('usuario_id', Auth::id())
+            ->where('esta_activa', true)
+            ->count();
+
+        if (auth()->user()->rol === 'super_admin') {
+            return redirect()->route('plataforma.inicio');
+        }
+
+        if ($membresias > 1) {
+            return redirect()->route('negocio.seleccionar');
+        }
+
+        if ($membresias === 1) {
+            return redirect()->route('punto_venta.inicio');
+        }
+
+        return redirect()->route('negocio.seleccionar');
     }
 
     public function destroy(Request $request): RedirectResponse

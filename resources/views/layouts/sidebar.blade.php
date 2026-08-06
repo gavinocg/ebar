@@ -208,6 +208,32 @@
                     <span>Categorías</span>
                 </a>
             </li>
+            <li>
+                <a href="{{ route('inventario.historial') }}" class="{{ request()->routeIs('inventario.*') ? 'active' : '' }}">
+                    <i class="bi bi-clock-history"></i>
+                    <span>Historial</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('conteos.index') }}" class="{{ request()->routeIs('conteos.*') ? 'active' : '' }}">
+                    <i class="bi bi-clipboard-check"></i>
+                    <span>Conteos</span>
+                </a>
+            </li>
+
+            <li class="menu-label">Compras</li>
+            <li>
+                <a href="{{ route('proveedores.index') }}" class="{{ request()->routeIs('proveedores.*') ? 'active' : '' }}">
+                    <i class="bi bi-truck"></i>
+                    <span>Proveedores</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('ordenes.index') }}" class="{{ request()->routeIs('ordenes.*') ? 'active' : '' }}">
+                    <i class="bi bi-cart-plus"></i>
+                    <span>Órdenes de compra</span>
+                </a>
+            </li>
             
             <li class="menu-label">Ventas</li>
             <li>
@@ -236,6 +262,36 @@
                 <a href="{{ route('impresoras.index') }}" class="{{ request()->routeIs('impresoras.*') ? 'active' : '' }}">
                     <i class="bi bi-printer"></i>
                     <span>Impresoras</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('sucursales.index') }}" class="{{ request()->routeIs('sucursales.*') ? 'active' : '' }}">
+                    <i class="bi bi-buildings"></i>
+                    <span>Sucursales</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('cajeros.index') }}" class="{{ request()->routeIs('cajeros.*') ? 'active' : '' }}">
+                    <i class="bi bi-person-badge"></i>
+                    <span>Cajeros</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('cajas.index') }}" class="{{ request()->routeIs('cajas.*') ? 'active' : '' }}">
+                    <i class="bi bi-safe"></i>
+                    <span>Cajas</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('caja.reporte') }}" class="{{ request()->routeIs('caja.reporte', 'caja.turno-detalle') ? 'active' : '' }}">
+                    <i class="bi bi-cash-stack"></i>
+                    <span>Arqueos</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('auditorias.index') }}" class="{{ request()->routeIs('auditorias.*') ? 'active' : '' }}">
+                    <i class="bi bi-journal-check"></i>
+                    <span>Auditoría</span>
                 </a>
             </li>
             <li>

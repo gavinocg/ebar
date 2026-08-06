@@ -17,6 +17,22 @@ class DatabaseSeeder extends Seeder
     {
         $negocio = \App\Models\Negocio::firstOrFail();
         app(ContextoNegocio::class)->establecer($negocio->id);
+
+        $planBasico = \App\Models\Plan::query()->updateOrCreate(
+            ['nombre' => 'Básico'],
+            ['descripcion' => 'Plan inicial para bares pequeños.', 'precio_mensual' => 10.00, 'limite_cajeros' => 2, 'limite_cajas' => 1, 'limite_sucursales' => 1],
+        );
+
+        $planPro = \App\Models\Plan::query()->updateOrCreate(
+            ['nombre' => 'Pro'],
+            ['descripcion' => 'Ideal para bares en crecimiento.', 'precio_mensual' => 25.00, 'limite_cajeros' => 5, 'limite_cajas' => 3, 'limite_sucursales' => 2],
+        );
+
+        \App\Models\Membresia::firstOrCreate(
+            ['negocio_id' => $negocio->id],
+            ['plan_id' => $planPro->id, 'estado' => 'activa', 'fecha_inicio' => now(), 'fecha_vencimiento' => now()->addYear()],
+        );
+
         Caja::create(['nombre' => 'Caja principal', 'esta_activa' => true]);
 
         $bebidas = Category::create(['nombre' => 'Bebidas', 'descripcion' => 'Bebidas frías y calientes']);

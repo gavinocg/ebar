@@ -70,7 +70,7 @@ class CheckoutTest extends TestCase
 
     public function test_paginas_principales_renderizan(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->adminBar());
         $this->product();
 
         foreach ([
@@ -203,7 +203,7 @@ class CheckoutTest extends TestCase
     public function test_producto_y_categoria_aceptan_recursos_visuales(): void
     {
         Storage::fake('public');
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->adminBar());
 
         $categoriaResponse = $this->post(route('categorias.store'), [
             'nombre' => 'Bebidas',
@@ -287,6 +287,70 @@ class CheckoutTest extends TestCase
         $this->assertStringNotContainsString('¡', $comprobante);
     }
 
+    public function test_checkout_aplica_descuento_por_producto_y_por_comprobante(): void
+    {
+        $usuario = User::factory()->create();
+        $this->actingAs($usuario);
+        $this->abrirTurno($usuario);
+        
+        $category = Category::create(['nombre' => 'Pruebas']);
+        $productoConDescuento = Product::create([
+            'categoria_id' => $category->id,
+            'nombre' => 'Producto con descuento',
+            'precio' => 100,
+            'descuento' => 10, // 10%
+            'existencias' => 10,
+            'esta_activo' => true,
+        ]);
+        $productoSinDescuento = Product::create([
+            'categoria_id' => $category->id,
+            'nombre' => 'Producto normal',
+            'precio' => 50,
+            'descuento' => 0,
+            'existencias' => 10,
+            'esta_activo' => true,
+        ]);
+        BusinessSetting::create([
+            'nombre_negocio' => 'Prueba',
+            'cobrar_impuesto' => false,
+            'porcentaje_impuesto' => 0,
+        ]);
+
+        $payload = [
+            'items' => [
+                ['producto_id' => $productoConDescuento->id, 'cantidad' => 2], // 200 - 20 = 180
+                ['producto_id' => $productoSinDescuento->id, 'cantidad' => 1], // 50
+            ],
+            'metodo_pago' => 'efectivo',
+            'pagado' => '200.00',
+            'clave_idempotencia' => 'descuento-test',
+            'descuento' => 20, // 20% sobre subtotal (180+50=230 => 46)
+        ];
+
+        $response = $this->postJson(route('punto_venta.cobrar'), $payload);
+
+        $response->assertOk()->assertJsonPath('success', true);
+        $venta = Venta::first();
+        
+        // Subtotal antes de descuento comprobante: 180 + 50 = 230
+        // Descuento líneas: 20 (10% de 200)
+        // Descuento comprobante: 20% de 230 = 46
+        // Total descuento: 20 + 46 = 66
+        // Subtotal final (gravable): 230 - 46 = 184
+        // Sin impuesto: total = 184
+        $this->assertSame('184.00', number_format($venta->subtotal, 2));
+        $this->assertSame('66.00', number_format($venta->descuento, 2));
+        $this->assertSame('20.00', number_format($venta->descuento_porcentaje, 2));
+        $this->assertSame('184.00', number_format($venta->total, 2));
+        
+        // Detalles congelan descuentos
+        $detalles = $venta->detalles()->orderBy('id')->get();
+        $this->assertSame('20.00', number_format($detalles[0]->descuento, 2)); // 10% de 2*100
+        $this->assertSame('0.00', number_format($detalles[1]->descuento, 2));
+        $this->assertSame('180.00', number_format($detalles[0]->subtotal, 2)); // 200 - 20
+        $this->assertSame('50.00', number_format($detalles[1]->subtotal, 2));
+    }
+
     private function product(int $price = 10, int $stock = 10): Product
     {
         $category = Category::create(['nombre' => 'Pruebas']);
@@ -316,5 +380,24 @@ class CheckoutTest extends TestCase
     private function turnoActual(User $usuario): TurnoCaja
     {
         return TurnoCaja::where('usuario_id', $usuario->id)->where('estado', 'abierta')->latest('id')->firstOrFail();
+    }
+
+    private function adminBar(): User
+    {
+        $negocio = Negocio::firstOrCreate(
+            ['identificador' => 'negocio-principal'],
+            ['nombre' => 'Negocio principal', 'esta_activo' => true],
+        );
+        app(ContextoNegocio::class)->establecer($negocio->id);
+
+        $usuario = User::factory()->create(['rol' => 'admin_bar']);
+        \App\Models\MembresiaNegocio::create([
+            'negocio_id' => $negocio->id,
+            'usuario_id' => $usuario->id,
+            'rol' => 'admin_bar',
+            'esta_activa' => true,
+        ]);
+
+        return $usuario;
     }
 }

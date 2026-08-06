@@ -10,6 +10,7 @@ class Impresora extends Model
     use PerteneceANegocio;
     protected $table = 'impresoras';
     protected $fillable = [
+        'sucursal_id',
         'nombre',
         'tipo_conexion',
         'tipo_impresora',

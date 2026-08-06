@@ -12,6 +12,7 @@ class Producto extends Model
     use PerteneceANegocio;
     protected $table = 'productos';
     protected $fillable = [
+        'sucursal_id',
         'categoria_id',
         'nombre',
         'descripcion',
@@ -21,7 +22,9 @@ class Producto extends Model
         'distintivo_color',
         'destacado',
         'precio',
+        'descuento',
         'existencias',
+        'nivel_minimo',
         'maneja_existencias',
         'codigo_barras',
         'esta_activo',
@@ -30,6 +33,7 @@ class Producto extends Model
     protected $casts = [
         'esta_activo' => 'boolean',
         'precio' => 'decimal:2',
+        'descuento' => 'decimal:2',
         'destacado' => 'boolean',
         'maneja_existencias' => 'boolean',
     ];
@@ -37,6 +41,11 @@ class Producto extends Model
     public function categoria(): BelongsTo
     {
         return $this->belongsTo(Categoria::class);
+    }
+
+    public function sucursal(): BelongsTo
+    {
+        return $this->belongsTo(Sucursal::class, 'sucursal_id');
     }
 
     public function movimientosInventario(): HasMany

@@ -10,6 +10,8 @@ class ControladorConfiguracionNegocio extends Controller
 {
     public function index()
     {
+        $this->authorize('administrar', BusinessSetting::class);
+
         $settings = BusinessSetting::first();
         return view('settings.business', compact('settings'));
     }

@@ -5,6 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Caja;
 use App\Models\TurnoCaja;
 use App\Models\MovimientoEfectivo;
+use App\Models\MembresiaNegocio;
+use App\Models\Sucursal;
+use App\Services\ContextoNegocio;
+use App\Services\RegistradorAuditoria;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,15 +20,20 @@ class ControladorCaja extends Controller
     {
         $datos = $request->validate([
             'fondo_inicial' => 'required|numeric|min:0|max:99999999.99',
+            'caja_id' => 'nullable|integer|exists:cajas,id',
         ]);
 
         if ($this->turnoAbierto()) {
             return back()->withErrors(['caja' => 'Ya tienes un turno de caja abierto.']);
         }
 
-        $caja = Caja::where('esta_activa', true)->orderBy('id')->firstOrFail();
+        $caja = Caja::where('esta_activa', true)
+            ->when($request->filled('caja_id'), fn ($q) => $q->where('id', $datos['caja_id']))
+            ->orderBy('id')
+            ->firstOrFail();
 
         TurnoCaja::create([
+            'sucursal_id' => $caja->sucursal_id,
             'caja_id' => $caja->id,
             'usuario_id' => Auth::id(),
             'fondo_inicial' => $datos['fondo_inicial'],
@@ -45,7 +54,7 @@ class ControladorCaja extends Controller
         return back()->with('success', 'Turno de caja abierto correctamente.');
     }
 
-    public function cerrar(Request $request): RedirectResponse
+    public function cerrar(Request $request, RegistradorAuditoria $auditoria): RedirectResponse
     {
         $datos = $request->validate([
             'efectivo_contado' => 'required|numeric|min:0|max:99999999.99',
@@ -69,6 +78,13 @@ class ControladorCaja extends Controller
             'estado' => 'cerrada',
             'notas' => $datos['notas'] ?? null,
         ]);
+
+        $auditoria->registrar('caja', 'cierre_turno', 'Cierre de turno #' . $turno->id, [
+            'caja_id' => $turno->caja_id,
+            'esperado' => $esperado,
+            'contado' => $contado,
+            'diferencia' => round($contado - $esperado, 2),
+        ], TurnoCaja::class, $turno->id);
 
         return back()->with('success', 'Turno de caja cerrado correctamente.');
     }
@@ -100,6 +116,89 @@ class ControladorCaja extends Controller
         ]);
 
         return back()->with('success', 'Movimiento de efectivo registrado.');
+    }
+
+    public function reabrir(TurnoCaja $turnoCaja, RegistradorAuditoria $auditoria): RedirectResponse
+    {
+        $this->authorize('administrar', Caja::class);
+
+        abort_unless($turnoCaja->estado === 'cerrada', 422, 'Solo se pueden reabrir turnos cerrados.');
+
+        $detalles = [
+            'caja_id' => $turnoCaja->caja_id,
+            'esperado' => $turnoCaja->efectivo_esperado,
+            'contado' => $turnoCaja->efectivo_contado,
+        ];
+
+        $turnoCaja->update([
+            'estado' => 'abierta',
+            'cerrado_en' => null,
+            'efectivo_esperado' => null,
+            'efectivo_contado' => null,
+            'diferencia' => null,
+            'notas' => trim(($turnoCaja->notas ? $turnoCaja->notas . ' | ' : '') . 'Reabierto por ' . Auth::user()->nombre),
+        ]);
+
+        $auditoria->registrar('caja', 'reapertura_turno', 'Reapertura de turno #' . $turnoCaja->id, $detalles, TurnoCaja::class, $turnoCaja->id);
+
+        return back()->with('success', 'Turno reabierto correctamente.');
+    }
+
+    public function reporte(Request $request)
+    {
+        $this->authorize('administrar', Caja::class);
+
+        $negocioId = app(ContextoNegocio::class)->id();
+
+        $turnos = TurnoCaja::with('usuario', 'caja.sucursal')
+            ->when($request->filled('usuario_id'), fn ($q) => $q->where('usuario_id', $request->input('usuario_id')))
+            ->when($request->filled('caja_id'), fn ($q) => $q->where('caja_id', $request->input('caja_id')))
+            ->when($request->filled('sucursal_id'), fn ($q) => $q->where('sucursal_id', $request->input('sucursal_id')))
+            ->orderByDesc('abierto_en')
+            ->get();
+
+        $usuarios = MembresiaNegocio::with('usuario')
+            ->where('negocio_id', $negocioId)
+            ->get()
+            ->pluck('usuario')
+            ->filter();
+
+        $cajas = Caja::orderBy('nombre')->get();
+        $sucursales = Sucursal::orderBy('nombre')->get();
+
+        return view('caja.arqueos', [
+            'turnos' => $turnos,
+            'usuarios' => $usuarios,
+            'cajas' => $cajas,
+            'sucursales' => $sucursales,
+            'usuarioSeleccionado' => $request->input('usuario_id'),
+            'cajaSeleccionada' => $request->input('caja_id'),
+            'sucursalSeleccionada' => $request->input('sucursal_id'),
+        ]);
+    }
+
+    public function turnoDetalle(TurnoCaja $turnoCaja)
+    {
+        $this->authorize('administrar', Caja::class);
+
+        $turnoCaja->load('usuario', 'caja.sucursal', 'ventas', 'movimientosEfectivo');
+
+        $ventasEfectivo = $turnoCaja->movimientosEfectivo()
+            ->where('tipo', 'venta')
+            ->sum('monto');
+        $entradas = $turnoCaja->movimientosEfectivo()
+            ->whereIn('tipo', ['entrada', 'fondo_inicial'])
+            ->sum('monto');
+        $salidas = $turnoCaja->movimientosEfectivo()
+            ->whereIn('tipo', ['retiro', 'gasto'])
+            ->sum('monto');
+
+        return view('caja.turno-detalle', [
+            'turno' => $turnoCaja,
+            'ventasEfectivo' => $ventasEfectivo,
+            'entradas' => $entradas,
+            'salidas' => abs($salidas),
+        ]);
     }
 
     private function turnoAbierto(): ?TurnoCaja

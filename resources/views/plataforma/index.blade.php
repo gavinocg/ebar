@@ -35,4 +35,10 @@
         </div>
     </div>
 </div>
+
+<div class="mt-4">
+    <a href="{{ route('plataforma.negocios.index') }}" class="btn btn-primary">
+        <i class="bi bi-shop"></i> Gestionar bares
+    </a>
+</div>
 @endsection

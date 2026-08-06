@@ -31,6 +31,16 @@
                 </div>
                 
                 <div class="col-md-6 mb-3">
+                    <label class="form-label">Sucursal</label>
+                    <select name="sucursal_id" class="form-select">
+                        <option value="">Todas las sucursales</option>
+                        @foreach($sucursales as $sucursal)
+                            <option value="{{ $sucursal->id }}" @selected($product->sucursal_id === $sucursal->id)>{{ $sucursal->nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="col-md-6 mb-3">
                     <label class="form-label">Código de Barras</label>
                     <input type="text" name="codigo_barras" class="form-control" value="{{ $product->codigo_barras }}">
                 </div>
@@ -90,8 +100,32 @@
                 </div>
                 
                 <div class="col-md-6 mb-3">
+                    <label class="form-label">Descuento (%)</label>
+                    <div class="input-group">
+                        <input type="number" name="descuento" class="form-control" step="0.01" min="0" max="100" value="{{ $product->descuento ?? 0 }}">
+                        <span class="input-group-text">%</span>
+                    </div>
+                    <div class="form-text">Descuento automático aplicado al vender este producto.</div>
+                </div>
+                
+                <div class="col-md-4 mb-3">
                     <label class="form-label">Stock</label>
                     <input type="number" name="existencias" id="existenciasProducto" class="form-control" min="0" value="{{ $product->existencias }}" {{ $product->maneja_existencias ? '' : 'disabled' }}>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Nivel mínimo</label>
+                    <input type="number" name="nivel_minimo" id="nivelMinimoProducto" class="form-control" min="0" value="{{ $product->nivel_minimo ?? 0 }}" {{ $product->maneja_existencias ? '' : 'disabled' }}>
+                    <div class="form-text">Alerta cuando las existencias bajen de este valor.</div>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Estado</label>
+                    <div class="form-check form-switch mt-2">
+                        <input type="hidden" name="esta_activo" value="0">
+                        <input type="checkbox" name="esta_activo" class="form-check-input" value="1" {{ $product->esta_activo ? 'checked' : '' }}>
+                        <label class="form-check-label">Producto Activo</label>
+                    </div>
                 </div>
             </div>
 
@@ -100,11 +134,6 @@
                 <input type="checkbox" name="maneja_existencias" class="form-check-input" id="manejaExistencias" value="1" {{ $product->maneja_existencias ? 'checked' : '' }}>
                 <label class="form-check-label" for="manejaExistencias">Controlar existencias de este producto</label>
                 <div class="form-text">Desactívalo para venderlo sin límite de inventario.</div>
-            </div>
-            
-            <div class="mb-3 form-check">
-                <input type="checkbox" name="esta_activo" class="form-check-input" value="1" {{ $product->esta_activo ? 'checked' : '' }}>
-                <label class="form-check-label">Producto Activo</label>
             </div>
             
             <div class="d-grid gap-2 d-md-flex justify-content-md-end">
@@ -122,10 +151,16 @@
 <script>
 const switchExistencias = document.getElementById('manejaExistencias');
 const campoExistencias = document.getElementById('existenciasProducto');
+const campoNivelMinimo = document.getElementById('nivelMinimoProducto');
 const actualizarCampoExistencias = () => {
-    campoExistencias.disabled = !switchExistencias.checked;
-    campoExistencias.required = switchExistencias.checked;
-    if (!switchExistencias.checked) campoExistencias.value = 0;
+    const activo = switchExistencias.checked;
+    campoExistencias.disabled = !activo;
+    campoExistencias.required = activo;
+    campoNivelMinimo.disabled = !activo;
+    if (!activo) {
+        campoExistencias.value = 0;
+        campoNivelMinimo.value = 0;
+    }
 };
 switchExistencias.addEventListener('change', actualizarCampoExistencias);
 actualizarCampoExistencias();

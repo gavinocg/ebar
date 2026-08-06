@@ -4,6 +4,9 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Gate;
+use App\Models\ConfiguracionNegocio;
+use App\Policies\ConfiguracionPolicy;
 use App\Services\ContextoNegocio;
 
 class AppServiceProvider extends ServiceProvider
@@ -21,6 +24,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::policy(ConfiguracionNegocio::class, ConfiguracionPolicy::class);
+
+        Gate::define('reportes.ver', function ($usuario) {
+            return $usuario->esAdminDelNegocioActual();
+        });
+
+        Gate::before(function ($usuario, $ability) {
+            return $usuario->esAdminDelNegocioActual();
+        });
+
         if (app()->environment('production')) {
             URL::forceScheme('https');
         }

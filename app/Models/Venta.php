@@ -12,6 +12,7 @@ class Venta extends Model
     use PerteneceANegocio;
     protected $table = 'ventas';
     protected $fillable = [
+        'sucursal_id',
         'numero_comprobante',
         'clave_idempotencia',
         'turno_caja_id',
@@ -23,6 +24,8 @@ class Venta extends Model
         'numero_comprobante_pago',
         'estado_cobro',
         'subtotal',
+        'descuento',
+        'descuento_porcentaje',
         'impuesto',
         'impuesto_habilitado',
         'porcentaje_impuesto',
@@ -35,6 +38,8 @@ class Venta extends Model
 
     protected $casts = [
         'subtotal' => 'decimal:2',
+        'descuento' => 'decimal:2',
+        'descuento_porcentaje' => 'decimal:2',
         'impuesto' => 'decimal:2',
         'impuesto_habilitado' => 'boolean',
         'porcentaje_impuesto' => 'decimal:2',
@@ -61,5 +66,10 @@ class Venta extends Model
     public function cliente(): BelongsTo
     {
         return $this->belongsTo(Cliente::class, 'cliente_id');
+    }
+
+    public function sucursal(): BelongsTo
+    {
+        return $this->belongsTo(Sucursal::class, 'sucursal_id');
     }
 }

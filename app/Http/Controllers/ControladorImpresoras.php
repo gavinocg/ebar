@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Impresora as Printer;
+use App\Models\Sucursal;
 use App\Services\ServicioImpresoraTermica;
 use Illuminate\Http\Request;
 
@@ -11,12 +12,14 @@ class ControladorImpresoras extends Controller
     public function index()
     {
         $printers = Printer::orderBy('es_predeterminada', 'desc')->orderBy('nombre')->get();
-        return view('printers.index', compact('printers'));
+        $sucursales = Sucursal::orderBy('nombre')->get();
+        return view('printers.index', compact('printers', 'sucursales'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
+            'sucursal_id' => 'nullable|integer|exists:sucursales,id',
             'nombre' => 'required|string|max:255',
             'tipo_conexion' => 'required|in:bluetooth,wifi,lan,normal',
             'direccion' => 'nullable|string',
@@ -40,6 +43,7 @@ class ControladorImpresoras extends Controller
     public function update(Request $request, Printer $printer)
     {
         $request->validate([
+            'sucursal_id' => 'nullable|integer|exists:sucursales,id',
             'nombre' => 'required|string|max:255',
             'tipo_conexion' => 'required|in:bluetooth,wifi,lan,normal',
             'direccion' => 'nullable|string',

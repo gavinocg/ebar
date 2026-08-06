@@ -15,9 +15,9 @@ use Illuminate\Support\Str;
 
 class ServicioCobro
 {
-    public function crear(array $itemsData, string $paymentMethod, string $paid, ?string $notes, string $idempotencyKey, ?int $clienteId = null, ?string $descripcionCliente = null, ?string $entidadFinanciera = null, ?string $numeroComprobantePago = null): Sale
+    public function crear(array $itemsData, string $paymentMethod, string $paid, ?string $notes, string $idempotencyKey, ?int $clienteId = null, ?string $descripcionCliente = null, ?string $entidadFinanciera = null, ?string $numeroComprobantePago = null, ?float $descuentoPorcentaje = null): Sale
     {
-        return DB::transaction(function () use ($itemsData, $paymentMethod, $paid, $notes, $idempotencyKey, $clienteId, $descripcionCliente, $entidadFinanciera, $numeroComprobantePago) {
+        return DB::transaction(function () use ($itemsData, $paymentMethod, $paid, $notes, $idempotencyKey, $clienteId, $descripcionCliente, $entidadFinanciera, $numeroComprobantePago, $descuentoPorcentaje) {
             $existingSale = Sale::where('clave_idempotencia', $idempotencyKey)->first();
 
             if ($existingSale) {
@@ -47,6 +47,7 @@ class ServicioCobro
                 ? Cliente::where('esta_activo', true)->findOrFail($clienteId)
                 : null;
             $subtotal = 0;
+            $descuentoLineas = 0;
             $saleItems = [];
 
             foreach ($quantities as $productId => $quantity) {
@@ -60,17 +61,29 @@ class ServicioCobro
                     throw new \RuntimeException("Existencias insuficientes para {$product->nombre}.");
                 }
 
-                $itemSubtotal = round((float) $product->precio * $quantity, 2);
+                $lineOriginal = round((float) $product->precio * $quantity, 2);
+                $descuentoPorcentajeProducto = is_numeric($product->descuento) ? (float) $product->descuento : 0;
+                $lineDiscount = round($lineOriginal * ($descuentoPorcentajeProducto / 100), 2);
+                $itemSubtotal = round($lineOriginal - $lineDiscount, 2);
                 $subtotal = round($subtotal + $itemSubtotal, 2);
+                $descuentoLineas = round($descuentoLineas + $lineDiscount, 2);
                 $saleItems[] = [
                     'producto_id' => $product->id,
                     'nombre_producto' => $product->nombre,
                     'cantidad' => $quantity,
                     'precio' => $product->precio,
+                    'descuento' => $lineDiscount,
                     'subtotal' => $itemSubtotal,
                 ];
             }
 
+            $descuentoComprobante = 0;
+            if ($descuentoPorcentaje !== null && $descuentoPorcentaje > 0 && $subtotal > 0) {
+                $descuentoComprobante = round($subtotal * ($descuentoPorcentaje / 100), 2);
+                $subtotal = round($subtotal - $descuentoComprobante, 2);
+            }
+
+            $descuentoTotal = round($descuentoLineas + $descuentoComprobante, 2);
             $taxEnabled = (bool) $business->cobrar_impuesto;
             $taxPercentage = $taxEnabled ? (float) $business->porcentaje_impuesto : 0;
             $tax = round($subtotal * ($taxPercentage / 100), 2);
@@ -82,11 +95,14 @@ class ServicioCobro
             }
 
             $sale = Sale::create([
+                'sucursal_id' => $turnoCaja->sucursal_id,
                 'numero_comprobante' => 'PENDING-' . Str::uuid(),
                 'clave_idempotencia' => $idempotencyKey,
                 'turno_caja_id' => $turnoCaja->id,
                 'usuario_id' => Auth::id(),
                 'subtotal' => $subtotal,
+                'descuento' => $descuentoTotal,
+                'descuento_porcentaje' => $descuentoPorcentaje,
                 'impuesto' => $tax,
                 'impuesto_habilitado' => $taxEnabled,
                 'porcentaje_impuesto' => $taxPercentage,

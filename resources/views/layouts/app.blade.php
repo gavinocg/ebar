@@ -52,6 +52,23 @@
                             <i class="bi bi-gear"></i> Configuración
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('sucursales.index') }}">
+                            <i class="bi bi-diagram-3"></i> Sucursales
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('cajeros.index') }}">
+                            <i class="bi bi-people"></i> Cajeros
+                        </a>
+                    </li>
+                    @if (auth()->check() && auth()->user()->rol !== 'super_admin')
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('negocio.cambiar') }}">
+                                <i class="bi bi-arrow-left-right"></i> Cambiar de bar
+                            </a>
+                        </li>
+                    @endif
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-graph-up"></i> Reportes
@@ -60,6 +77,8 @@
                             <li><a class="dropdown-item" href="{{ route('panel.inicio') }}">Panel</a></li>
                             <li><a class="dropdown-item" href="{{ route('reportes.ventas') }}">Ventas</a></li>
                             <li><a class="dropdown-item" href="{{ route('reportes.inventario') }}">Inventario</a></li>
+                            <li><a class="dropdown-item" href="{{ route('reportes.cajeros') }}">Por cajero</a></li>
+                            <li><a class="dropdown-item" href="{{ route('caja.reporte') }}">Arqueos de caja</a></li>
                         </ul>
                     </li>
                 </ul>

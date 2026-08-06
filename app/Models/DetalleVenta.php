@@ -10,10 +10,11 @@ class DetalleVenta extends Model
 {
     use PerteneceANegocio;
     protected $table = 'detalles_venta';
-    protected $fillable = ['venta_id', 'producto_id', 'nombre_producto', 'cantidad', 'precio', 'subtotal'];
+    protected $fillable = ['venta_id', 'producto_id', 'nombre_producto', 'cantidad', 'precio', 'descuento', 'subtotal'];
 
     protected $casts = [
         'precio' => 'decimal:2',
+        'descuento' => 'decimal:2',
         'subtotal' => 'decimal:2',
     ];
 

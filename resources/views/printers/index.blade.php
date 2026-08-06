@@ -16,6 +16,16 @@
                         <label class="form-label">Nombre</label>
                         <input type="text" name="nombre" class="form-control" required placeholder="Ej: Impresora Cocina">
                     </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Sucursal</label>
+                        <select name="sucursal_id" class="form-select">
+                            <option value="">Todas las sucursales</option>
+                            @foreach($sucursales as $sucursal)
+                                <option value="{{ $sucursal->id }}">{{ $sucursal->nombre }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                     
                     <div class="mb-3">
                         <label class="form-label">Tipo de Impresora</label>
@@ -147,6 +157,16 @@
                                                             <input type="text" name="nombre" class="form-control" value="{{ $printer->nombre }}" required>
                                                         </div>
                                                         
+                                                        <div class="mb-3">
+                                                            <label class="form-label">Sucursal</label>
+                                                            <select name="sucursal_id" class="form-select">
+                                                                <option value="">Todas las sucursales</option>
+                                                                @foreach($sucursales as $sucursal)
+                                                                    <option value="{{ $sucursal->id }}" @selected($printer->sucursal_id === $sucursal->id)>{{ $sucursal->nombre }}</option>
+                                                                @endforeach
+                                                            </select>
+                                                        </div>
+
                                                         <div class="mb-3">
                                                             <label class="form-label">Tipo de Conexión</label>
                                                             <select name="tipo_conexion" class="form-select" required>

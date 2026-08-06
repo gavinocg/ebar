@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'negocio' => \App\Http\Middleware\EstablecerContextoNegocio::class,
             'super_admin' => \App\Http\Middleware\AutorizarSuperAdministrador::class,
+            'rol_negocio' => \App\Http\Middleware\AutorizarRolNegocio::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

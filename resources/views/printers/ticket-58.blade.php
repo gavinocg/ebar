@@ -26,6 +26,9 @@
         </div>
     @endforeach
     <hr>
+    @if((float)$sale->descuento > 0)
+    <div class="linea"><span>Descuento</span><span>-${{ number_format($sale->descuento, 2) }}</span></div>
+    @endif
     <div class="linea total"><span>Total</span><span>${{ number_format($sale->total, 2) }}</span></div>
     <div class="linea"><span>Pago</span><span>${{ number_format($sale->pagado, 2) }}</span></div>
     <div class="linea"><span>Cambio</span><span>${{ number_format($sale->cambio, 2) }}</span></div>

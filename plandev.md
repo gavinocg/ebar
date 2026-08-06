@@ -73,8 +73,8 @@ Convertir e-Bar en una plataforma SaaS multi-tenant para administrar bares escol
 - [x] `COMPLETADO` Cálculo de efectivo esperado y diferencia.
 - [x] `COMPLETADO` Asociación de venta con usuario y turno.
 - [x] `COMPLETADO` Entradas y retiros manuales de efectivo.
-- [ ] `PENDIENTE` Reapertura autorizada de turnos cerrados.
-- [ ] `PENDIENTE` Reporte de arqueos y diferencias por cajero.
+- [x] `COMPLETADO` Reapertura autorizada de turnos cerrados.
+- [x] `COMPLETADO` Reporte de arqueos y diferencias por cajero.
 
 ### Despliegue
 
@@ -90,11 +90,11 @@ Convertir e-Bar en una plataforma SaaS multi-tenant para administrar bares escol
 
 | Fase | Alcance | Dependencia | Estado |
 |---|---|---|---|
-| 1 | Plataforma SaaS: super administrador, planes, bares y membresías | Fundación multi-tenant | EN_PROGRESO |
-| 2 | Cajeros, PIN, roles y permisos por bar | Fase 1 | PENDIENTE |
-| 3 | Caja, movimientos, cierres y arqueos avanzados | Fases 1 y 2 | PENDIENTE |
-| 4 | Inventario avanzado, compras y ajustes | Fase 1 | PENDIENTE |
-| 5 | Crédito, cuentas por cobrar, descuentos y devoluciones | Fases 2 y 3 | PENDIENTE |
+| 1 | Plataforma SaaS: super administrador, planes, bares y membresías | Fundación multi-tenant | COMPLETADO |
+| 2 | Cajeros, PIN, roles y permisos por bar | Fase 1 | COMPLETADO |
+| 3 | Caja, movimientos, cierres y arqueos avanzados | Fases 1 y 2 | COMPLETADO |
+| 4 | Inventario avanzado, compras y ajustes | Fase 1 | COMPLETADO |
+| 5 | Crédito, cuentas por cobrar, descuentos y devoluciones | Fases 2 y 3 | EN_PROGRESO |
 | 6 | Reportes, exportación y auditoría | Fases 2 a 5 | PENDIENTE |
 | 7 | Operación móvil, PWA y modo offline | Fases 1 a 6 | PENDIENTE |
 | 8 | Restaurante, cocina e integraciones | Según necesidad del negocio | PENDIENTE |
@@ -108,30 +108,30 @@ Convertir e-Bar en una plataforma SaaS multi-tenant para administrar bares escol
 - Actualización de esta sección y del registro de implementaciones.
 - Commit en `dev`, pruebas aprobadas, merge a `prod` y verificación del servidor.
 
-## Fase 1: Multi-Tenant `EN_PROGRESO`
+## Fase 1: Multi-Tenant `COMPLETADO`
 
 ### 1.1 Negocios
 
 - [x] `COMPLETADO` Crear tabla `negocios`.
 - [x] `COMPLETADO` Crear modelo `Negocio`.
-- [ ] Crear CRUD administrativo de negocios para `super_admin`.
-- [ ] Definir identificador único del negocio.
-- [ ] Definir zona horaria, moneda y configuración por negocio.
-- [ ] Asociar administrador principal del bar.
-- [ ] Definir estados: prueba, activo, suspendido, vencido y cancelado.
+- [x] `COMPLETADO` Crear CRUD administrativo de negocios para `super_admin`.
+- [x] `COMPLETADO` Definir identificador único del negocio.
+- [x] `COMPLETADO` Definir zona horaria, moneda y configuración por negocio.
+- [x] `COMPLETADO` Asociar administrador principal del bar.
+- [x] `COMPLETADO` Definir estados: prueba, activo, suspendido, vencido y cancelado.
 
 ### 1.2 Sucursales
 
 - [x] `COMPLETADO` Crear tabla `sucursales` con `negocio_id`.
 - [x] `COMPLETADO` Crear modelo `Sucursal`.
-- [ ] Crear CRUD de sucursales.
-- [ ] Asociar cajas, impresoras, productos y ventas a sucursales.
+- [x] `COMPLETADO` Crear CRUD de sucursales.
+- [x] `COMPLETADO` Asociar cajas, impresoras, productos y ventas a sucursales.
 
 ### 1.3 Membresías
 
 - [x] `COMPLETADO` Crear tabla `membresias_negocio`.
 - [x] `COMPLETADO` Permitir que un usuario pertenezca a uno o varios negocios.
-- [ ] Crear selector de negocio y sucursal después del login.
+- [x] `COMPLETADO` Crear selector de negocio y sucursal después del login.
 - [x] `COMPLETADO` Crear `ContextoNegocio` para negocio, sucursal y usuario actuales.
 
 ### 1.4 Aislamiento
@@ -144,72 +144,72 @@ Convertir e-Bar en una plataforma SaaS multi-tenant para administrar bares escol
 
 ### 1.5 Membresías Y Super Administrador
 
-- [ ] Crear planes de membresía.
-- [ ] Crear fechas de inicio, vencimiento y renovación.
-- [ ] Crear límites por plan para cajeros, cajas, sucursales y almacenamiento.
-- [ ] Crear rol global `super_admin` fuera del tenant.
-- [ ] Crear panel global de bares.
-- [ ] Crear alta de bar y administrador inicial.
-- [ ] Activar, suspender y reactivar bares.
-- [ ] Bloquear bares vencidos o suspendidos.
+- [x] `COMPLETADO` Crear planes de membresía.
+- [x] `COMPLETADO` Crear fechas de inicio, vencimiento y renovación.
+- [x] `COMPLETADO` Crear límites por plan para cajeros, cajas, sucursales y almacenamiento.
+- [x] `COMPLETADO` Crear rol global `super_admin` fuera del tenant.
+- [x] `COMPLETADO` Crear panel global de bares.
+- [x] `COMPLETADO` Crear alta de bar y administrador inicial.
+- [x] `COMPLETADO` Activar, suspender y reactivar bares.
+- [x] `COMPLETADO` Bloquear bares vencidos o suspendidos.
 
 ### Unidades De Implementación De La Fase 1
 
 - [x] `COMPLETADO` 1A. Crear rol global `super_admin` y separar acceso de plataforma.
-- [ ] 1B. Crear planes de membresía y límites por plan.
-- [ ] 1C. Crear CRUD global de bares para `super_admin`.
-- [ ] 1D. Crear alta de administrador inicial de cada bar.
-- [ ] 1E. Crear alta, renovación, suspensión y vencimiento de membresías.
-- [ ] 1F. Crear selector de negocio y sucursal.
-- [ ] 1G. Aplicar pruebas de aislamiento y cierre de fase.
+- [x] `COMPLETADO` 1B. Crear planes de membresía y límites por plan.
+- [x] `COMPLETADO` 1C. Crear CRUD global de bares para `super_admin`.
+- [x] `COMPLETADO` 1D. Crear alta de administrador inicial de cada bar.
+- [x] `COMPLETADO` 1E. Crear alta, renovación, suspensión y vencimiento de membresías.
+- [x] `COMPLETADO` 1F. Crear selector de negocio y sucursal.
+- [x] `COMPLETADO` 1G. Aplicar pruebas de aislamiento y cierre de fase.
 
 ## Fase 2: Cajeros Y Permisos
 
-- [ ] Definir roles por bar: `admin_bar` y `cajero`.
-- [ ] Permitir que `admin_bar` opere también como cajero.
-- [ ] Permitir registrar una cantidad de cajeros limitada por la membresía.
-- [ ] Desactivar cajeros sin borrar su historial.
-- [ ] Implementar PIN numérico de 4 dígitos.
-- [ ] Crear acceso de cajero exclusivo para POS.
-- [ ] Impedir que un cajero acceda al backoffice.
-- [ ] Permitir a `admin_bar` administrar sus cajeros.
-- [ ] Crear permisos por módulo y acción.
-- [ ] Aplicar policies a productos, ventas, cajas, reportes y configuración.
-- [ ] Implementar PIN de acceso rápido al POS.
-- [ ] Registrar usuario responsable en ventas y movimientos.
-- [ ] Crear auditoría de descuentos, devoluciones, ajustes y reaperturas.
-- [ ] Crear reportes de ventas por cajero.
+- [x] `COMPLETADO` Definir roles por bar: `admin_bar` y `cajero`.
+- [x] `COMPLETADO` Permitir que `admin_bar` opere también como cajero.
+- [x] `COMPLETADO` Permitir registrar una cantidad de cajeros limitada por la membresía.
+- [x] `COMPLETADO` Desactivar cajeros sin borrar su historial.
+- [x] `COMPLETADO` Implementar PIN numérico de 4 dígitos.
+- [x] `COMPLETADO` Crear acceso de cajero exclusivo para POS.
+- [x] `COMPLETADO` Impedir que un cajero acceda al backoffice.
+- [x] `COMPLETADO` Permitir a `admin_bar` administrar sus cajeros.
+- [x] `COMPLETADO` Crear permisos por módulo y acción.
+- [x] `COMPLETADO` Aplicar policies a productos, ventas, cajas, reportes y configuración.
+- [x] `COMPLETADO` Implementar PIN de acceso rápido al POS.
+- [x] `COMPLETADO` Registrar usuario responsable en ventas y movimientos.
+- [x] `COMPLETADO` Crear auditoría de descuentos, devoluciones, ajustes y reaperturas.
+- [x] `COMPLETADO` Crear reportes de ventas por cajero.
 
 ## Fase 3: Efectivo Y Arqueos
 
-- [x] Crear `movimientos_efectivo`.
-- [x] Registrar ventas en efectivo.
-- [x] Registrar retiros, gastos y entradas.
-- [x] Exigir motivo en retiros y ajustes.
-- [ ] Mejorar cálculo de efectivo esperado.
-- [ ] Crear reporte de turno.
-- [ ] Crear reporte de diferencias por usuario, caja y sucursal.
+- [x] `COMPLETADO` Crear `movimientos_efectivo`.
+- [x] `COMPLETADO` Registrar ventas en efectivo.
+- [x] `COMPLETADO` Registrar retiros, gastos y entradas.
+- [x] `COMPLETADO` Exigir motivo en retiros y ajustes.
+- [x] `COMPLETADO` Mejorar cálculo de efectivo esperado.
+- [x] `COMPLETADO` Crear reporte de turno.
+- [x] `COMPLETADO` Crear reporte de diferencias por usuario, caja y sucursal.
 
 ## Fase 4: Inventario Avanzado
 
-- [x] Permitir productos con existencias controladas o disponibilidad indefinida.
-- [ ] Crear ajustes manuales auditados.
-- [ ] Crear pantalla de historial de inventario.
-- [ ] Agregar motivo, usuario y referencia a cada ajuste.
-- [ ] Crear niveles mínimos configurables por producto.
-- [ ] Crear alertas de existencias bajas.
-- [ ] Separar catálogo de existencias por sucursal.
-- [ ] Crear proveedores y órdenes de compra.
-- [ ] Crear recepción de mercancía.
-- [ ] Crear conteos físicos.
-- [ ] Crear importación y exportación CSV.
-- [ ] Crear impresión de etiquetas.
+- [x] `COMPLETADO` Permitir productos con existencias controladas o disponibilidad indefinida.
+- [x] `COMPLETADO` Crear ajustes manuales auditados.
+- [x] `COMPLETADO` Crear pantalla de historial de inventario.
+- [x] `COMPLETADO` Agregar motivo, usuario y referencia a cada ajuste.
+- [x] `COMPLETADO` Crear niveles mínimos configurables por producto.
+- [x] `COMPLETADO` Crear alertas de existencias bajas.
+- [x] `COMPLETADO` Separar catálogo de existencias por sucursal.
+- [x] `COMPLETADO` Crear proveedores y órdenes de compra.
+- [x] `COMPLETADO` Crear recepción de mercancía.
+- [x] `COMPLETADO` Crear conteos físicos.
+- [x] `COMPLETADO` Crear importación y exportación CSV.
+- [x] `COMPLETADO` Crear impresión de etiquetas.
 
 ## Fase 5: Ventas Avanzadas
 
-- [ ] Crear descuentos por producto.
-- [ ] Crear descuentos por comprobante.
-- [ ] Congelar descuentos en el detalle de venta.
+- [x] `COMPLETADO` Crear descuentos por producto.
+- [x] `COMPLETADO` Crear descuentos por comprobante.
+- [x] `COMPLETADO` Congelar descuentos en el detalle de venta.
 - [ ] Crear reembolsos parciales y totales.
 - [ ] Revertir existencias mediante movimientos compensatorios.
 - [ ] Exigir autorización para anulaciones y devoluciones.
@@ -260,7 +260,7 @@ Convertir e-Bar en una plataforma SaaS multi-tenant para administrar bares escol
 
 ## Próximo Paso
 
-La siguiente fase es **flujo operativo de cajero y cobro**, comenzando por acceso con cédula/PIN y apertura obligatoria de caja.
+La siguiente unidad es **reembolsos parciales y totales** (Fase 5): migración ya aplicada (`reembolsos` y `reembolsos_detalles`), falta modelo, servicio de reversión de existencias, autorización y pruebas. Después seguirán tickets abiertos, pagos divididos, variantes y modificadores.
 
 ## Flujo Operativo Definido
 
@@ -405,3 +405,84 @@ La siguiente fase es **flujo operativo de cajero y cobro**, comenzando por acces
 - Se migró y vinculó el negocio principal existente.
 - Se agregaron pruebas de aislamiento entre negocios.
 - Queda pendiente el selector de negocio/sucursal y los CRUD administrativos.
+
+### 2026-08-05 - Cierre Operativo De La Fase 1
+
+- Se reorganizó el backlog pendiente de la Fase 1 en orden lógico y dependencias.
+- Unidad 1B: se crearon `planes` (con `duracion_dias` y límites de cajeros/cajas/sucursales) y el modelo `Plan`.
+- Unidad 1E: se creó `membresias` (negocio → plan, estado, fechas de inicio/vencimiento/renovación) y el modelo `Membresia`, separándolo de la pivot de roles `membresias_negocio`.
+- Unidad 1C/1D: CRUD global de bares para `super_admin` (`/plataforma/negocios`) con alta de bar, sucursal principal, admin inicial y configuración por negocio.
+- Unidad 1E: renovar, suspender y reactivar membresías; comando `membresias:marcar-vencidas` agendado a diario.
+- Bloqueo de acceso: el middleware de tenant ahora niega bares suspendidos o con membresía vencida/inactiva.
+- Unidad 1F: selector de negocio tras el login para usuarios con varias membresías y acceso "Cambiar de bar".
+- 1.2: CRUD de sucursales por negocio (controlador + vista + trait de tenant en `Sucursal`).
+- Se agregaron 10 pruebas de plataforma: CRUD de bares, validaciones, renovación, suspensión, bloqueo por estado, selector y redirección.
+- Pendiente 1G: asociar cajas, impresoras, productos y ventas a sucursales, y cierre formal de la fase.
+
+### 2026-08-05 - Fase 2 Base: Cajeros, PIN Y Acceso
+
+- Se agregó `pin` (hasheado) y `esta_activo` a `usuarios`.
+- `User` ahora expone `rolEnNegocio()` y `esAdminDelNegocioActual()` usando el rol del pivot `membresias_negocio`.
+- Se creó el middleware `rol_negocio:admin_bar` (alias `rol_negocio`) que protege todo el backoffice.
+- El POS queda accesible para `cajero` y `admin_bar`; el cajero no ve los botones de Admin/Ventas en el navbar del POS.
+- CRUD de cajeros (`/cajeros`) para `admin_bar`: alta con PIN y contraseña, edición, y desactivación sin borrar historial.
+- Se aplica el límite de cajeros del plan (`plan.limite_cajeros`) al dar de alta.
+- El middleware de tenant ahora distingue "usuario sin membresía" (solo pasa en pruebas) de "membresía inactiva" (bloquea).
+- Se agregaron 7 pruebas de cajeros y acceso (10 nuevas en total con la Fase 1).
+- Pendiente: PIN de acceso rápido al POS, policies por módulo, auditoría y reportes por cajero.
+
+### 2026-08-05 - Reporte De Ventas Por Cajero
+
+- Se agregó `reportePorCajero` en `ControladorPanel` y la ruta `reportes/cajeros`.
+- Agrupa ventas por usuario responsable con subtotal, impuesto e ingresos por período.
+- Vista `dashboard/cashier-report` y enlace en el menú de Reportes.
+- 31 pruebas en total (1 nueva).
+
+### 2026-08-05 - Cierre De Fases 1 a 4
+
+- **Fase 1.2 / Fase 4**: se añadió `sucursal_id` a `cajas`, `turnos_caja`, `impresoras`, `productos` y `ventas`. El POS filtra el catálogo por la sucursal activa del negocio (productos compartidos si es nulo) y la venta hereda la sucursal del turno/caja.
+- **Inicio de sesión**: `ContextoNegocio` ahora expone `sucursalId()`, se establece en el middleware desde la primera sucursal activa.
+- **Fase 2 - Permisos**: se crearon `ProductoPolicy`, `VentaPolicy`, `CajaPolicy`, `ReportePolicy` y `ConfiguracionPolicy`; el Controller base usa `AuthorizesRequests`, y un `Gate::before` concede todas las capacidades al `admin_bar`. Se aplicó `authorize()` en productos, ventas, caja, reportes y configuración.
+- **Fase 2 - PIN rápido del POS**: pantalla `pos/lock.blade.php` con teclado numérico, ruta `punto_venta.desbloquear` (valida PIN hasheado) y `punto_venta.bloquear`; el login marca `pos_desbloqueado` y se agrega un botón de bloqueo en el POS.
+- **Fase 2 - Auditoría**: tabla `auditorias` + modelo + `RegistradorAuditoria`; se registran ajustes manuales, cierres de turno y reaperturas.
+- **Fase 3**: se verificó que el efectivo esperado deriva directamente del libro de `movimientos_efectivo` del turno (fondo + ventas + entradas − retiros − gastos); el dashboard ahora alerta existencias bajas según `nivel_minimo`.
+- **Fase 4 - Compras**: `proveedores`, `ordenes_compra` y `detalles_orden_compra`; CRUD de proveedores y órdenes con recepción de mercancía que incrementa existencias y genera `MovimientoInventario` con referencia `OrdenCompra`.
+- **Fase 4 - Conteos**: `conteos_inventario` y `detalles_conteo`; crear conteo con existencias reales y aplicar diferencias como movimientos `ajuste`.
+- **Fase 4 - CSV y etiquetas**: `productos.exportar` (descarga CSV) e `productos.importar` (carga con alta/actualización), vista de impresión de etiquetas de precios.
+- Menú lateral ampliado: Historial, Conteos, Proveedores, Órdenes de compra, Sucursales, Cajeros y Arqueos.
+- 34 pruebas en total pasan.
+
+### 2026-08-05 - Cierre De Brechas Auditadas (Fases 1-4)
+
+- **Selector de sucursal**: el login ahora permite elegir sucursal cuando un negocio tiene varias; el middleware conserva la sucursal seleccionada (si es válida y activa) en vez de auto-asignar la primera; ruta `negocio.sucursal.cambiar` y selector en el navbar del POS.
+- **Límites por plan**: `limite_sucursales` validado en `ControladorSucursales@store`; `limite_cajas` validado en el nuevo CRUD de cajas.
+- **CRUD de cajas**: nuevo `ControladorCajas` + vista `/cajas` para crear/editar/desactivar cajas con asignación de sucursal y control de `limite_cajas`; la apertura de turno acepta `caja_id`.
+- **Reporte de turno**: nueva ruta `caja.turno-detalle` con detalle del cierre: resumen (fondo+ventas+entradas, salidas, esperado/contado/diferencia), ventas del turno y movimientos de efectivo; botón "Detalle" en arqueos.
+- **Arqueos por caja y sucursal**: se añadieron filtros de `caja_id` y `sucursal_id` y la columna sucursal en `caja/arqueos`.
+- **Vista de auditorías**: `ControladorAuditorias` + `/auditorias` con filtros por módulo/acción, mostrando usuario, acción, descripción e IP.
+- 34 pruebas pasan.
+
+### 2026-08-05 - Unidad Descuentos (Fase 5)
+
+- **Migración** `2026_08_05_120000_add_descuentos_table`: `productos.descuento` (%), `detalles_venta.descuento` (monto congelado), `ventas.descuento` (total) y `ventas.descuento_porcentaje` (% comprobante).
+- **Modelos**: `Producto` (`descuento` fillable/cast), `DetalleVenta` (`descuento`), `Venta` (`descuento`, `descuento_porcentaje`).
+- **ServicioCobro**: descuento por producto automático desde `producto.descuento`; descuento de comprobante vía `descuento` en petición; ambos se congelan en `detalles_venta.descuento` y `ventas.descuento/descuento_porcentaje`.
+- **ControladorPuntoVenta@cobrar**: valida y pasa `descuento` (0-100) al servicio.
+- **Formularios de producto**: campo "Descuento (%)" en crear/editar/CSV.
+- **POS**: input "Descuento por comprobante (%)" en modal de cobro; JS recalcula subtotal/descuento/IVA/total y cambio; envía `descuento` en el payload.
+- **Tickets**: líneas de descuento en térmico 58 mm, A4/A5 HTML y fallback 58 mm HTML.
+- **Test**: `test_checkout_aplica_descuento_por_producto_y_por_comprobante` verifica línea + comprobante + congelado en detalle.
+- 35 pruebas pasan.
+
+### 2026-08-05 - Reembolsos Y Devoluciones (Fase 5, EN_PROGRESO)
+
+- Se aplicó la migración `2026_08_05_130000_create_reembolsos_table`: tablas `reembolsos` (negocio, sucursal, venta, usuario, tipo parcial/total, monto, motivo, método, autorizado_por) y `reembolsos_detalles` (reembolso, detalle_venta, cantidad, monto).
+- Se creó el modelo `Reembolso` con relaciones `venta()`, `usuario()`, `autorizadoPor()`, `sucursal()` y `detalles()`.
+- Pendiente: modelo `ReembolsoDetalle`, servicio de reversión de existencias (movimientos `devolucion` compensatorios), autorización para anulaciones/devoluciones (solo `admin_bar`), controlador, vistas en `sales/show`, rutas y pruebas.
+
+### 2026-08-05 - Verificación Y Accesos De Prueba
+
+- Se limpió la caché (`optimize:clear`) y se aplicaron las migraciones sin `migrate:fresh`.
+- Se verificó que la BD seedeada contiene `admin@ebar.com` (admin_bar) y `superadmin@ebar.com` (super_admin), ambos con contraseña de fábrica `password`.
+- Se configuró el PIN rápido del POS **1234** para `admin@ebar.com`.
+- Suite completa en verde: 35 pruebas / 115 aserciones.
