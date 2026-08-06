@@ -295,6 +295,12 @@
                 </a>
             </li>
             <li>
+                <a href="{{ route('reembolsos.index') }}" class="{{ request()->routeIs('reembolsos.*') ? 'active' : '' }}">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                    <span>Reembolsos</span>
+                </a>
+            </li>
+            <li>
                 <a href="{{ route('configuracion.negocio') }}" class="{{ request()->routeIs('configuracion.*') ? 'active' : '' }}">
                     <i class="bi bi-gear"></i>
                     <span>Configuración</span>

@@ -53,6 +53,11 @@ class Venta extends Model
         return $this->hasMany(DetalleVenta::class, 'venta_id');
     }
 
+    public function reembolsos(): HasMany
+    {
+        return $this->hasMany(Reembolso::class, 'venta_id');
+    }
+
     public function turnoCaja(): BelongsTo
     {
         return $this->belongsTo(TurnoCaja::class, 'turno_caja_id');

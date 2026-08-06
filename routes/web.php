@@ -23,6 +23,7 @@ use App\Http\Controllers\ControladorCompras;
 use App\Http\Controllers\ControladorConteos;
 use App\Http\Controllers\ControladorEtiquetas;
 use App\Http\Controllers\ControladorAuditorias;
+use App\Http\Controllers\ControladorReembolsos;
 
 Route::get('/inicio-sesion', [AuthController::class, 'create'])->name('inicio_sesion');
 Route::post('/inicio-sesion', [AuthController::class, 'store'])->name('inicio_sesion.guardar');
@@ -100,6 +101,8 @@ Route::middleware(['auth', 'negocio'])->group(function () {
         Route::get('/productos/etiquetas', [ControladorEtiquetas::class, 'index'])->name('etiquetas.index');
         Route::post('/productos/etiquetas/imprimir', [ControladorEtiquetas::class, 'imprimir'])->name('etiquetas.imprimir');
         Route::get('/auditorias', [ControladorAuditorias::class, 'index'])->name('auditorias.index');
+        Route::get('/reembolsos', [ControladorReembolsos::class, 'index'])->name('reembolsos.index');
+        Route::post('/ventas/{venta}/reembolsar', [ControladorReembolsos::class, 'crear'])->name('reembolsos.crear');
 
         Route::get('/panel', [DashboardController::class, 'index'])->name('panel.inicio');
         Route::get('/reportes/ventas', [DashboardController::class, 'reporteVentas'])->name('reportes.ventas');

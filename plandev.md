@@ -210,9 +210,9 @@ Convertir e-Bar en una plataforma SaaS multi-tenant para administrar bares escol
 - [x] `COMPLETADO` Crear descuentos por producto.
 - [x] `COMPLETADO` Crear descuentos por comprobante.
 - [x] `COMPLETADO` Congelar descuentos en el detalle de venta.
-- [ ] Crear reembolsos parciales y totales.
-- [ ] Revertir existencias mediante movimientos compensatorios.
-- [ ] Exigir autorización para anulaciones y devoluciones.
+- [x] `COMPLETADO` Crear reembolsos parciales y totales.
+- [x] `COMPLETADO` Revertir existencias mediante movimientos compensatorios.
+- [x] `COMPLETADO` Exigir autorización para anulaciones y devoluciones.
 - [ ] Crear tickets abiertos.
 - [ ] Crear pagos divididos.
 - [ ] Crear variantes de productos.
@@ -260,7 +260,7 @@ Convertir e-Bar en una plataforma SaaS multi-tenant para administrar bares escol
 
 ## Próximo Paso
 
-La siguiente unidad es **reembolsos parciales y totales** (Fase 5): migración ya aplicada (`reembolsos` y `reembolsos_detalles`), falta modelo, servicio de reversión de existencias, autorización y pruebas. Después seguirán tickets abiertos, pagos divididos, variantes y modificadores.
+La siguiente unidad es **tickets abiertos** (Fase 5). Después seguirán pagos divididos, variantes de productos y modificadores/extras.
 
 ## Flujo Operativo Definido
 
@@ -474,15 +474,20 @@ La siguiente unidad es **reembolsos parciales y totales** (Fase 5): migración y
 - **Test**: `test_checkout_aplica_descuento_por_producto_y_por_comprobante` verifica línea + comprobante + congelado en detalle.
 - 35 pruebas pasan.
 
-### 2026-08-05 - Reembolsos Y Devoluciones (Fase 5, EN_PROGRESO)
+### 2026-08-05 - Reembolsos Y Devoluciones (Fase 5, COMPLETADO)
 
-- Se aplicó la migración `2026_08_05_130000_create_reembolsos_table`: tablas `reembolsos` (negocio, sucursal, venta, usuario, tipo parcial/total, monto, motivo, método, autorizado_por) y `reembolsos_detalles` (reembolso, detalle_venta, cantidad, monto).
-- Se creó el modelo `Reembolso` con relaciones `venta()`, `usuario()`, `autorizadoPor()`, `sucursal()` y `detalles()`.
-- Pendiente: modelo `ReembolsoDetalle`, servicio de reversión de existencias (movimientos `devolucion` compensatorios), autorización para anulaciones/devoluciones (solo `admin_bar`), controlador, vistas en `sales/show`, rutas y pruebas.
+- Migración `2026_08_05_130000_create_reembolsos_table`: `reembolsos` (negocio, sucursal, venta, usuario, tipo parcial/total, monto, motivo, método, autorizado_por) y `reembolsos_detalles` (reembolso, detalle_venta, cantidad, monto).
+- Modelos `Reembolso` y `ReembolsoDetalle`; relación `Venta::reembolsos()`.
+- `ServicioReembolso@crear`: reembolso total/parcial que valida la cantidad disponible por línea (resta lo ya devuelto), revierte existencias con `MovimientoInventario` tipo `devolucion` (referencia `Reembolso`) y, si el turno está abierto y es en efectivo, genera `MovimientoEfectivo` tipo `retiro` para el cuadre.
+- Autorización: política `VentaPolicy::reembolsar` restringe a `admin_bar`; la ruta `reembolsos.crear` va dentro del grupo `rol_negocio:admin_bar` (un cajero recibe 403).
+- `ControladorReembolsos`: índice de reembolsos + procesamiento; auditoría (`RegistradorAuditoria`) de cada reembolso.
+- UI: botón "Reembolsar / Devolver" y modal (total/parcial, método, motivo, cantidades por artículo) en `sales/show`; enlace "Reembolsos" en el menú lateral.
+- Pruebas: reembolso total revierte existencias y efectivo, reembolso parcial respeta disponible, y reembolso exige admin del bar.
+- 38 pruebas pasan.
 
 ### 2026-08-05 - Verificación Y Accesos De Prueba
 
 - Se limpió la caché (`optimize:clear`) y se aplicaron las migraciones sin `migrate:fresh`.
 - Se verificó que la BD seedeada contiene `admin@ebar.com` (admin_bar) y `superadmin@ebar.com` (super_admin), ambos con contraseña de fábrica `password`.
 - Se configuró el PIN rápido del POS **1234** para `admin@ebar.com`.
-- Suite completa en verde: 35 pruebas / 115 aserciones.
+- Suite completa en verde: 38 pruebas / 132 aserciones.

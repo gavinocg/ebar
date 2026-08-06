@@ -21,7 +21,7 @@ class ControladorVentas extends Controller
     {
         $this->authorize('administrar', $sale);
 
-        $sale->load('detalles.producto');
+        $sale->load(['detalles.producto', 'reembolsos.detalles']);
         return view('sales.show', compact('sale'));
     }
 }
