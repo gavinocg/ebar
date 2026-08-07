@@ -510,6 +510,7 @@ async function processSale() {
                 items: cart.map(item => ({ producto_id: item.id, cantidad: item.qty })),
                 metodo_pago: document.getElementById('paymentMethod').value,
                 pagado: paid.toFixed(2),
+                notas: '',
                 clave_idempotencia: idempotencyKey,
                 cliente_id: document.getElementById('clienteId').value || null,
                 descripcion_cliente: document.getElementById('descripcionCliente').value || null,
@@ -521,7 +522,10 @@ async function processSale() {
         
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || `El servidor respondió ${response.status}`);
+            const mensaje = errorData.errors
+                ? Object.values(errorData.errors).flat().join('. ')
+                : (errorData.message || `El servidor respondió ${response.status}`);
+            throw new Error(mensaje);
         }
 
         const data = await response.json();
