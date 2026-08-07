@@ -53,6 +53,11 @@ class User extends Authenticatable
 
     public function esAdminDelNegocioActual(): bool
     {
-        return $this->rolEnNegocio(app(ContextoNegocio::class)->id()) === 'admin_bar';
+        return in_array($this->rolEnNegocio(app(ContextoNegocio::class)->id()), ['propietario', 'admin_bar'], true);
+    }
+
+    public function esPropietario(): bool
+    {
+        return $this->rolEnNegocio(app(ContextoNegocio::class)->id()) === 'propietario';
     }
 }

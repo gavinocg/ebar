@@ -8,6 +8,6 @@ class ConfiguracionPolicy
 {
     public function administrar(\App\Models\User $user, ?ConfiguracionNegocio $configuracion = null): bool
     {
-        return $user->esAdminDelNegocioActual();
+        return $user->esPropietario();
     }
 }

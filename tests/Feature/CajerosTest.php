@@ -37,6 +37,15 @@ class CajerosTest extends TestCase
         return $negocio;
     }
 
+    private function propietario(Negocio $negocio): User
+    {
+        $admin = User::factory()->create(['rol' => 'propietario']);
+        MembresiaNegocio::create(['negocio_id' => $negocio->id, 'usuario_id' => $admin->id, 'rol' => 'propietario', 'esta_activa' => true]);
+        app(ContextoNegocio::class)->establecer($negocio->id);
+
+        return $admin;
+    }
+
     private function adminBar(Negocio $negocio): User
     {
         $admin = User::factory()->create(['rol' => 'admin_bar']);
@@ -54,15 +63,25 @@ class CajerosTest extends TestCase
         return $cajero;
     }
 
-    public function test_admin_bar_puede_ver_la_lista_de_cajeros(): void
+    public function test_propietario_puede_ver_la_lista_de_cajeros(): void
     {
         $negocio = $this->barConPlan();
-        $admin = $this->adminBar($negocio);
+        $admin = $this->propietario($negocio);
         $this->cajero($negocio);
 
         $this->actingAs($admin);
 
         $this->get(route('cajeros.index'))->assertOk()->assertSee('Cajeros');
+    }
+
+    public function test_admin_bar_no_puede_gestionar_cajeros(): void
+    {
+        $negocio = $this->barConPlan();
+        $admin = $this->adminBar($negocio);
+
+        $this->actingAs($admin);
+
+        $this->get(route('cajeros.index'))->assertForbidden();
     }
 
     public function test_cajero_no_puede_acceder_al_backoffice(): void
@@ -89,10 +108,10 @@ class CajerosTest extends TestCase
         $this->get(route('punto_venta.inicio'))->assertOk();
     }
 
-    public function test_admin_bar_puede_crear_un_cajero_con_pin(): void
+    public function test_propietario_puede_crear_un_cajero_con_pin(): void
     {
         $negocio = $this->barConPlan();
-        $admin = $this->adminBar($negocio);
+        $admin = $this->propietario($negocio);
 
         $this->actingAs($admin);
 
@@ -112,7 +131,7 @@ class CajerosTest extends TestCase
     public function test_no_se_excede_el_limite_de_cajeros_del_plan(): void
     {
         $negocio = $this->barConPlan(1);
-        $admin = $this->adminBar($negocio);
+        $admin = $this->propietario($negocio);
         $this->cajero($negocio);
 
         $this->actingAs($admin);
@@ -125,10 +144,10 @@ class CajerosTest extends TestCase
         ])->assertStatus(422);
     }
 
-    public function test_admin_bar_puede_desactivar_un_cajero_sin_borrarlo(): void
+    public function test_propietario_puede_desactivar_un_cajero_sin_borrarlo(): void
     {
         $negocio = $this->barConPlan();
-        $admin = $this->adminBar($negocio);
+        $admin = $this->propietario($negocio);
         $cajero = $this->cajero($negocio);
 
         $this->actingAs($admin);
@@ -156,7 +175,7 @@ class CajerosTest extends TestCase
     public function test_el_reporte_por_cajero_agrupa_las_ventas(): void
     {
         $negocio = $this->barConPlan();
-        $admin = $this->adminBar($negocio);
+        $admin = $this->propietario($negocio);
         $cajero = $this->cajero($negocio);
 
         app(ContextoNegocio::class)->establecer($negocio->id);
@@ -194,10 +213,10 @@ class CajerosTest extends TestCase
         $response->assertSee('2');
     }
 
-    public function test_admin_bar_reabre_un_turno_cerrado(): void
+    public function test_propietario_reabre_un_turno_cerrado(): void
     {
         $negocio = $this->barConPlan();
-        $admin = $this->adminBar($negocio);
+        $admin = $this->propietario($negocio);
         $cajero = $this->cajero($negocio);
         $caja = Caja::create(['nombre' => 'Caja 1', 'esta_activa' => true, 'negocio_id' => $negocio->id]);
 
@@ -223,6 +242,29 @@ class CajerosTest extends TestCase
         $this->assertSame('abierta', $turno->estado);
         $this->assertNull($turno->cerrado_en);
         $this->assertStringContainsString('Reabierto por', $turno->notas);
+    }
+
+    public function test_admin_bar_no_puede_reabrir_un_turno(): void
+    {
+        $negocio = $this->barConPlan();
+        $admin = $this->adminBar($negocio);
+        $cajero = $this->cajero($negocio);
+        $caja = Caja::create(['nombre' => 'Caja 1', 'esta_activa' => true, 'negocio_id' => $negocio->id]);
+
+        $turno = TurnoCaja::create([
+            'caja_id' => $caja->id,
+            'usuario_id' => $cajero->id,
+            'fondo_inicial' => 100,
+            'abierto_en' => now()->subHour(),
+            'cerrado_en' => now(),
+            'estado' => 'cerrada',
+            'negocio_id' => $negocio->id,
+        ]);
+
+        app(ContextoNegocio::class)->establecer($negocio->id);
+        $this->actingAs($admin);
+
+        $this->post(route('caja.reabrir', $turno))->assertForbidden();
     }
 
     public function test_cajero_no_puede_reabrir_un_turno(): void

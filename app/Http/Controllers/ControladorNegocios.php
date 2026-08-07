@@ -76,13 +76,13 @@ class ControladorNegocios extends Controller
             'nombre' => $datos['nombre_admin'],
             'correo' => $datos['correo_admin'],
             'password' => $datos['clave_admin'],
-            'rol' => 'admin_bar',
+            'rol' => 'propietario',
         ]);
 
         MembresiaNegocio::create([
             'negocio_id' => $negocio->id,
             'usuario_id' => $admin->id,
-            'rol' => 'admin_bar',
+            'rol' => 'propietario',
             'esta_activa' => true,
         ]);
 

@@ -515,11 +515,11 @@ class CheckoutTest extends TestCase
         );
         app(ContextoNegocio::class)->establecer($negocio->id);
 
-        $usuario = User::factory()->create(['rol' => 'admin_bar']);
+        $usuario = User::factory()->create(['rol' => 'propietario']);
         \App\Models\MembresiaNegocio::create([
             'negocio_id' => $negocio->id,
             'usuario_id' => $usuario->id,
-            'rol' => 'admin_bar',
+            'rol' => 'propietario',
             'esta_activa' => true,
         ]);
 

@@ -80,8 +80,8 @@ class PlataformaTest extends TestCase
         $this->assertSame('Bar San Felipe', $negocio->nombre);
         $this->assertSame('prueba', $negocio->membresia->estado ?? 'no-registrada');
         $this->assertDatabaseHas('sucursales', ['negocio_id' => $negocio->id, 'nombre' => 'Central']);
-        $this->assertDatabaseHas('usuarios', ['correo' => 'dueno@bar.com', 'rol' => 'admin_bar']);
-        $this->assertDatabaseHas('membresias_negocio', ['negocio_id' => $negocio->id, 'usuario_id' => User::where('correo', 'dueno@bar.com')->first()->id, 'rol' => 'admin_bar']);
+        $this->assertDatabaseHas('usuarios', ['correo' => 'dueno@bar.com', 'rol' => 'propietario']);
+        $this->assertDatabaseHas('membresias_negocio', ['negocio_id' => $negocio->id, 'usuario_id' => User::where('correo', 'dueno@bar.com')->first()->id, 'rol' => 'propietario']);
         $this->assertDatabaseHas('configuraciones_negocio', ['negocio_id' => $negocio->id]);
     }
 

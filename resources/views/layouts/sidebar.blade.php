@@ -244,6 +244,7 @@
             </li>
             
             <li class="menu-label">Reportes</li>
+            @if(auth()->user()?->esPropietario())
             <li>
                 <a href="{{ route('reportes.ventas') }}" class="{{ request()->routeIs('reportes.ventas') ? 'active' : '' }}">
                     <i class="bi bi-graph-up"></i>
@@ -256,8 +257,10 @@
                     <span>Inventario</span>
                 </a>
             </li>
+            @endif
             
             <li class="menu-label">Configuración</li>
+            @if(auth()->user()?->esPropietario())
             <li>
                 <a href="{{ route('impresoras.index') }}" class="{{ request()->routeIs('impresoras.*') ? 'active' : '' }}">
                     <i class="bi bi-printer"></i>
@@ -282,30 +285,35 @@
                     <span>Cajas</span>
                 </a>
             </li>
+            @endif
             <li>
                 <a href="{{ route('caja.reporte') }}" class="{{ request()->routeIs('caja.reporte', 'caja.turno-detalle') ? 'active' : '' }}">
                     <i class="bi bi-cash-stack"></i>
                     <span>Arqueos</span>
                 </a>
             </li>
+            @if(auth()->user()?->esPropietario())
             <li>
                 <a href="{{ route('auditorias.index') }}" class="{{ request()->routeIs('auditorias.*') ? 'active' : '' }}">
                     <i class="bi bi-journal-check"></i>
                     <span>Auditoría</span>
                 </a>
             </li>
+            @endif
             <li>
                 <a href="{{ route('reembolsos.index') }}" class="{{ request()->routeIs('reembolsos.*') ? 'active' : '' }}">
                     <i class="bi bi-arrow-counterclockwise"></i>
                     <span>Reembolsos</span>
                 </a>
             </li>
+            @if(auth()->user()?->esPropietario())
             <li>
                 <a href="{{ route('configuracion.negocio') }}" class="{{ request()->routeIs('configuracion.*') ? 'active' : '' }}">
                     <i class="bi bi-gear"></i>
                     <span>Configuración</span>
                 </a>
             </li>
+            @endif
         </ul>
     </aside>
     

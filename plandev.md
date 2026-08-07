@@ -491,3 +491,19 @@ La siguiente unidad es **tickets abiertos** (Fase 5). Después seguirán pagos d
 - Se verificó que la BD seedeada contiene `admin@ebar.com` (admin_bar) y `superadmin@ebar.com` (super_admin), ambos con contraseña de fábrica `password`.
 - Se configuró el PIN rápido del POS **1234** para `admin@ebar.com`.
 - Suite completa en verde: 38 pruebas / 132 aserciones.
+
+### 2026-08-05 - Modelo De Negocio: Propietario, Admin_bar Y Cajero
+
+- Se definieron tres roles de bar con jerarquía: `propietario` (dueño) > `admin_bar` (operaciones) > `cajero` (POS).
+- `propietario`: administra parámetros del bar, cajeros/PINs, reportes financieros, auditoría, configuración, reapertura de turnos; además tiene todas las opciones de `admin_bar` y `cajero`.
+- `admin_bar`: operaciones — categorías, productos, ventas, inventario, compras, cuadres diarios, reembolsos, POS; no gestiona cajeros, configuración, auditoría ni reportes.
+- `cajero`: solo POS.
+- Modelo `User`: `esAdminDelNegocioActual()` ahora cubre operaciones (`propietario` ∨ `admin_bar`); se agregó `esPropietario()` para lo exclusivo del dueño.
+- Migración `2026_08_05_140000_renombrar_roles`: renombra existentes `admin_bar`/`administrador` → `propietario` en `membresias_negocio` y `usuarios`.
+- `AutorizarRolNegocio` ahora usa jerarquía (cajero=1, admin_bar=2, propietario=3): `rol_negocio:admin_bar` lo pasan admin_bar y propietario; `rol_negocio:propietario` solo el dueño.
+- `Gate::before` ya no hace bypass a admin_bar: solo `propietario` se salta políticas; admin_bar queda sujeto a ellas.
+- Políticas `ConfiguracionPolicy` y `ReportePolicy` → `esPropietario()`; el gate `reportes.ver` → `esPropietario()`.
+- Rutas propietario-only protegidas con `rol_negocio:propietario`: cajeros.*, configuracion.*, auditorias.*, reportes.*, caja.reabrir, impresoras.*, sucursales.*, cajas.*.
+- Seeder y `ControladorNegocios` crean el admin inicial como `propietario`.
+- Sidebar: las secciones de cajeros, configuración, auditoría, reportes, impresoras, sucursales y cajas solo se muestran al `propietario`.
+- Pruebas: 40 pasan / 134 aserciones, incluyendo verificación de que el nuevo `admin_bar` reducido NO accede a cajeros, reportes ni reapertura.

@@ -27,11 +27,11 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(ConfiguracionNegocio::class, ConfiguracionPolicy::class);
 
         Gate::define('reportes.ver', function ($usuario) {
-            return $usuario->esAdminDelNegocioActual();
+            return $usuario->esPropietario();
         });
 
         Gate::before(function ($usuario, $ability) {
-            return $usuario->esAdminDelNegocioActual();
+            return $usuario->esPropietario() ?: null;
         });
 
         if (app()->environment('production')) {

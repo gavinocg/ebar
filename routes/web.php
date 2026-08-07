@@ -64,7 +64,7 @@ Route::middleware(['auth', 'negocio'])->group(function () {
     Route::post('/caja/cerrar', [ControladorCaja::class, 'cerrar'])->name('caja.cerrar');
     Route::post('/caja/movimiento', [ControladorCaja::class, 'movimiento'])->name('caja.movimiento');
     Route::post('/caja/{turnoCaja}/reabrir', [ControladorCaja::class, 'reabrir'])
-        ->middleware('rol_negocio:admin_bar')->name('caja.reabrir');
+        ->middleware('rol_negocio:propietario')->name('caja.reabrir');
     Route::get('/caja/reporte', [ControladorCaja::class, 'reporte'])
         ->middleware('rol_negocio:admin_bar')->name('caja.reporte');
     Route::get('/caja/turnos/{turnoCaja}', [ControladorCaja::class, 'turnoDetalle'])
@@ -74,11 +74,16 @@ Route::middleware(['auth', 'negocio'])->group(function () {
         Route::resource('categorias', CategoryController::class)->parameters(['categorias' => 'category'])->only(['index', 'store', 'update', 'destroy']);
         Route::resource('productos', ProductController::class)->parameters(['productos' => 'product'])->except(['show']);
         Route::resource('ventas', SaleController::class)->parameters(['ventas' => 'sale'])->only(['index', 'show']);
-        Route::resource('impresoras', PrinterController::class)->parameters(['impresoras' => 'printer'])->only(['index', 'store', 'update', 'destroy']);
-        Route::post('impresoras/{printer}/probar', [PrinterController::class, 'probar'])->name('impresoras.probar');
-        Route::resource('sucursales', ControladorSucursales::class)->parameters(['sucursales' => 'sucursal'])->only(['index', 'store', 'update', 'destroy']);
-        Route::resource('cajas', ControladorCajas::class)->parameters(['cajas' => 'caja'])->only(['index', 'store', 'update', 'destroy']);
-        Route::resource('cajeros', ControladorCajeros::class)->parameters(['cajeros' => 'cajero'])->only(['index', 'store', 'update', 'destroy']);
+        Route::resource('impresoras', PrinterController::class)->parameters(['impresoras' => 'printer'])->only(['index', 'store', 'update', 'destroy'])
+            ->middleware('rol_negocio:propietario');
+        Route::post('impresoras/{printer}/probar', [PrinterController::class, 'probar'])->name('impresoras.probar')
+            ->middleware('rol_negocio:propietario');
+        Route::resource('sucursales', ControladorSucursales::class)->parameters(['sucursales' => 'sucursal'])->only(['index', 'store', 'update', 'destroy'])
+            ->middleware('rol_negocio:propietario');
+        Route::resource('cajas', ControladorCajas::class)->parameters(['cajas' => 'caja'])->only(['index', 'store', 'update', 'destroy'])
+            ->middleware('rol_negocio:propietario');
+        Route::resource('cajeros', ControladorCajeros::class)->parameters(['cajeros' => 'cajero'])->only(['index', 'store', 'update', 'destroy'])
+            ->middleware('rol_negocio:propietario');
         Route::get('/inventario/historial', [ControladorInventario::class, 'historial'])->name('inventario.historial');
         Route::post('/inventario/ajustar', [ControladorInventario::class, 'ajustar'])->name('inventario.ajustar');
 
@@ -100,16 +105,22 @@ Route::middleware(['auth', 'negocio'])->group(function () {
         Route::post('/productos/importar', [ProductController::class, 'importar'])->name('productos.importar');
         Route::get('/productos/etiquetas', [ControladorEtiquetas::class, 'index'])->name('etiquetas.index');
         Route::post('/productos/etiquetas/imprimir', [ControladorEtiquetas::class, 'imprimir'])->name('etiquetas.imprimir');
-        Route::get('/auditorias', [ControladorAuditorias::class, 'index'])->name('auditorias.index');
+        Route::get('/auditorias', [ControladorAuditorias::class, 'index'])->name('auditorias.index')
+            ->middleware('rol_negocio:propietario');
         Route::get('/reembolsos', [ControladorReembolsos::class, 'index'])->name('reembolsos.index');
         Route::post('/ventas/{venta}/reembolsar', [ControladorReembolsos::class, 'crear'])->name('reembolsos.crear');
 
         Route::get('/panel', [DashboardController::class, 'index'])->name('panel.inicio');
-        Route::get('/reportes/ventas', [DashboardController::class, 'reporteVentas'])->name('reportes.ventas');
-        Route::get('/reportes/inventario', [DashboardController::class, 'reporteInventario'])->name('reportes.inventario');
-        Route::get('/reportes/cajeros', [DashboardController::class, 'reportePorCajero'])->name('reportes.cajeros');
+        Route::get('/reportes/ventas', [DashboardController::class, 'reporteVentas'])->name('reportes.ventas')
+            ->middleware('rol_negocio:propietario');
+        Route::get('/reportes/inventario', [DashboardController::class, 'reporteInventario'])->name('reportes.inventario')
+            ->middleware('rol_negocio:propietario');
+        Route::get('/reportes/cajeros', [DashboardController::class, 'reportePorCajero'])->name('reportes.cajeros')
+            ->middleware('rol_negocio:propietario');
 
-        Route::get('/configuracion/negocio', [BusinessSettingController::class, 'index'])->name('configuracion.negocio');
-        Route::post('/configuracion/negocio', [BusinessSettingController::class, 'update'])->name('configuracion.negocio.actualizar');
+        Route::get('/configuracion/negocio', [BusinessSettingController::class, 'index'])->name('configuracion.negocio')
+            ->middleware('rol_negocio:propietario');
+        Route::post('/configuracion/negocio', [BusinessSettingController::class, 'update'])->name('configuracion.negocio.actualizar')
+            ->middleware('rol_negocio:propietario');
     });
 });

@@ -119,13 +119,13 @@ class DatabaseSeeder extends Seeder
         $usuario = User::factory()->create([
             'nombre' => 'Administrador',
             'correo' => 'admin@ebar.com',
-            'rol' => 'administrador',
+            'rol' => 'propietario',
         ]);
 
         MembresiaNegocio::create([
             'negocio_id' => $negocio->id,
             'usuario_id' => $usuario->id,
-            'rol' => 'admin_bar',
+            'rol' => 'propietario',
             'esta_activa' => true,
         ]);
 
