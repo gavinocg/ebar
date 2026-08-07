@@ -144,11 +144,25 @@
                 </div>
 
                 <div id="creditoFields" class="border rounded p-3 mb-3" hidden>
-                    <label class="form-label" for="clienteSearch">Cliente</label>
-                    <input type="search" id="clienteSearch" class="form-control" placeholder="Buscar por nombre..." autocomplete="off">
-                    <input type="hidden" id="clienteId">
-                    <div id="clienteResultados" class="list-group mt-2"></div>
-                    <label class="form-label mt-3" for="descripcionCliente">Descripción</label>
+                    <label class="form-label">Cliente *</label>
+                    <div class="input-group mb-2">
+                        <input type="search" id="clienteSearch" class="form-control" placeholder="Buscar por nombre..." autocomplete="off">
+                        <input type="hidden" id="clienteId">
+                        <button type="button" class="btn btn-outline-success" onclick="toggleNuevoCliente()" title="Agregar nuevo cliente">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                    </div>
+                    <div id="clienteResultados" class="list-group mb-2"></div>
+                    <div id="nuevoClienteForm" style="display:none">
+                        <label class="form-label small">Nuevo cliente</label>
+                        <input type="text" id="nuevoClienteNombre" class="form-control form-control-sm mb-1" maxlength="255" placeholder="Nombre *">
+                        <input type="text" id="nuevoClienteDescripcion" class="form-control form-control-sm mb-2" maxlength="255" placeholder="Descripción">
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="toggleNuevoCliente()">Cancelar</button>
+                            <button type="button" class="btn btn-sm btn-success" onclick="guardarNuevoCliente()"><i class="bi bi-check"></i> Guardar</button>
+                        </div>
+                    </div>
+                    <label class="form-label mt-2" for="descripcionCliente">Descripción</label>
                     <textarea id="descripcionCliente" class="form-control" rows="2" maxlength="255" placeholder="Detalle de la cuenta por cobrar"></textarea>
                 </div>
 
@@ -400,6 +414,55 @@ function actualizarCamposPago() {
     document.getElementById('paidAmount').value = esCredito ? '0.00' : currentTotal.toFixed(2);
     document.querySelectorAll('.quick-amount').forEach(button => button.disabled = esCredito);
     document.getElementById('changeAmount').textContent = '$' + (esCredito ? '0.00' : '0.00');
+}
+
+function toggleNuevoCliente() {
+    const form = document.getElementById('nuevoClienteForm');
+    const oculto = form.style.display === 'none';
+    form.style.display = oculto ? '' : 'none';
+    if (oculto) {
+        document.getElementById('nuevoClienteNombre').focus();
+    }
+}
+
+async function guardarNuevoCliente() {
+    const nombre = document.getElementById('nuevoClienteNombre').value.trim();
+    const descripcion = document.getElementById('nuevoClienteDescripcion').value.trim();
+
+    if (!nombre) {
+        alert('El nombre del cliente es obligatorio.');
+        return;
+    }
+
+    try {
+        const response = await fetch('{{ route("clientes.store") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ nombre, descripcion })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'No se pudo guardar el cliente.');
+        }
+
+        if (data.success) {
+            document.getElementById('clienteId').value = data.cliente.id;
+            document.getElementById('clienteSearch').value = data.cliente.nombre;
+            document.getElementById('descripcionCliente').value = data.cliente.descripcion || '';
+            document.getElementById('nuevoClienteForm').style.display = 'none';
+            document.getElementById('nuevoClienteNombre').value = '';
+            document.getElementById('nuevoClienteDescripcion').value = '';
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
 }
 
 let temporizadorBusquedaCliente;
