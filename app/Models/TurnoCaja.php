@@ -22,6 +22,8 @@ class TurnoCaja extends Model
         'efectivo_esperado',
         'efectivo_contado',
         'diferencia',
+        'billetes',
+        'monedas',
         'estado',
         'notas',
     ];
@@ -33,6 +35,8 @@ class TurnoCaja extends Model
         'efectivo_esperado' => 'decimal:2',
         'efectivo_contado' => 'decimal:2',
         'diferencia' => 'decimal:2',
+        'billetes' => 'array',
+        'monedas' => 'array',
     ];
 
     public function caja(): BelongsTo

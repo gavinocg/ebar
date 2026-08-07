@@ -426,6 +426,9 @@
                         <i class="bi bi-bluetooth"></i> Conectar impresora
                     </button>
                 @endif
+                <a href="{{ route('caja.cerrar.form') }}" class="btn btn-outline-warning btn-sm me-2">
+                    <i class="bi bi-lock-fill"></i> Cerrar caja
+                </a>
                 @if(auth()->user()->esAdminDelNegocioActual())
                     <a href="{{ route('ventas.index') }}" class="btn btn-outline-light btn-sm me-2">
                         <i class="bi bi-receipt"></i> Ventas

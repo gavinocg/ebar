@@ -27,6 +27,10 @@ use App\Http\Controllers\ControladorReembolsos;
 
 Route::get('/inicio-sesion', [AuthController::class, 'create'])->name('inicio_sesion');
 Route::post('/inicio-sesion', [AuthController::class, 'store'])->name('inicio_sesion.guardar');
+Route::get('/inicio-sesion/cajero', [AuthController::class, 'cajero'])->name('inicio_sesion.cajero');
+Route::post('/inicio-sesion/cajero', [AuthController::class, 'cajeroBuscar'])->name('inicio_sesion.cajero.buscar');
+Route::get('/inicio-sesion/pin', [AuthController::class, 'pin'])->name('inicio_sesion.pin');
+Route::post('/inicio-sesion/pin', [AuthController::class, 'pinValidar'])->name('inicio_sesion.pin.validar');
 Route::post('/cerrar-sesion', [AuthController::class, 'destroy'])->middleware('auth')->name('cerrar_sesion');
 
 Route::middleware(['auth'])->group(function () {
@@ -61,6 +65,7 @@ Route::middleware(['auth', 'negocio'])->group(function () {
     Route::post('/punto-venta/cobrar', [PosController::class, 'cobrar'])->name('punto_venta.cobrar');
     Route::get('/clientes/buscar', [ControladorClientes::class, 'buscar'])->name('clientes.buscar');
     Route::post('/caja/abrir', [ControladorCaja::class, 'abrir'])->name('caja.abrir');
+    Route::get('/caja/cerrar', [ControladorCaja::class, 'cerrarForm'])->name('caja.cerrar.form');
     Route::post('/caja/cerrar', [ControladorCaja::class, 'cerrar'])->name('caja.cerrar');
     Route::post('/caja/movimiento', [ControladorCaja::class, 'movimiento'])->name('caja.movimiento');
     Route::post('/caja/{turnoCaja}/reabrir', [ControladorCaja::class, 'reabrir'])

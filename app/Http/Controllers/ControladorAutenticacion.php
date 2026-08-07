@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\MembresiaNegocio;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -46,6 +47,75 @@ class ControladorAutenticacion extends Controller
         }
 
         return redirect()->route('negocio.seleccionar');
+    }
+
+    public function cajero(): View
+    {
+        return view('auth.cajero');
+    }
+
+    public function cajeroBuscar(Request $request): RedirectResponse
+    {
+        $datos = $request->validate([
+            'correo' => 'required|email',
+        ]);
+
+        $usuario = User::where('correo', $datos['correo'])->where('esta_activo', true)->first();
+
+        if (!$usuario) {
+            return back()->withErrors(['correo' => 'No encontramos un usuario con ese correo.'])->onlyInput('correo');
+        }
+
+        if (blank($usuario->pin)) {
+            return back()->withErrors(['correo' => 'Este usuario no tiene PIN configurado. Contacta al administrador.'])->onlyInput('correo');
+        }
+
+        $request->session()->put('cajero_pin_id', $usuario->id);
+
+        return redirect()->route('inicio_sesion.pin');
+    }
+
+    public function pin(): View
+    {
+        $usuario = User::find(session('cajero_pin_id'));
+
+        if (!$usuario) {
+            return redirect()->route('inicio_sesion.cajero');
+        }
+
+        return view('auth.pin', ['usuario' => $usuario]);
+    }
+
+    public function pinValidar(Request $request): RedirectResponse
+    {
+        $usuario = User::find(session('cajero_pin_id'));
+
+        if (!$usuario) {
+            return redirect()->route('inicio_sesion.cajero');
+        }
+
+        $datos = $request->validate([
+            'pin' => 'required|digits:4',
+        ]);
+
+        if (!password_verify($datos['pin'], $usuario->pin)) {
+            return redirect()->back()->withErrors(['pin' => 'PIN incorrecto.']);
+        }
+
+        $request->session()->forget('cajero_pin_id');
+        $request->session()->regenerate();
+        Auth::login($usuario);
+        $request->session()->put('pos_desbloqueado', true);
+
+        $membresias = MembresiaNegocio::where('usuario_id', $usuario->id)
+            ->where('esta_activa', true)
+            ->count();
+
+        if ($membresias > 1) {
+            return redirect()->route('negocio.seleccionar');
+        }
+
+        return redirect()->route('punto_venta.inicio');
     }
 
     public function destroy(Request $request): RedirectResponse

@@ -30,6 +30,12 @@
                     </div>
                     <button class="btn btn-primary w-100" type="submit">Entrar</button>
                 </form>
+                <div class="text-center mt-3 border-top pt-3">
+                    <span class="text-muted small">¿Eres cajero?</span>
+                    <a href="{{ route('inicio_sesion.cajero') }}" class="btn btn-outline-primary btn-sm ms-2">
+                        <i class="bi bi-person-badge"></i> Soy Cajero
+                    </a>
+                </div>
             </div>
         </div>
     </main>

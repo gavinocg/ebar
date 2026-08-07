@@ -190,8 +190,10 @@ class CheckoutTest extends TestCase
             'motivo' => 'Cambio adicional',
         ])->assertRedirect();
 
-        $this->post(route('caja.cerrar'), ['efectivo_contado' => '125.00'])
-            ->assertRedirect();
+        $this->post(route('caja.cerrar'), [
+            'billetes' => [100 => 1, 20 => 1, 5 => 1, 50 => 0, 10 => 0, 1 => 0],
+            'monedas' => [1 => 0, 0.50 => 0, 0.25 => 0, 0.10 => 0, 0.05 => 0, 0.01 => 0],
+        ])->assertRedirect();
         $this->assertDatabaseHas('turnos_caja', [
             'usuario_id' => $usuario->id,
             'estado' => 'cerrada',

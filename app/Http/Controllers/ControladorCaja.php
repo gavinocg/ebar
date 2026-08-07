@@ -9,6 +9,7 @@ use App\Models\MembresiaNegocio;
 use App\Models\Sucursal;
 use App\Services\ContextoNegocio;
 use App\Services\RegistradorAuditoria;
+use App\Models\ConfiguracionNegocio as BusinessSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -54,10 +55,35 @@ class ControladorCaja extends Controller
         return back()->with('success', 'Turno de caja abierto correctamente.');
     }
 
+    public function cerrarForm()
+    {
+        $turno = $this->turnoAbierto();
+
+        if (!$turno) {
+            return redirect()->route('punto_venta.inicio')->withErrors(['caja' => 'No tienes un turno de caja abierto.']);
+        }
+
+        $turno->load('movimientosEfectivo');
+
+        $esperado = round((float) $turno->movimientosEfectivo()->sum('monto'), 2);
+
+        $comprobantesNoEfectivo = $turno->ventas()
+            ->whereIn('metodo_pago', ['credito', 'transferencia'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $business = BusinessSetting::obtenerConfiguracion();
+
+        return view('pos.cierre', compact('turno', 'esperado', 'comprobantesNoEfectivo', 'business'));
+    }
+
     public function cerrar(Request $request, RegistradorAuditoria $auditoria): RedirectResponse
     {
         $datos = $request->validate([
-            'efectivo_contado' => 'required|numeric|min:0|max:99999999.99',
+            'billetes' => 'required|array',
+            'billetes.*' => 'nullable|integer|min:0',
+            'monedas' => 'required|array',
+            'monedas.*' => 'nullable|integer|min:0',
             'notas' => 'nullable|string|max:1000',
         ]);
 
@@ -67,16 +93,28 @@ class ControladorCaja extends Controller
             return back()->withErrors(['caja' => 'No tienes un turno de caja abierto.']);
         }
 
+        $totalBilletes = 0;
+        foreach ($datos['billetes'] as $denominacion => $cantidad) {
+            $totalBilletes += ((float) $denominacion) * (int) $cantidad;
+        }
+
+        $totalMonedas = 0;
+        foreach ($datos['monedas'] as $denominacion => $cantidad) {
+            $totalMonedas += ((float) $denominacion) * (int) $cantidad;
+        }
+
+        $contado = round($totalBilletes + $totalMonedas, 2);
         $esperado = round((float) $turno->movimientosEfectivo()->sum('monto'), 2);
-        $contado = round((float) $datos['efectivo_contado'], 2);
 
         $turno->update([
             'cerrado_en' => now(),
             'efectivo_esperado' => $esperado,
             'efectivo_contado' => $contado,
             'diferencia' => round($contado - $esperado, 2),
-            'estado' => 'cerrada',
+            'billetes' => $datos['billetes'],
+            'monedas' => $datos['monedas'],
             'notas' => $datos['notas'] ?? null,
+            'estado' => 'cerrada',
         ]);
 
         $auditoria->registrar('caja', 'cierre_turno', 'Cierre de turno #' . $turno->id, [
@@ -86,7 +124,7 @@ class ControladorCaja extends Controller
             'diferencia' => round($contado - $esperado, 2),
         ], TurnoCaja::class, $turno->id);
 
-        return back()->with('success', 'Turno de caja cerrado correctamente.');
+        return redirect()->route('punto_venta.inicio')->with('success', 'Turno de caja cerrado correctamente.');
     }
 
     public function movimiento(Request $request): RedirectResponse

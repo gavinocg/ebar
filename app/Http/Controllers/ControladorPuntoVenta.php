@@ -7,10 +7,12 @@ use App\Models\Categoria as Category;
 use App\Models\Impresora as Printer;
 use App\Models\ConfiguracionNegocio as BusinessSetting;
 use App\Models\Sucursal;
+use App\Models\TurnoCaja;
 use App\Services\ContextoNegocio;
 use App\Services\ServicioImpresoraTermica;
 use App\Services\ServicioCobro;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 
 class ControladorPuntoVenta extends Controller
 {
@@ -18,6 +20,17 @@ class ControladorPuntoVenta extends Controller
     {
         if (!session('pos_desbloqueado')) {
             return view('pos.lock');
+        }
+
+        $usuario = auth()->user();
+
+        $turnoAbierto = TurnoCaja::where('usuario_id', $usuario->id)
+            ->where('estado', 'abierta')
+            ->exists();
+
+        if (!$turnoAbierto) {
+            $business = BusinessSetting::obtenerConfiguracion();
+            return view('pos.apertura', compact('business'));
         }
 
         $sucursalId = app(ContextoNegocio::class)->sucursalId();
@@ -68,8 +81,13 @@ class ControladorPuntoVenta extends Controller
 
         $usuario = $request->user();
 
-        abort_if(blank($usuario->pin), 422, 'Este usuario no tiene PIN configurado.');
-        abort_unless(password_verify($datos['pin'], $usuario->pin), 422, 'PIN incorrecto.');
+        if (blank($usuario->pin)) {
+            return redirect()->back()->withErrors(['pin' => 'Este usuario no tiene PIN configurado.']);
+        }
+
+        if (! password_verify($datos['pin'], $usuario->pin)) {
+            return redirect()->back()->withErrors(['pin' => 'PIN incorrecto.']);
+        }
 
         $request->session()->put('pos_desbloqueado', true);
 
