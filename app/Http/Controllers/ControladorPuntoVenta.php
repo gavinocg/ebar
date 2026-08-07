@@ -9,6 +9,7 @@ use App\Models\ConfiguracionNegocio as BusinessSetting;
 use App\Models\MembresiaNegocio;
 use App\Models\Sucursal;
 use App\Models\TurnoCaja;
+use App\Models\Venta as Sale;
 use App\Services\ContextoNegocio;
 use Illuminate\Support\Facades\Auth;
 use App\Services\ServicioImpresoraTermica;
