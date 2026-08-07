@@ -70,6 +70,20 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">Descuentos</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-check form-switch">
+                                <input type="hidden" name="descuento_activo" value="0">
+                                <input type="checkbox" name="descuento_activo" class="form-check-input" id="descuentoActivo" value="1" {{ ($settings->descuento_activo ?? false) ? 'checked' : '' }}>
+                                <label class="form-check-label" for="descuentoActivo">Permitir descuentos en ventas</label>
+                            </div>
+                            <small class="text-muted">Si está desactivado, no se aplicarán descuentos aunque el producto tenga un porcentaje configurado.</small>
+                        </div>
+                    </div>
                     
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-save"></i> Guardar Configuración

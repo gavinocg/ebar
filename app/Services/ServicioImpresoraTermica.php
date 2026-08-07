@@ -115,9 +115,6 @@ class ServicioImpresoraTermica
         }
 
         $this->commands[] = $this->separador() . "\n";
-        if ((float) $sale->descuento > 0) {
-            $this->commands[] = $this->alinearColumnas('Descuento', '-$' . number_format((float) $sale->descuento, 2, '.', '')) . "\n";
-        }
         $this->commands[] = $this->alinearColumnas('Total', '$' . number_format((float) $sale->total, 2, '.', '')) . "\n";
         $this->commands[] = $this->alinearColumnas('Pago', '$' . number_format((float) $sale->pagado, 2, '.', '')) . "\n";
         $this->commands[] = $this->alinearColumnas('Cambio', '$' . number_format((float) $sale->cambio, 2, '.', '')) . "\n";
@@ -206,10 +203,6 @@ class ServicioImpresoraTermica
         $this->commands[] = "\x1B\x61\x02";
         
         $this->commands[] = "Subtotal:" . str_repeat(' ', 25) . "$" . number_format($sale->subtotal, 2) . "\n";
-        
-        if ((float) $sale->descuento > 0) {
-            $this->commands[] = "Descuento:" . str_repeat(' ', 23) . "-$" . number_format($sale->descuento, 2) . "\n";
-        }
         
         if ($sale->impuesto_habilitado) {
             $this->commands[] = "Impuesto (" . $sale->porcentaje_impuesto . "%):" . str_repeat(' ', 20) . "$" . number_format($sale->impuesto, 2) . "\n";

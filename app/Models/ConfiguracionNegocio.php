@@ -17,11 +17,13 @@ class ConfiguracionNegocio extends Model
         'direccion',
         'mensaje_comprobante',
         'cobrar_impuesto',
+        'descuento_activo',
         'porcentaje_impuesto',
     ];
 
     protected $casts = [
         'cobrar_impuesto' => 'boolean',
+        'descuento_activo' => 'boolean',
         'porcentaje_impuesto' => 'decimal:2',
     ];
 
@@ -34,6 +36,7 @@ class ConfiguracionNegocio extends Model
             'direccion' => '',
             'mensaje_comprobante' => '¡GRACIAS POR SU COMPRA!',
             'cobrar_impuesto' => true,
+            'descuento_activo' => false,
             'porcentaje_impuesto' => 15.00,
         ]);
     }

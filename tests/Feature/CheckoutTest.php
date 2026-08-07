@@ -290,7 +290,7 @@ class CheckoutTest extends TestCase
         $this->assertStringNotContainsString('¡', $comprobante);
     }
 
-    public function test_checkout_aplica_descuento_por_producto_y_por_comprobante(): void
+    public function test_checkout_no_aplica_descuento_aunque_producto_lo_tenga(): void
     {
         $usuario = $this->cajero();
         $this->actingAs($usuario);
@@ -301,7 +301,7 @@ class CheckoutTest extends TestCase
             'categoria_id' => $category->id,
             'nombre' => 'Producto con descuento',
             'precio' => 100,
-            'descuento' => 10, // 10%
+            'descuento' => 10,
             'existencias' => 10,
             'esta_activo' => true,
         ]);
@@ -321,13 +321,12 @@ class CheckoutTest extends TestCase
 
         $payload = [
             'items' => [
-                ['producto_id' => $productoConDescuento->id, 'cantidad' => 2], // 200 - 20 = 180
-                ['producto_id' => $productoSinDescuento->id, 'cantidad' => 1], // 50
+                ['producto_id' => $productoConDescuento->id, 'cantidad' => 2],
+                ['producto_id' => $productoSinDescuento->id, 'cantidad' => 1],
             ],
             'metodo_pago' => 'efectivo',
-            'pagado' => '200.00',
-            'clave_idempotencia' => 'descuento-test',
-            'descuento' => 20, // 20% sobre subtotal (180+50=230 => 46)
+            'pagado' => '250.00',
+            'clave_idempotencia' => 'sin-descuento-test',
         ];
 
         $response = $this->postJson(route('punto_venta.cobrar'), $payload);
@@ -335,22 +334,15 @@ class CheckoutTest extends TestCase
         $response->assertOk()->assertJsonPath('success', true);
         $venta = Venta::first();
         
-        // Subtotal antes de descuento comprobante: 180 + 50 = 230
-        // Descuento líneas: 20 (10% de 200)
-        // Descuento comprobante: 20% de 230 = 46
-        // Total descuento: 20 + 46 = 66
-        // Subtotal final (gravable): 230 - 46 = 184
-        // Sin impuesto: total = 184
-        $this->assertSame('184.00', number_format($venta->subtotal, 2));
-        $this->assertSame('66.00', number_format($venta->descuento, 2));
-        $this->assertSame('20.00', number_format($venta->descuento_porcentaje, 2));
-        $this->assertSame('184.00', number_format($venta->total, 2));
+        // Sin descuentos: subtotal = 200 + 50 = 250
+        $this->assertSame('250.00', number_format($venta->subtotal, 2));
+        $this->assertSame('0.00', number_format($venta->descuento, 2));
+        $this->assertSame('250.00', number_format($venta->total, 2));
         
-        // Detalles congelan descuentos
+        // Detalles sin descuento
         $detalles = $venta->detalles()->orderBy('id')->get();
-        $this->assertSame('20.00', number_format($detalles[0]->descuento, 2)); // 10% de 2*100
-        $this->assertSame('0.00', number_format($detalles[1]->descuento, 2));
-        $this->assertSame('180.00', number_format($detalles[0]->subtotal, 2)); // 200 - 20
+        $this->assertSame('0.00', number_format($detalles[0]->descuento, 2));
+        $this->assertSame('200.00', number_format($detalles[0]->subtotal, 2));
         $this->assertSame('50.00', number_format($detalles[1]->subtotal, 2));
     }
 

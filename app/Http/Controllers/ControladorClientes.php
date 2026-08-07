@@ -24,4 +24,23 @@ class ControladorClientes extends Controller
 
         return response()->json($clientes);
     }
+
+    public function store(Request $request): JsonResponse
+    {
+        $datos = $request->validate([
+            'nombre' => 'required|string|max:255',
+            'descripcion' => 'nullable|string|max:255',
+        ]);
+
+        $cliente = Cliente::create([
+            'nombre' => $datos['nombre'],
+            'descripcion' => $datos['descripcion'] ?? null,
+            'esta_activo' => true,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'cliente' => $cliente->only(['id', 'nombre', 'descripcion']),
+        ]);
+    }
 }

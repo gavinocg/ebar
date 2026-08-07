@@ -122,7 +122,6 @@ class ControladorPuntoVenta extends Controller
                 'descripcion_cliente' => 'required_if:metodo_pago,credito|nullable|string|max:255',
                 'entidad_financiera' => 'required_if:metodo_pago,transferencia|nullable|string|max:100',
                 'numero_comprobante_pago' => 'required_if:metodo_pago,transferencia|nullable|string|max:100',
-                'descuento' => 'nullable|numeric|min:0|max:100',
             ]);
 
             $sucursalId = app(ContextoNegocio::class)->sucursalId();
@@ -149,7 +148,6 @@ class ControladorPuntoVenta extends Controller
                 $request->input('descripcion_cliente'),
                 $request->input('entidad_financiera'),
                 $request->input('numero_comprobante_pago'),
-                $request->input('descuento'),
             );
 
             $sale->load('detalles');

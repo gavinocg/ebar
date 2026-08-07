@@ -129,12 +129,6 @@
             <span>Subtotal:</span>
             <span>${{ number_format($sale->subtotal, 2) }}</span>
         </div>
-        @if((float)$sale->descuento > 0)
-        <div>
-            <span>Descuento:</span>
-            <span>-${{ number_format($sale->descuento, 2) }}</span>
-        </div>
-        @endif
         @if($sale->impuesto_habilitado)
         <div>
             <span>Impuesto ({{ $sale->porcentaje_impuesto }}%):</span>

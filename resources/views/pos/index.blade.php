@@ -92,10 +92,6 @@
                 <span>Subtotal:</span>
                 <span id="subtotal">$0.00</span>
             </div>
-            <div class="d-flex justify-content-between mb-2" id="discountRow" style="display:none">
-                <span>Descuento:</span>
-                <span id="discountAmount" class="text-danger">-$0.00</span>
-            </div>
             @if($business->cobrar_impuesto)
             <div class="d-flex justify-content-between mb-2" id="taxRow">
                 <span id="taxLabel">Impuesto ({{ $business->porcentaje_impuesto }}%):</span>
@@ -142,11 +138,6 @@
                     <small class="text-muted">Total a cobrar</small>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Descuento por comprobante (%)</label>
-                    <input type="number" id="discountInput" class="form-control text-center" step="0.01" min="0" max="100" value="0">
-                </div>
-                
                 <div class="mb-3">
                     <label class="form-label">Monto recibido</label>
                     <input type="number" id="paidAmount" class="form-control form-control-lg text-center" step="0.01" min="0">
@@ -350,30 +341,13 @@ function clearCart() {
     }
 }
 
-function obtenerDescuentoPorcentaje() {
-    const input = document.getElementById('discountInput');
-    if (!input) return 0;
-    const value = parseFloat(input.value) || 0;
-    return Math.min(100, Math.max(0, value));
-}
-
 function updateTotals() {
     const base = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-    const discount = base * (obtenerDescuentoPorcentaje() / 100);
-    const subtotal = base - discount;
-    const tax = chargeTax ? (subtotal * (taxPercentage / 100)) : 0;
-    const total = subtotal + tax;
+    const tax = chargeTax ? (base * (taxPercentage / 100)) : 0;
+    const total = base + tax;
     currentTotal = total;
     
     document.getElementById('subtotal').textContent = '$' + base.toFixed(2);
-    
-    const discountRow = document.getElementById('discountRow');
-    if (discount > 0 && discountRow) {
-        discountRow.style.display = '';
-        document.getElementById('discountAmount').textContent = '-$' + discount.toFixed(2);
-    } else if (discountRow) {
-        discountRow.style.display = 'none';
-    }
     
     const taxRow = document.getElementById('taxRow');
     const taxLabel = document.getElementById('taxLabel');
@@ -398,8 +372,6 @@ function updateTotals() {
 function checkout() {
     if (cart.length === 0) return;
     
-    const discountInput = document.getElementById('discountInput');
-    if (discountInput) discountInput.value = '0';
     updateTotals();
     
     document.getElementById('modalTotal').textContent = '$' + currentTotal.toFixed(2);
@@ -409,15 +381,6 @@ function checkout() {
     const modal = new bootstrap.Modal(document.getElementById('checkoutModal'));
     modal.show();
 }
-
-document.getElementById('discountInput').addEventListener('input', function() {
-    if (cart.length === 0) return;
-    updateTotals();
-    document.getElementById('modalTotal').textContent = '$' + currentTotal.toFixed(2);
-    const paid = parseFloat(document.getElementById('paidAmount').value) || 0;
-    const change = paid - currentTotal;
-    document.getElementById('changeAmount').textContent = '$' + Math.max(0, change).toFixed(2);
-});
 
 document.getElementById('paidAmount').addEventListener('input', function() {
     const paid = parseFloat(this.value) || 0;
@@ -515,8 +478,7 @@ async function processSale() {
                 cliente_id: document.getElementById('clienteId').value || '',
                 descripcion_cliente: document.getElementById('descripcionCliente').value || '',
                 entidad_financiera: document.getElementById('entidadFinanciera').value || '',
-                numero_comprobante_pago: document.getElementById('numeroComprobantePago').value || '',
-                descuento: obtenerDescuentoPorcentaje() || null
+                numero_comprobante_pago: document.getElementById('numeroComprobantePago').value || ''
             })
         });
         

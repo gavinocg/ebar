@@ -20,12 +20,13 @@ class ControladorConfiguracionNegocio extends Controller
     {
         $request->validate([
             'nombre_negocio' => 'required|string|max:255',
-            'logotipo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'logotipo' => 'nullable|image|mimes:jpeg,jpg,png,gif|max:2048',
             'rfc' => 'nullable|string|max:20',
             'telefono' => 'nullable|string|max:20',
             'direccion' => 'nullable|string',
             'mensaje_comprobante' => 'nullable|string',
             'cobrar_impuesto' => 'nullable|boolean',
+            'descuento_activo' => 'nullable|boolean',
             'porcentaje_impuesto' => 'nullable|numeric|min:0|max:100',
         ]);
 
@@ -37,6 +38,7 @@ class ControladorConfiguracionNegocio extends Controller
         $settings->direccion = $request->direccion;
         $settings->mensaje_comprobante = $request->mensaje_comprobante;
         $settings->cobrar_impuesto = $request->cobrar_impuesto == '1';
+        $settings->descuento_activo = $request->descuento_activo == '1';
         $settings->porcentaje_impuesto = $request->porcentaje_impuesto ?? 15.00;
 
         if ($request->hasFile('logotipo')) {

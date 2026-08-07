@@ -68,6 +68,7 @@ Route::middleware(['auth', 'negocio'])->group(function () {
     Route::post('/punto-venta/bloquear', [PosController::class, 'bloquear'])->name('punto_venta.bloquear')->middleware('rol_negocio:cajero');
     Route::post('/punto-venta/cobrar', [PosController::class, 'cobrar'])->name('punto_venta.cobrar')->middleware('rol_negocio:cajero');
     Route::get('/clientes/buscar', [ControladorClientes::class, 'buscar'])->name('clientes.buscar')->middleware('rol_negocio:cajero');
+    Route::post('/clientes', [ControladorClientes::class, 'store'])->name('clientes.store')->middleware('rol_negocio:cajero');
     Route::post('/caja/abrir', [ControladorCaja::class, 'abrir'])->name('caja.abrir')->middleware('rol_negocio:cajero');
     Route::get('/caja/cerrar', [ControladorCaja::class, 'cerrarForm'])->name('caja.cerrar.form')->middleware('rol_negocio:cajero');
     Route::post('/caja/cerrar', [ControladorCaja::class, 'cerrar'])->name('caja.cerrar')->middleware('rol_negocio:cajero');
