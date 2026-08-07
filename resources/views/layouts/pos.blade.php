@@ -408,6 +408,9 @@
             <a class="navbar-brand" href="{{ route('panel.inicio') }}">
                 <i class="bi bi-shop"></i> {{ $business->nombre_negocio }}
             </a>
+            <span class="text-white-50 small d-none d-md-inline me-3">
+                <i class="bi bi-geo-alt"></i> {{ App\Models\Sucursal::find(app(ContextoNegocio::class)->sucursalId())?->nombre ?? 'Sucursal' }}
+            </span>
             <div class="d-flex align-items-center">
                 @if($printer && $printer->tipo_conexion === 'bluetooth')
                     <button id="conectarBluetoothBtn" type="button" class="btn btn-outline-info btn-sm me-2">
