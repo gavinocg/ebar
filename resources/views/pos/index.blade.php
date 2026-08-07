@@ -512,10 +512,10 @@ async function processSale() {
                 pagado: paid.toFixed(2),
                 notas: '',
                 clave_idempotencia: idempotencyKey,
-                cliente_id: document.getElementById('clienteId').value || null,
-                descripcion_cliente: document.getElementById('descripcionCliente').value || null,
-                entidad_financiera: document.getElementById('entidadFinanciera').value || null,
-                numero_comprobante_pago: document.getElementById('numeroComprobantePago').value || null,
+                cliente_id: document.getElementById('clienteId').value || '',
+                descripcion_cliente: document.getElementById('descripcionCliente').value || '',
+                entidad_financiera: document.getElementById('entidadFinanciera').value || '',
+                numero_comprobante_pago: document.getElementById('numeroComprobantePago').value || '',
                 descuento: obtenerDescuentoPorcentaje() || null
             })
         });
