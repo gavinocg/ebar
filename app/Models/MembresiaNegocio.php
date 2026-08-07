@@ -9,9 +9,9 @@ class MembresiaNegocio extends Model
 {
     protected $table = 'membresias_negocio';
 
-    protected $fillable = ['negocio_id', 'usuario_id', 'rol', 'esta_activa'];
+    protected $fillable = ['negocio_id', 'usuario_id', 'rol', 'esta_activa', 'cuadre_activo', 'aprobacion_activa', 'limite_cajeros'];
 
-    protected $casts = ['esta_activa' => 'boolean'];
+    protected $casts = ['esta_activa' => 'boolean', 'cuadre_activo' => 'boolean', 'aprobacion_activa' => 'boolean', 'limite_cajeros' => 'integer'];
 
     public function negocio(): BelongsTo
     {

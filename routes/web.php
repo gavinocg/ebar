@@ -24,6 +24,7 @@ use App\Http\Controllers\ControladorConteos;
 use App\Http\Controllers\ControladorEtiquetas;
 use App\Http\Controllers\ControladorAuditorias;
 use App\Http\Controllers\ControladorReembolsos;
+use App\Services\ContextoNegocio;
 
 Route::get('/inicio-sesion', [AuthController::class, 'create'])->name('inicio_sesion');
 Route::post('/inicio-sesion', [AuthController::class, 'store'])->name('inicio_sesion.guardar');
@@ -55,18 +56,21 @@ Route::middleware(['auth', 'super_admin'])->prefix('plataforma')->name('platafor
 
 Route::middleware(['auth', 'negocio'])->group(function () {
     Route::get('/', function () {
+        if (auth()->user()->esPropietario() || auth()->user()->rolEnNegocio(app(ContextoNegocio::class)->id()) === 'admin_bar') {
+            return redirect()->route('panel.inicio');
+        }
         return redirect()->route('punto_venta.inicio');
     });
 
-    Route::get('/punto-venta', [PosController::class, 'index'])->name('punto_venta.inicio');
-    Route::get('/punto-venta/buscar', [PosController::class, 'buscar'])->name('punto_venta.buscar');
-    Route::post('/punto-venta/desbloquear', [PosController::class, 'desbloquear'])->name('punto_venta.desbloquear');
-    Route::post('/punto-venta/bloquear', [PosController::class, 'bloquear'])->name('punto_venta.bloquear');
-    Route::post('/punto-venta/cobrar', [PosController::class, 'cobrar'])->name('punto_venta.cobrar');
-    Route::get('/clientes/buscar', [ControladorClientes::class, 'buscar'])->name('clientes.buscar');
-    Route::post('/caja/abrir', [ControladorCaja::class, 'abrir'])->name('caja.abrir');
-    Route::get('/caja/cerrar', [ControladorCaja::class, 'cerrarForm'])->name('caja.cerrar.form');
-    Route::post('/caja/cerrar', [ControladorCaja::class, 'cerrar'])->name('caja.cerrar');
+    Route::get('/punto-venta', [PosController::class, 'index'])->name('punto_venta.inicio')->middleware('rol_negocio:cajero');
+    Route::get('/punto-venta/buscar', [PosController::class, 'buscar'])->name('punto_venta.buscar')->middleware('rol_negocio:cajero');
+    Route::post('/punto-venta/desbloquear', [PosController::class, 'desbloquear'])->name('punto_venta.desbloquear')->middleware('rol_negocio:cajero');
+    Route::post('/punto-venta/bloquear', [PosController::class, 'bloquear'])->name('punto_venta.bloquear')->middleware('rol_negocio:cajero');
+    Route::post('/punto-venta/cobrar', [PosController::class, 'cobrar'])->name('punto_venta.cobrar')->middleware('rol_negocio:cajero');
+    Route::get('/clientes/buscar', [ControladorClientes::class, 'buscar'])->name('clientes.buscar')->middleware('rol_negocio:cajero');
+    Route::post('/caja/abrir', [ControladorCaja::class, 'abrir'])->name('caja.abrir')->middleware('rol_negocio:cajero');
+    Route::get('/caja/cerrar', [ControladorCaja::class, 'cerrarForm'])->name('caja.cerrar.form')->middleware('rol_negocio:cajero');
+    Route::post('/caja/cerrar', [ControladorCaja::class, 'cerrar'])->name('caja.cerrar')->middleware('rol_negocio:cajero');
     Route::post('/caja/movimiento', [ControladorCaja::class, 'movimiento'])->name('caja.movimiento');
     Route::post('/caja/{turnoCaja}/reabrir', [ControladorCaja::class, 'reabrir'])
         ->middleware('rol_negocio:propietario')->name('caja.reabrir');
@@ -127,5 +131,11 @@ Route::middleware(['auth', 'negocio'])->group(function () {
             ->middleware('rol_negocio:propietario');
         Route::post('/configuracion/negocio', [BusinessSettingController::class, 'update'])->name('configuracion.negocio.actualizar')
             ->middleware('rol_negocio:propietario');
+
+        Route::get('/cuadres/pendientes', [ControladorCaja::class, 'cuadresPendientes'])->name('cuadres.pendientes');
+        Route::post('/cuadres/{turnoCaja}/aprobar', [ControladorCaja::class, 'aprobarCuadre'])->name('cuadres.aprobar');
+        Route::post('/cuadres/{turnoCaja}/rechazar', [ControladorCaja::class, 'rechazarCuadre'])->name('cuadres.rechazar');
+        Route::post('/cuadres/{turnoCaja}/solicitar-modificacion', [ControladorCaja::class, 'solicitarModificacion'])->name('cuadres.solicitar-modificacion');
+        Route::post('/cuadres/{turnoCaja}/autorizar-modificacion', [ControladorCaja::class, 'autorizarModificacion'])->name('cuadres.autorizar-modificacion');
     });
 });

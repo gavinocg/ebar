@@ -25,10 +25,12 @@ class ControladorCajeros extends Controller
             ->orderByDesc('esta_activa')
             ->get();
 
+        $limite = $this->resolverLimiteCajeros($negocio);
+
         return view('cajeros.index', [
             'cajeros' => $cajeros,
-            'limiteCajeros' => $negocio->membresia?->plan?->limite_cajeros ?? 0,
-            'limiteAlcanzado' => $cajeros->where('esta_activa', true)->count() >= ($negocio->membresia?->plan?->limite_cajeros ?? 0),
+            'limiteCajeros' => $limite,
+            'limiteAlcanzado' => $limite > 0 && $cajeros->where('esta_activa', true)->count() >= $limite,
         ]);
     }
 
@@ -36,20 +38,22 @@ class ControladorCajeros extends Controller
     {
         $negocioId = app(ContextoNegocio::class)->id();
         $negocio = Negocio::with('membresia.plan')->findOrFail($negocioId);
-        $limite = (int) ($negocio->membresia?->plan?->limite_cajeros ?? 0);
+        $limite = $this->resolverLimiteCajeros($negocio);
 
         $activos = MembresiaNegocio::where('negocio_id', $negocioId)
             ->where('rol', 'cajero')
             ->where('esta_activa', true)
             ->count();
 
-        abort_if($activos >= $limite, 422, "Límite de cajeros alcanzado ({$limite}).");
+        abort_if($limite > 0 && $activos >= $limite, 422, "Límite de cajeros alcanzado ({$limite}).");
 
         $datos = $request->validate([
             'nombre' => 'required|string|max:255',
             'correo' => ['required', 'email', 'unique:usuarios,correo'],
             'clave' => 'required|string|min:8',
             'pin' => ['required', 'digits:4'],
+            'cuadre_activo' => 'nullable|boolean',
+            'aprobacion_activa' => 'nullable|boolean',
         ]);
 
         $usuario = User::create([
@@ -66,6 +70,8 @@ class ControladorCajeros extends Controller
             'usuario_id' => $usuario->id,
             'rol' => 'cajero',
             'esta_activa' => true,
+            'cuadre_activo' => $request->boolean('cuadre_activo'),
+            'aprobacion_activa' => $request->boolean('aprobacion_activa'),
         ]);
 
         return redirect()->route('cajeros.index')->with('success', 'Cajero creado.');
@@ -74,11 +80,14 @@ class ControladorCajeros extends Controller
     public function update(Request $request, User $cajero): RedirectResponse
     {
         $this->validarCajeroDelNegocio($cajero);
+        $negocioId = app(ContextoNegocio::class)->id();
 
         $datos = $request->validate([
             'nombre' => 'required|string|max:255',
             'correo' => ['required', 'email', Rule::unique('usuarios', 'correo')->ignore($cajero->id)],
             'pin' => 'nullable|string|digits:4',
+            'cuadre_activo' => 'nullable|boolean',
+            'aprobacion_activa' => 'nullable|boolean',
         ]);
 
         $cajero->nombre = $datos['nombre'];
@@ -87,6 +96,14 @@ class ControladorCajeros extends Controller
             $cajero->pin = $datos['pin'];
         }
         $cajero->save();
+
+        MembresiaNegocio::where('negocio_id', $negocioId)
+            ->where('usuario_id', $cajero->id)
+            ->where('rol', 'cajero')
+            ->update([
+                'cuadre_activo' => $request->boolean('cuadre_activo'),
+                'aprobacion_activa' => $request->boolean('aprobacion_activa'),
+            ]);
 
         return redirect()->route('cajeros.index')->with('success', 'Cajero actualizado.');
     }
@@ -119,5 +136,16 @@ class ControladorCajeros extends Controller
             404,
             'El cajero no pertenece a este bar.'
         );
+    }
+
+    private function resolverLimiteCajeros(Negocio $negocio): int
+    {
+        $limiteMembresia = $negocio->membresia()->where('rol', 'propietario')->first()?->limite_cajeros;
+
+        if ($limiteMembresia !== null && $limiteMembresia > 0) {
+            return (int) $limiteMembresia;
+        }
+
+        return (int) ($negocio->membresia?->plan?->limite_cajeros ?? 0);
     }
 }

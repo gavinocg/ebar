@@ -261,6 +261,14 @@
             
             <li class="menu-label">Configuración</li>
             @if(auth()->user()?->esPropietario())
+            @if(auth()->user()?->esPropietario())
+            <li>
+                <a href="{{ route('cuadres.pendientes') }}" class="{{ request()->routeIs('cuadres.*') ? 'active' : '' }}">
+                    <i class="bi bi-clipboard-check"></i>
+                    <span>Cuadres pendientes</span>
+                </a>
+            </li>
+            @endif
             <li>
                 <a href="{{ route('impresoras.index') }}" class="{{ request()->routeIs('impresoras.*') ? 'active' : '' }}">
                     <i class="bi bi-printer"></i>

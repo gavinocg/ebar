@@ -7,7 +7,7 @@
     <div>
         <h1 class="h3">Cajeros</h1>
         <p class="text-muted mb-0">
-            {{ $cajeros->where('esta_activa', true)->count() }} de {{ $limiteCajeros }} cajeros activos según tu plan.
+            {{ $cajeros->where('esta_activa', true)->count() }} de {{ $limiteCajeros }} cajeros activos según la configuración de tu bar.
         </p>
     </div>
     @unless ($limiteAlcanzado)
@@ -26,6 +26,8 @@
                 <th>Nombre</th>
                 <th>Correo</th>
                 <th>PIN</th>
+                <th>Cuadre</th>
+                <th>Aprobación</th>
                 <th>Estado</th>
                 <th class="text-end">Acciones</th>
             </tr>
@@ -40,6 +42,20 @@
                             <span class="text-muted">definido</span>
                         @else
                             <span class="badge bg-secondary">sin PIN</span>
+                        @endif
+                    </td>
+                    <td>
+                        @if ($cajero->cuadre_activo)
+                            <span class="badge bg-success">Activo</span>
+                        @else
+                            <span class="badge bg-secondary">Desactivado</span>
+                        @endif
+                    </td>
+                    <td>
+                        @if ($cajero->aprobacion_activa)
+                            <span class="badge bg-success">Requerida</span>
+                        @else
+                            <span class="badge bg-secondary">Directo</span>
                         @endif
                     </td>
                     <td>
@@ -62,7 +78,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="5" class="text-center text-muted py-4">No hay cajeros registrados.</td>
+                    <td colspan="7" class="text-center text-muted py-4">No hay cajeros registrados.</td>
                 </tr>
             @endforelse
         </tbody>
@@ -91,9 +107,17 @@
                         <label class="form-label">Contraseña *</label>
                         <input type="password" name="clave" class="form-control" required>
                     </div>
-                    <div class="mb-0">
+                    <div class="mb-3">
                         <label class="form-label">PIN de 4 dígitos *</label>
                         <input type="password" name="pin" class="form-control" inputmode="numeric" maxlength="4" required>
+                    </div>
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" name="cuadre_activo" id="cuadre_crear" value="1" checked>
+                        <label class="form-check-label" for="cuadre_crear">Cuadre de caja activo (conteo de billetes/monedas)</label>
+                    </div>
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" name="aprobacion_activa" id="aprobacion_crear" value="1" checked>
+                        <label class="form-check-label" for="aprobacion_crear">Requiere visto bueno del administrador</label>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -125,9 +149,17 @@
                             <label class="form-label">Correo *</label>
                             <input type="email" name="correo" class="form-control" value="{{ $cajero->usuario->correo }}" required>
                         </div>
-                        <div class="mb-0">
+                        <div class="mb-3">
                             <label class="form-label">Nuevo PIN (opcional)</label>
                             <input type="password" name="pin" class="form-control" inputmode="numeric" maxlength="4">
+                        </div>
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" name="cuadre_activo" id="cuadre_{{ $cajero->id }}" value="1" @checked($cajero->cuadre_activo)>
+                            <label class="form-check-label" for="cuadre_{{ $cajero->id }}">Cuadre de caja activo (conteo de billetes/monedas)</label>
+                        </div>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" name="aprobacion_activa" id="aprobacion_{{ $cajero->id }}" value="1" @checked($cajero->aprobacion_activa)>
+                            <label class="form-check-label" for="aprobacion_{{ $cajero->id }}">Requiere visto bueno del administrador</label>
                         </div>
                     </div>
                     <div class="modal-footer">

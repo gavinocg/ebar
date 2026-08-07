@@ -30,7 +30,10 @@ class ControladorPuntoVenta extends Controller
 
         if (!$turnoAbierto) {
             $business = BusinessSetting::obtenerConfiguracion();
-            return view('pos.apertura', compact('business'));
+            $printer = Printer::predeterminada()->first();
+            $sucursales = Sucursal::where('esta_activa', true)->orderBy('nombre')->get();
+            $sucursalActual = $sucursales->firstWhere('id', app(ContextoNegocio::class)->sucursalId());
+            return view('pos.apertura', compact('business', 'printer', 'sucursales', 'sucursalActual'));
         }
 
         $sucursalId = app(ContextoNegocio::class)->sucursalId();

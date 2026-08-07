@@ -24,7 +24,7 @@ class CheckoutTest extends TestCase
 
     public function test_punto_de_venta_renderiza_su_interfaz(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->cajero());
 
         $this->get(route('punto_venta.inicio'))->assertOk();
     }
@@ -89,7 +89,7 @@ class CheckoutTest extends TestCase
 
     public function test_checkout_rejects_invalid_quantities(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->cajero());
         $product = $this->product();
 
         $response = $this->postJson(route('punto_venta.cobrar'), [
@@ -105,7 +105,7 @@ class CheckoutTest extends TestCase
 
     public function test_producto_sin_control_de_existencias_se_vende_sin_limite(): void
     {
-        $usuario = User::factory()->create();
+        $usuario = $this->cajero();
         $this->actingAs($usuario);
         $this->abrirTurno($usuario);
         $categoria = Category::create(['nombre' => 'Ilimitados']);
@@ -132,7 +132,7 @@ class CheckoutTest extends TestCase
 
     public function test_checkout_is_integral_and_idempotent(): void
     {
-        $usuario = User::factory()->create();
+        $usuario = $this->cajero();
         $this->actingAs($usuario);
         $this->abrirTurno($usuario);
         $product = $this->product(price: 10, stock: 3);
@@ -172,7 +172,7 @@ class CheckoutTest extends TestCase
 
     public function test_caja_se_puede_abrir_y_cerrar_con_arqueo(): void
     {
-        $usuario = User::factory()->create();
+        $usuario = $this->cajero();
         $this->actingAs($usuario);
         Caja::create(['nombre' => 'Caja de pruebas', 'esta_activa' => true]);
 
@@ -191,12 +191,13 @@ class CheckoutTest extends TestCase
         ])->assertRedirect();
 
         $this->post(route('caja.cerrar'), [
+            'es_final' => '1',
             'billetes' => [100 => 1, 20 => 1, 5 => 1, 50 => 0, 10 => 0, 1 => 0],
             'monedas' => [1 => 0, 0.50 => 0, 0.25 => 0, 0.10 => 0, 0.05 => 0, 0.01 => 0],
         ])->assertRedirect();
         $this->assertDatabaseHas('turnos_caja', [
             'usuario_id' => $usuario->id,
-            'estado' => 'cerrada',
+            'estado' => 'pendiente_aprobacion',
             'efectivo_esperado' => 125,
             'diferencia' => 0,
         ]);
@@ -291,7 +292,7 @@ class CheckoutTest extends TestCase
 
     public function test_checkout_aplica_descuento_por_producto_y_por_comprobante(): void
     {
-        $usuario = User::factory()->create();
+        $usuario = $this->cajero();
         $this->actingAs($usuario);
         $this->abrirTurno($usuario);
         
@@ -355,9 +356,9 @@ class CheckoutTest extends TestCase
 
     public function test_reembolso_total_revierte_existencias_y_registra_efectivo(): void
     {
-        $usuario = $this->adminBar();
-        $this->actingAs($usuario);
-        $this->abrirTurno($usuario);
+        $cajero = $this->cajero();
+        $this->actingAs($cajero);
+        $this->abrirTurno($cajero);
         $product = $this->product(price: 10, stock: 3);
         BusinessSetting::create([
             'nombre_negocio' => 'Prueba',
@@ -374,6 +375,9 @@ class CheckoutTest extends TestCase
 
         $venta = Venta::first();
         $this->assertSame(1, (int) $product->fresh()->existencias);
+
+        $admin = $this->adminBar();
+        $this->actingAs($admin);
 
         $response = $this->post(route('reembolsos.crear', $venta), [
             'tipo' => 'total',
@@ -407,9 +411,9 @@ class CheckoutTest extends TestCase
 
     public function test_reembolso_parcial_respeta_cantidad_disponible(): void
     {
-        $usuario = $this->adminBar();
-        $this->actingAs($usuario);
-        $this->abrirTurno($usuario);
+        $cajero = $this->cajero();
+        $this->actingAs($cajero);
+        $this->abrirTurno($cajero);
         $product = $this->product(price: 10, stock: 5);
         BusinessSetting::create([
             'nombre_negocio' => 'Prueba',
@@ -426,6 +430,9 @@ class CheckoutTest extends TestCase
 
         $venta = Venta::first();
         $detalle = $venta->detalles->first();
+
+        $admin = $this->adminBar();
+        $this->actingAs($admin);
 
         $this->post(route('reembolsos.crear', $venta), [
             'tipo' => 'parcial',
@@ -449,9 +456,9 @@ class CheckoutTest extends TestCase
 
     public function test_reembolso_requiere_admin_del_bar(): void
     {
-        $usuario = User::factory()->create(['rol' => 'cajero']);
-        $this->actingAs($usuario);
-        $this->abrirTurno($usuario);
+        $cajero = $this->cajero();
+        $this->actingAs($cajero);
+        $this->abrirTurno($cajero);
         $product = $this->product(price: 10, stock: 2);
         BusinessSetting::create([
             'nombre_negocio' => 'Prueba',
@@ -489,6 +496,25 @@ class CheckoutTest extends TestCase
             'existencias' => $stock,
             'esta_activo' => true,
         ]);
+    }
+
+    private function cajero(): User
+    {
+        $negocio = Negocio::firstOrCreate(
+            ['identificador' => 'negocio-principal'],
+            ['nombre' => 'Negocio principal', 'esta_activo' => true],
+        );
+        app(ContextoNegocio::class)->establecer($negocio->id);
+
+        $usuario = User::factory()->create(['rol' => 'cajero']);
+        \App\Models\MembresiaNegocio::create([
+            'negocio_id' => $negocio->id,
+            'usuario_id' => $usuario->id,
+            'rol' => 'cajero',
+            'esta_activa' => true,
+        ]);
+
+        return $usuario;
     }
 
     private function abrirTurno(User $usuario): TurnoCaja

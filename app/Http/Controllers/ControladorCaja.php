@@ -72,20 +72,24 @@ class ControladorCaja extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $business = BusinessSetting::obtenerConfiguracion();
+        $membresia = MembresiaNegocio::where('negocio_id', $turno->negocio_id)
+            ->where('usuario_id', $turno->usuario_id)
+            ->where('rol', 'cajero')
+            ->first();
 
-        return view('pos.cierre', compact('turno', 'esperado', 'comprobantesNoEfectivo', 'business'));
+        $cuadreActivo = $membresia?->cuadre_activo ?? true;
+
+        $business = BusinessSetting::obtenerConfiguracion();
+        $printer = \App\Models\Impresora::predeterminada()->first();
+        $sucursales = Sucursal::where('esta_activa', true)->orderBy('nombre')->get();
+        $sucursalActual = $sucursales->firstWhere('id', app(ContextoNegocio::class)->sucursalId());
+
+        return view('pos.cierre', compact('turno', 'esperado', 'comprobantesNoEfectivo', 'business', 'printer', 'sucursales', 'sucursalActual', 'cuadreActivo'));
     }
 
     public function cerrar(Request $request, RegistradorAuditoria $auditoria): RedirectResponse
     {
-        $datos = $request->validate([
-            'billetes' => 'required|array',
-            'billetes.*' => 'nullable|integer|min:0',
-            'monedas' => 'required|array',
-            'monedas.*' => 'nullable|integer|min:0',
-            'notas' => 'nullable|string|max:1000',
-        ]);
+        $esFinal = $request->boolean('es_final');
 
         $turno = $this->turnoAbierto();
 
@@ -93,38 +97,185 @@ class ControladorCaja extends Controller
             return back()->withErrors(['caja' => 'No tienes un turno de caja abierto.']);
         }
 
-        $totalBilletes = 0;
-        foreach ($datos['billetes'] as $denominacion => $cantidad) {
-            $totalBilletes += ((float) $denominacion) * (int) $cantidad;
+        $membresia = MembresiaNegocio::where('negocio_id', $turno->negocio_id)
+            ->where('usuario_id', $turno->usuario_id)
+            ->where('rol', 'cajero')
+            ->first();
+
+        $cuadreActivo = $membresia?->cuadre_activo ?? true;
+        $aprobacionActiva = $membresia?->aprobacion_activa ?? true;
+
+        if ($esFinal && $cuadreActivo) {
+            $datos = $request->validate([
+                'billetes' => 'required|array',
+                'billetes.*' => 'nullable|integer|min:0',
+                'monedas' => 'required|array',
+                'monedas.*' => 'nullable|integer|min:0',
+                'notas' => 'nullable|string|max:1000',
+            ]);
+        } else {
+            $datos = $request->validate([
+                'notas' => 'nullable|string|max:1000',
+            ]);
         }
 
-        $totalMonedas = 0;
-        foreach ($datos['monedas'] as $denominacion => $cantidad) {
-            $totalMonedas += ((float) $denominacion) * (int) $cantidad;
+        if ($esFinal && $cuadreActivo) {
+            $totalBilletes = 0;
+            foreach ($datos['billetes'] as $denominacion => $cantidad) {
+                $totalBilletes += ((float) $denominacion) * (int) $cantidad;
+            }
+
+            $totalMonedas = 0;
+            foreach ($datos['monedas'] as $denominacion => $cantidad) {
+                $totalMonedas += ((float) $denominacion) * (int) $cantidad;
+            }
+
+            $contado = round($totalBilletes + $totalMonedas, 2);
+        } else {
+            $contado = null;
         }
 
-        $contado = round($totalBilletes + $totalMonedas, 2);
         $esperado = round((float) $turno->movimientosEfectivo()->sum('monto'), 2);
 
+        if ($esFinal) {
+            $estado = $aprobacionActiva ? 'pendiente_aprobacion' : 'aprobada';
+        } else {
+            $estado = 'cerrada';
+        }
+
         $turno->update([
-            'cerrado_en' => now(),
+            'cerrado_en' => $esFinal ? now() : null,
             'efectivo_esperado' => $esperado,
             'efectivo_contado' => $contado,
-            'diferencia' => round($contado - $esperado, 2),
-            'billetes' => $datos['billetes'],
-            'monedas' => $datos['monedas'],
+            'diferencia' => $contado !== null ? round($contado - $esperado, 2) : null,
+            'billetes' => $esFinal && $cuadreActivo ? $datos['billetes'] : null,
+            'monedas' => $esFinal && $cuadreActivo ? $datos['monedas'] : null,
             'notas' => $datos['notas'] ?? null,
-            'estado' => 'cerrada',
+            'estado' => $estado,
         ]);
 
-        $auditoria->registrar('caja', 'cierre_turno', 'Cierre de turno #' . $turno->id, [
+        $tipoCierre = $esFinal ? 'final' : 'temporal';
+
+        $auditoria->registrar('caja', 'cierre_turno', "Cierre {$tipoCierre} de turno #" . $turno->id, [
             'caja_id' => $turno->caja_id,
             'esperado' => $esperado,
             'contado' => $contado,
-            'diferencia' => round($contado - $esperado, 2),
+            'es_final' => $esFinal,
+            'estado' => $estado,
         ], TurnoCaja::class, $turno->id);
 
-        return redirect()->route('punto_venta.inicio')->with('success', 'Turno de caja cerrado correctamente.');
+        if ($esFinal && $aprobacionActiva) {
+            $mensaje = 'Cierre registrado. Pendiente de visto bueno del administrador.';
+        } elseif ($esFinal) {
+            $mensaje = 'Cierre final registrado y confirmado.';
+        } else {
+            $mensaje = 'Cierre temporal registrado. Puedes reabrir si lo necesitas.';
+        }
+
+        return redirect()->route('punto_venta.inicio')->with('success', $mensaje);
+    }
+
+    public function cuadresPendientes(): View
+    {
+        $this->authorize('administrar', Caja::class);
+
+        $negocioId = app(ContextoNegocio::class)->id();
+
+        $pendientes = TurnoCaja::with('usuario')
+            ->where('negocio_id', $negocioId)
+            ->whereIn('estado', ['pendiente_aprobacion', 'pendiente_modificacion'])
+            ->orderByDesc('cerrado_en')
+            ->get();
+
+        return view('caja.cuadres-pendientes', ['pendientes' => $pendientes]);
+    }
+
+    public function aprobarCuadre(TurnoCaja $turnoCaja, RegistradorAuditoria $auditoria): RedirectResponse
+    {
+        $this->authorize('administrar', Caja::class);
+        $negocioId = app(ContextoNegocio::class)->id();
+
+        abort_unless($turnoCaja->negocio_id === $negocioId, 404);
+        abort_unless($turnoCaja->estado === 'pendiente_aprobacion', 422, 'Este cuadre no está pendiente.');
+
+        $turnoCaja->update([
+            'estado' => 'aprobada',
+            'aprobado_por' => Auth::id(),
+            'aprobado_en' => now(),
+        ]);
+
+        $auditoria->registrar('caja', 'aprobar_cuadre', 'Cuadre aprobado del turno #' . $turnoCaja->id, [
+            'turno_caja_id' => $turnoCaja->id,
+            'esperado' => $turnoCaja->efectivo_esperado,
+            'contado' => $turnoCaja->efectivo_contado,
+            'diferencia' => $turnoCaja->diferencia,
+        ], TurnoCaja::class, $turnoCaja->id);
+
+        return back()->with('success', 'Cuadre aprobado correctamente.');
+    }
+
+    public function rechazarCuadre(TurnoCaja $turnoCaja, Request $request, RegistradorAuditoria $auditoria): RedirectResponse
+    {
+        $this->authorize('administrar', Caja::class);
+        $negocioId = app(ContextoNegocio::class)->id();
+
+        abort_unless($turnoCaja->negocio_id === $negocioId, 404);
+        abort_unless($turnoCaja->estado === 'pendiente_aprobacion', 422, 'Este cuadre no está pendiente.');
+
+        $turnoCaja->update([
+            'estado' => 'abierta',
+            'cerrado_en' => null,
+            'efectivo_contado' => null,
+            'diferencia' => null,
+            'notas' => trim(($turnoCaja->notas ? $turnoCaja->notas . ' | ' : '') . 'Cuadre rechazado: ' . $request->input('motivo', '')),
+        ]);
+
+        $auditoria->registrar('caja', 'rechazar_cuadre', 'Cuadre rechazado del turno #' . $turnoCaja->id, [
+            'turno_caja_id' => $turnoCaja->id,
+            'motivo' => $request->input('motivo'),
+        ], TurnoCaja::class, $turnoCaja->id);
+
+        return back()->with('success', 'Cuadre rechazado. El cajero puede realizar un nuevo cierre.');
+    }
+
+    public function solicitarModificacion(TurnoCaja $turnoCaja, Request $request): RedirectResponse
+    {
+        $negocioId = app(ContextoNegocio::class)->id();
+
+        abort_unless($turnoCaja->negocio_id === $negocioId, 404);
+        abort_unless(in_array($turnoCaja->estado, ['aprobada', 'cerrada'], true), 422, 'Este cuadre no puede modificarse.');
+        abort_unless($turnoCaja->usuario_id === Auth::id(), 403, 'Solo el cajero del turno puede solicitar modificación.');
+
+        $turnoCaja->update([
+            'notas' => trim(($turnoCaja->notas ? $turnoCaja->notas . ' | ' : '') . 'Solicitud de modificación: ' . $request->input('motivo', '')),
+            'estado' => 'pendiente_modificacion',
+        ]);
+
+        return back()->with('success', 'Solicitud de modificación enviada al administrador.');
+    }
+
+    public function autorizarModificacion(TurnoCaja $turnoCaja, RegistradorAuditoria $auditoria): RedirectResponse
+    {
+        $this->authorize('administrar', Caja::class);
+        $negocioId = app(ContextoNegocio::class)->id();
+
+        abort_unless($turnoCaja->negocio_id === $negocioId, 404);
+        abort_unless($turnoCaja->estado === 'pendiente_modificacion', 422, 'No hay solicitud de modificación pendiente.');
+
+        $turnoCaja->update([
+            'estado' => 'abierta',
+            'cerrado_en' => null,
+            'efectivo_contado' => null,
+            'diferencia' => null,
+            'aprobado_por' => null,
+            'aprobado_en' => null,
+        ]);
+
+        $auditoria->registrar('caja', 'autorizar_modificacion', 'Modificación autorizada del turno #' . $turnoCaja->id, [
+            'turno_caja_id' => $turnoCaja->id,
+        ], TurnoCaja::class, $turnoCaja->id);
+
+        return back()->with('success', 'Modificación autorizada. El cajero puede realizar un nuevo cierre.');
     }
 
     public function movimiento(Request $request): RedirectResponse
