@@ -112,6 +112,7 @@ class CajerosTest extends TestCase
     {
         $negocio = $this->barConPlan();
         $admin = $this->propietario($negocio);
+        $sucursal = Sucursal::where('negocio_id', $negocio->id)->first();
 
         $this->actingAs($admin);
 
@@ -120,6 +121,7 @@ class CajerosTest extends TestCase
             'correo' => 'maria@bar.com',
             'clave' => 'secreto123',
             'pin' => '5678',
+            'sucursal_id' => $sucursal->id,
         ])->assertRedirect(route('cajeros.index'));
 
         $usuario = User::where('correo', 'maria@bar.com')->firstOrFail();
@@ -132,6 +134,7 @@ class CajerosTest extends TestCase
     {
         $negocio = $this->barConPlan(1);
         $admin = $this->propietario($negocio);
+        $sucursal = Sucursal::where('negocio_id', $negocio->id)->first();
         $this->cajero($negocio);
 
         $this->actingAs($admin);
@@ -141,6 +144,7 @@ class CajerosTest extends TestCase
             'correo' => 'segundo@bar.com',
             'clave' => 'secreto123',
             'pin' => '1234',
+            'sucursal_id' => $sucursal->id,
         ])->assertStatus(422);
     }
 

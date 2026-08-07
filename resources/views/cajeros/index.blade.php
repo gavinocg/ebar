@@ -26,6 +26,7 @@
                 <th>Nombre</th>
                 <th>Correo</th>
                 <th>PIN</th>
+                <th>Sucursal</th>
                 <th>Cuadre</th>
                 <th>Aprobación</th>
                 <th>Estado</th>
@@ -42,6 +43,13 @@
                             <span class="text-muted">definido</span>
                         @else
                             <span class="badge bg-secondary">sin PIN</span>
+                        @endif
+                    </td>
+                    <td>
+                        @if ($cajero->sucursal)
+                            {{ $cajero->sucursal->nombre }}
+                        @else
+                            <span class="badge bg-secondary">Sin asignar</span>
                         @endif
                     </td>
                     <td>
@@ -111,6 +119,15 @@
                         <label class="form-label">PIN de 4 dígitos *</label>
                         <input type="password" name="pin" class="form-control" inputmode="numeric" maxlength="4" required>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">Sucursal *</label>
+                        <select name="sucursal_id" class="form-select" required>
+                            <option value="">Seleccionar sucursal...</option>
+                            @foreach($sucursales as $sucursal)
+                                <option value="{{ $sucursal->id }}">{{ $sucursal->nombre }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                     <div class="form-check form-switch mb-2">
                         <input class="form-check-input" type="checkbox" name="cuadre_activo" id="cuadre_crear" value="1" checked>
                         <label class="form-check-label" for="cuadre_crear">Cuadre de caja activo (conteo de billetes/monedas)</label>
@@ -152,6 +169,15 @@
                         <div class="mb-3">
                             <label class="form-label">Nuevo PIN (opcional)</label>
                             <input type="password" name="pin" class="form-control" inputmode="numeric" maxlength="4">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Sucursal *</label>
+                            <select name="sucursal_id" class="form-select" required>
+                                <option value="">Seleccionar sucursal...</option>
+                                @foreach($sucursales as $sucursal)
+                                    <option value="{{ $sucursal->id }}" @selected((int)$cajero->sucursal_id === $sucursal->id)>{{ $sucursal->nombre }}</option>
+                                @endforeach
+                            </select>
                         </div>
                         <div class="form-check form-switch mb-2">
                             <input class="form-check-input" type="checkbox" name="cuadre_activo" id="cuadre_{{ $cajero->id }}" value="1" @checked($cajero->cuadre_activo)>

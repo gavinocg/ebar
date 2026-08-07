@@ -6,6 +6,7 @@ use App\Models\Producto as Product;
 use App\Models\Categoria as Category;
 use App\Models\Impresora as Printer;
 use App\Models\ConfiguracionNegocio as BusinessSetting;
+use App\Models\MembresiaNegocio;
 use App\Models\Sucursal;
 use App\Models\TurnoCaja;
 use App\Services\ContextoNegocio;
@@ -123,6 +124,20 @@ class ControladorPuntoVenta extends Controller
                 'numero_comprobante_pago' => 'required_if:metodo_pago,transferencia|nullable|string|max:100',
                 'descuento' => 'nullable|numeric|min:0|max:100',
             ]);
+
+            $sucursalId = app(ContextoNegocio::class)->sucursalId();
+
+            $membresiaCajero = MembresiaNegocio::where('usuario_id', Auth::id())
+                ->where('rol', 'cajero')
+                ->where('esta_activa', true)
+                ->first();
+
+            if ($membresiaCajero && $membresiaCajero->sucursal_id && (int) $membresiaCajero->sucursal_id !== (int) $sucursalId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No puedes cobrar en esta sucursal. Tu sucursal asignada es: ' . ($membresiaCajero->sucursal?->nombre ?? 'N/A'),
+                ], 403);
+            }
 
             $sale = $servicioCobro->crear(
                 $request->input('items'),

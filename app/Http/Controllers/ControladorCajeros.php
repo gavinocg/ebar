@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\MembresiaNegocio;
 use App\Models\Negocio;
+use App\Models\Sucursal;
 use App\Models\User;
 use App\Services\ContextoNegocio;
 use Illuminate\Http\RedirectResponse;
@@ -31,6 +32,7 @@ class ControladorCajeros extends Controller
             'cajeros' => $cajeros,
             'limiteCajeros' => $limite,
             'limiteAlcanzado' => $limite > 0 && $cajeros->where('esta_activa', true)->count() >= $limite,
+            'sucursales' => Sucursal::where('negocio_id', $negocioId)->where('esta_activa', true)->orderBy('nombre')->get(),
         ]);
     }
 
@@ -52,6 +54,7 @@ class ControladorCajeros extends Controller
             'correo' => ['required', 'email', 'unique:usuarios,correo'],
             'clave' => 'required|string|min:8',
             'pin' => ['required', 'digits:4'],
+            'sucursal_id' => 'required|integer|exists:sucursales,id',
             'cuadre_activo' => 'nullable|boolean',
             'aprobacion_activa' => 'nullable|boolean',
         ]);
@@ -69,6 +72,7 @@ class ControladorCajeros extends Controller
             'negocio_id' => $negocioId,
             'usuario_id' => $usuario->id,
             'rol' => 'cajero',
+            'sucursal_id' => $datos['sucursal_id'],
             'esta_activa' => true,
             'cuadre_activo' => $request->boolean('cuadre_activo'),
             'aprobacion_activa' => $request->boolean('aprobacion_activa'),
@@ -86,6 +90,7 @@ class ControladorCajeros extends Controller
             'nombre' => 'required|string|max:255',
             'correo' => ['required', 'email', Rule::unique('usuarios', 'correo')->ignore($cajero->id)],
             'pin' => 'nullable|string|digits:4',
+            'sucursal_id' => 'required|integer|exists:sucursales,id',
             'cuadre_activo' => 'nullable|boolean',
             'aprobacion_activa' => 'nullable|boolean',
         ]);
@@ -101,6 +106,7 @@ class ControladorCajeros extends Controller
             ->where('usuario_id', $cajero->id)
             ->where('rol', 'cajero')
             ->update([
+                'sucursal_id' => $datos['sucursal_id'],
                 'cuadre_activo' => $request->boolean('cuadre_activo'),
                 'aprobacion_activa' => $request->boolean('aprobacion_activa'),
             ]);
