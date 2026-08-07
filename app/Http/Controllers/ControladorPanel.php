@@ -7,6 +7,8 @@ use App\Models\Producto as Product;
 use App\Models\Categoria as Category;
 use App\Models\Caja;
 use App\Models\TurnoCaja;
+use App\Models\Sucursal;
+use App\Services\ContextoNegocio;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -66,17 +68,27 @@ class ControladorPanel extends Controller
         $this->authorize('reportes.ver');
         $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->toDateString());
         $endDate = $request->get('end_date', Carbon::now()->toDateString());
+        $sucursalId = $request->get('sucursal_id');
 
-        $sales = Sale::with('detalles')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $negocioId = app(ContextoNegocio::class)->id();
+        $sucursales = Sucursal::where('negocio_id', $negocioId)->where('esta_activa', true)->orderBy('nombre')->get();
+
+        $query = Sale::query()->whereBetween('created_at', [$startDate, $endDate]);
+        if ($sucursalId) {
+            $query->where('sucursal_id', $sucursalId);
+        }
+
+        $sales = $query->with('detalles')->orderBy('created_at', 'desc')->get();
 
         $totalSales = $sales->count();
         $totalRevenue = $sales->sum('total');
         $averageTicket = $totalSales > 0 ? $totalRevenue / $totalSales : 0;
 
-        $salesByDay = Sale::whereBetween('created_at', [$startDate, $endDate])
+        $salesByDayQuery = Sale::whereBetween('created_at', [$startDate, $endDate]);
+        if ($sucursalId) {
+            $salesByDayQuery->where('sucursal_id', $sucursalId);
+        }
+        $salesByDay = $salesByDayQuery
             ->select(
                 DB::raw('DATE(created_at) as date'),
                 DB::raw('COUNT(*) as count'),
@@ -93,7 +105,9 @@ class ControladorPanel extends Controller
             'averageTicket',
             'salesByDay',
             'startDate',
-            'endDate'
+            'endDate',
+            'sucursales',
+            'sucursalId'
         ));
     }
 

@@ -10,15 +10,24 @@
 <div class="card mb-3">
     <div class="card-body">
         <form method="GET" class="row g-3">
-            <div class="col-md-4">
+            <div class="col-md-3">
+                <label class="form-label">Sucursal</label>
+                <select name="sucursal_id" class="form-select" onchange="this.form.submit()">
+                    <option value="">Todas las sucursales</option>
+                    @foreach($sucursales as $sucursal)
+                        <option value="{{ $sucursal->id }}" @selected($sucursalId == $sucursal->id)>{{ $sucursal->nombre }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-3">
                 <label class="form-label">Fecha Inicio</label>
                 <input type="date" name="start_date" class="form-control" value="{{ $startDate }}">
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label">Fecha Fin</label>
                 <input type="date" name="end_date" class="form-control" value="{{ $endDate }}">
             </div>
-            <div class="col-md-4 d-flex align-items-end">
+            <div class="col-md-3 d-flex align-items-end">
                 <button type="submit" class="btn btn-primary">
                     <i class="bi bi-search"></i> Filtrar
                 </button>
