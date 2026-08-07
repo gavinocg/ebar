@@ -9,6 +9,7 @@ use App\Models\ConfiguracionNegocio as BusinessSetting;
 use App\Models\Sucursal;
 use App\Models\TurnoCaja;
 use App\Services\ContextoNegocio;
+use Illuminate\Support\Facades\Auth;
 use App\Services\ServicioImpresoraTermica;
 use App\Services\ServicioCobro;
 use Illuminate\Http\Request;
@@ -97,11 +98,12 @@ class ControladorPuntoVenta extends Controller
         return redirect()->route('punto_venta.inicio');
     }
 
-    public function bloquear(Request $request): RedirectResponse
+    public function bloquear()
     {
-        $request->session()->forget('pos_desbloqueado');
+        session(['cajero_pin_id' => Auth::id()]);
+        session()->forget('pos_desbloqueado');
 
-        return redirect()->route('punto_venta.inicio');
+        return redirect()->route('inicio_sesion.pin');
     }
 
     public function cobrar(Request $request, ServicioCobro $servicioCobro)

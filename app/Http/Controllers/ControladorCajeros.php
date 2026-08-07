@@ -140,10 +140,13 @@ class ControladorCajeros extends Controller
 
     private function resolverLimiteCajeros(Negocio $negocio): int
     {
-        $limiteMembresia = $negocio->membresia()->where('rol', 'propietario')->first()?->limite_cajeros;
+        $propietario = MembresiaNegocio::where('negocio_id', $negocio->id)
+            ->where('rol', 'propietario')
+            ->where('esta_activa', true)
+            ->first();
 
-        if ($limiteMembresia !== null && $limiteMembresia > 0) {
-            return (int) $limiteMembresia;
+        if ($propietario && $propietario->limite_cajeros > 0) {
+            return (int) $propietario->limite_cajeros;
         }
 
         return (int) ($negocio->membresia?->plan?->limite_cajeros ?? 0);
