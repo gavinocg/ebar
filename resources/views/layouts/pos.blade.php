@@ -417,6 +417,9 @@
                         <i class="bi bi-bluetooth"></i> Conectar impresora
                     </button>
                 @endif
+                <button type="button" class="btn btn-outline-info btn-sm me-2" data-bs-toggle="modal" data-bs-target="#ventasModal">
+                    <i class="bi bi-receipt"></i> Ventas
+                </button>
                 <a href="{{ route('caja.cerrar.form') }}" class="btn btn-outline-warning btn-sm me-2">
                     <i class="bi bi-lock-fill"></i> Cerrar caja
                 </a>
@@ -433,6 +436,8 @@
     </nav>
 
     @yield('content')
+
+    @include('pos.ventas-modal')
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     @stack('scripts')

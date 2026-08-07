@@ -78,6 +78,20 @@ class ControladorPuntoVenta extends Controller
         return response()->json($products);
     }
 
+    public function ventasHoy()
+    {
+        $hoy = now()->format('Y-m-d');
+
+        $ventas = Sale::where('usuario_id', Auth::id())
+            ->whereDate('created_at', $hoy)
+            ->orderBy('created_at', 'desc')
+            ->get(['numero_comprobante', 'metodo_pago', 'total']);
+
+        $total = $ventas->sum('total');
+
+        return view('pos.ventas-hoy', compact('ventas', 'total'));
+    }
+
     public function desbloquear(Request $request)
     {
         $datos = $request->validate([

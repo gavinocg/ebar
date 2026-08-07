@@ -73,7 +73,10 @@ class ControladorPanel extends Controller
         $negocioId = app(ContextoNegocio::class)->id();
         $sucursales = Sucursal::where('negocio_id', $negocioId)->where('esta_activa', true)->orderBy('nombre')->get();
 
-        $query = Sale::query()->whereBetween('created_at', [$startDate, $endDate]);
+        $desde = $startDate . ' 00:00:00';
+        $hasta = $endDate . ' 23:59:59';
+
+        $query = Sale::query()->whereBetween('created_at', [$desde, $hasta]);
         if ($sucursalId) {
             $query->where('sucursal_id', $sucursalId);
         }
@@ -84,7 +87,7 @@ class ControladorPanel extends Controller
         $totalRevenue = $sales->sum('total');
         $averageTicket = $totalSales > 0 ? $totalRevenue / $totalSales : 0;
 
-        $salesByDayQuery = Sale::whereBetween('created_at', [$startDate, $endDate]);
+        $salesByDayQuery = Sale::whereBetween('created_at', [$desde, $hasta]);
         if ($sucursalId) {
             $salesByDayQuery->where('sucursal_id', $sucursalId);
         }
