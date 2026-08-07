@@ -107,6 +107,15 @@ class ControladorAutenticacion extends Controller
         Auth::login($usuario);
         $request->session()->put('pos_desbloqueado', true);
 
+        $membresiaCajero = MembresiaNegocio::where('usuario_id', $usuario->id)
+            ->where('rol', 'cajero')
+            ->where('esta_activa', true)
+            ->first();
+
+        if ($membresiaCajero && $membresiaCajero->sucursal_id) {
+            $request->session()->put('sucursal_id', $membresiaCajero->sucursal_id);
+        }
+
         $membresias = MembresiaNegocio::where('usuario_id', $usuario->id)
             ->where('esta_activa', true)
             ->count();

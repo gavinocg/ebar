@@ -409,18 +409,6 @@
                 <i class="bi bi-shop"></i> {{ $business->nombre_negocio }}
             </a>
             <div class="d-flex align-items-center">
-                @if(isset($sucursales) && $sucursales->count() > 1)
-                    <form method="POST" action="{{ route('negocio.sucursal.cambiar') }}" class="me-2">
-                        @csrf
-                        <select name="sucursal_id" class="form-select form-select-sm bg-dark text-white border-secondary" onchange="this.form.submit()">
-                            @foreach($sucursales as $sucursal)
-                                <option value="{{ $sucursal->id }}" @selected(($sucursalActual?->id ?? null) === $sucursal->id)>
-                                    {{ $sucursal->nombre }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </form>
-                @endif
                 @if($printer && $printer->tipo_conexion === 'bluetooth')
                     <button id="conectarBluetoothBtn" type="button" class="btn btn-outline-info btn-sm me-2">
                         <i class="bi bi-bluetooth"></i> Conectar impresora
