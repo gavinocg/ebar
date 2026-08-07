@@ -260,7 +260,7 @@ Convertir e-Bar en una plataforma SaaS multi-tenant para administrar bares escol
 
 ## Próximo Paso
 
-La siguiente unidad es **tickets abiertos** (Fase 5). Después seguirán pagos divididos, variantes de productos y modificadores/extras.
+Las siguientes unidades pendientes de la **Fase 5** son: tickets abiertos, pagos divididos, variantes de productos y modificadores/extras. Después seguirán las Fases 6 a 9.
 
 ## Flujo Operativo Definido
 
@@ -507,3 +507,60 @@ La siguiente unidad es **tickets abiertos** (Fase 5). Después seguirán pagos d
 - Seeder y `ControladorNegocios` crean el admin inicial como `propietario`.
 - Sidebar: las secciones de cajeros, configuración, auditoría, reportes, impresoras, sucursales y cajas solo se muestran al `propietario`.
 - Pruebas: 40 pasan / 134 aserciones, incluyendo verificación de que el nuevo `admin_bar` reducido NO accede a cajeros, reportes ni reapertura.
+
+### 2026-08-06 - Flujo Cajero Completo Y Sucursales
+
+- **Flujo de login del cajero**: link "Soy Cajero" en `/inicio-sesion` → formulario solo con correo → valida que exista y tenga PIN → pantalla de ingreso de PIN (keypad standalone) → ingresa al POS.
+- **Apertura de caja como primera pantalla**: al ingresar al POS sin turno abierto, muestra pantalla de apertura asignada al cajero (fondo inicial).
+- **Cierre de caja con denominaciones**: pantalla de cierre con conteo de billetes (100, 50, 20, 10, 5, 1) y monedas (1, 0.50, 0.25, 0.10, 0.05, 0.01), más comprobantes de crédito/transferencia del turno y cuadre automático.
+- **Cierre temporal vs final**: el cajero puede hacer cierres temporales (reabiertos) o el cierre final del día que activa el flujo de aprobación.
+
+### 2026-08-06 - Cuadre Configurable Y Visto Bueno
+
+- **Configuración por cajero** (en `/cajeros`): `cuadre_activo` (conteo de billetes/monedas), `aprobacion_activa` (requiere visto bueno del admin), `limite_cajeros` (por membresía, independiente del plan).
+- **Visto bueno**: tras cierre final, si `aprobacion_activa=ON` → estado `pendiente_aprobacion` → el admin aprueba (`/cuadres/pendientes`) → `aprobada` o rechaza → vuelve a `abierta`.
+- **Modificación de cuadre**: el cajero solicita → estado `pendiente_modificacion` → el admin autoriza → vuelve a `abierta` para nuevo cierre.
+- **Estados del turno**: `abierta`, `cerrada` (temporal), `pendiente_aprobacion`, `aprobada`, `pendiente_modificacion`.
+- Columnas `aprobado_por`/`aprobado_en` agregadas a `turnos_caja`.
+
+### 2026-08-06 - Vinculación Cajero-Sucursal
+
+- `membresias_negocio.sucursal_id`: cada cajero está asignado a una sucursal específica.
+- **Restricción de cobro**: el cajero SOLO puede cobrar en su sucursal asignada. Intentar cobrar en otra → 403 con mensaje.
+- **Dirección automática**: al hacer login, se establece automáticamente la `sucursal_id` del cajero en sesión. No hay selector de sucursal en el POS.
+- **Información visible**: el nombre de la sucursal se muestra como dato informativo en el navbar del POS.
+
+### 2026-08-06 - Descuentos Controlados Por Configuración
+
+- **Migración** `2026_08_05_190000_add_descuento_activo`: `configuraciones_negocio.descuento_activo` (boolean, default `false`).
+- **Switch en configuración**: "Permitir descuentos en ventas" (default OFF).
+- **Limpieza completa del flujo POS**: eliminado input de descuento del modal, fila de descuento del carrito, función JS `obtenerDescuentoPorcentaje`, evento del discountInput, campo `descuento` del payload, validación en el controlador, y líneas de descuento en tickets (térmico y HTML).
+- **ServicioCobro**: ya no aplica descuentos por producto ni por comprobante.
+- **Modelos/BD**: se mantienen columnas de descuento por compatibilidad pero no se usan.
+
+### 2026-08-06 - Clientes: Búsqueda Y Alta Rápida Desde POS
+
+- **ControladorClientes@store**: nuevo método para crear clientes desde el POS.
+- **Ruta** `POST /clientes` (cajero).
+- **Modal de crédito en POS**: campo Cliente con búsqueda por carácter (despliega coincidencias) + botón "+" que abre formulario inline para agregar cliente (nombre + descripción). Al guardar, se selecciona automáticamente.
+- **Validación mejorada**: los errores de validación del backend se muestran como mensajes específicos (no genéricos).
+
+### 2026-08-06 - Reporte De Ventas Con Filtro De Sucursal
+
+- **Selector de sucursales** en `/reportes/ventas`: carga las sucursales activas del negocio y filtra las ventas por la sucursal seleccionada (o muestra todas).
+- **Corrección de rango de fechas**: ahora usa `00:00:00` a `23:59:59` para incluir todas las ventas del día final.
+
+### 2026-08-06 - Botón Ventas En POS
+
+- **Botón "Ventas"** en el navbar del POS (junto a "Cerrar caja").
+- **Modal con listado del día**: muestra las ventas del cajero actual — comprobante, método de pago (Efectivo/Crédito/Transferencia) y valor.
+- **Total al final**: sumatoria de la caja del cajero que consulta.
+
+### 2026-08-06 - Correcciones De Estabilidad
+
+- Corregido `whereBetween` en reporte de ventas (fechas con hora).
+- Corregido type hint `View` en `ControladorCaja` (faltaba import).
+- Corregido import `Sale` en `ControladorPuntoVenta`.
+- Corregido import `Sucursal` en `ControladorCajeros`.
+- Corregido `resolverLimiteCajeros` para consultar `membresias_negocio` en vez de `membresias`.
+- 40 pruebas pasan / 132 aserciones.
