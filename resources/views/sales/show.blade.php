@@ -74,14 +74,21 @@
                         <td colspan="3" class="text-end"><strong>Total:</strong></td>
                         <td class="text-end"><strong>${{ number_format($sale->total, 2) }}</strong></td>
                     </tr>
-                    <tr>
-                        <td colspan="3" class="text-end">Pagado:</td>
-                        <td class="text-end">${{ number_format($sale->pagado, 2) }}</td>
-                    </tr>
-                    <tr>
-                        <td colspan="3" class="text-end">Cambio:</td>
-                        <td class="text-end">${{ number_format($sale->cambio, 2) }}</td>
-                    </tr>
+                    @if($sale->metodo_pago === 'credito')
+                        <tr class="table-warning">
+                            <td colspan="3" class="text-end">Pendiente por cobrar:</td>
+                            <td class="text-end"><strong>${{ number_format($sale->total - $sale->pagado, 2) }}</strong></td>
+                        </tr>
+                    @else
+                        <tr>
+                            <td colspan="3" class="text-end">Pagado:</td>
+                            <td class="text-end">${{ number_format($sale->pagado, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="3" class="text-end">Cambio:</td>
+                            <td class="text-end">${{ number_format($sale->cambio, 2) }}</td>
+                        </tr>
+                    @endif
                 </tfoot>
             </table>
         </div>

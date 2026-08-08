@@ -182,7 +182,7 @@
                 </div>
                 
                 <div class="text-center">
-                    <span class="text-muted">Cambio:</span>
+                    <span class="text-muted" id="changeLabel">Cambio:</span>
                     <h3 class="text-primary" id="changeAmount">$0.00</h3>
                 </div>
             </div>
@@ -386,24 +386,33 @@ function updateTotals() {
     }
 }
 
+function actualizarCambio() {
+    const esCredito = document.getElementById('paymentMethod').value === 'credito';
+    if (esCredito) {
+        document.getElementById('changeLabel').textContent = 'Por cobrar (saldo):';
+        document.getElementById('changeAmount').textContent = '$' + (currentTotalCents / 100).toFixed(2);
+        return;
+    }
+    document.getElementById('changeLabel').textContent = 'Cambio:';
+    const paidCents = Math.round((parseFloat(document.getElementById('paidAmount').value) || 0) * 100);
+    const changeCents = paidCents - currentTotalCents;
+    document.getElementById('changeAmount').textContent = '$' + (Math.max(0, changeCents) / 100).toFixed(2);
+}
+
 function checkout() {
     if (cart.length === 0) return;
     
     updateTotals();
     
     document.getElementById('modalTotal').textContent = '$' + (currentTotalCents / 100).toFixed(2);
-    document.getElementById('paidAmount').value = (currentTotalCents / 100).toFixed(2);
-    document.getElementById('changeAmount').textContent = '$0.00';
+    actualizarCamposPago();
+    actualizarCambio();
     
     const modal = new bootstrap.Modal(document.getElementById('checkoutModal'));
     modal.show();
 }
 
-document.getElementById('paidAmount').addEventListener('input', function() {
-    const paidCents = Math.round((parseFloat(this.value) || 0) * 100);
-    const changeCents = paidCents - currentTotalCents;
-    document.getElementById('changeAmount').textContent = '$' + (Math.max(0, changeCents) / 100).toFixed(2);
-});
+document.getElementById('paidAmount').addEventListener('input', actualizarCambio);
 
 document.getElementById('paymentMethod').addEventListener('change', actualizarCamposPago);
 
@@ -416,7 +425,7 @@ function actualizarCamposPago() {
     document.getElementById('paidAmount').disabled = esCredito;
     document.getElementById('paidAmount').value = esCredito ? '0.00' : (currentTotalCents / 100).toFixed(2);
     document.querySelectorAll('.quick-amount').forEach(button => button.disabled = esCredito);
-    document.getElementById('changeAmount').textContent = '$' + (esCredito ? '0.00' : '0.00');
+    actualizarCambio();
 }
 
 function toggleNuevoCliente() {
