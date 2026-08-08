@@ -24,6 +24,10 @@ class AutorizarRolNegocio
         $nivelUsuario = self::JERARQUIA[$rolUsuario] ?? 0;
         $nivelRequerido = self::JERARQUIA[$rol] ?? 0;
 
+        if ($rol === 'cajero' && $nivelUsuario > $nivelRequerido) {
+            return redirect()->route('panel.inicio');
+        }
+
         abort_unless($nivelUsuario >= $nivelRequerido, 403, 'No tienes permisos para esta acción en el bar.');
 
         return $next($request);

@@ -188,12 +188,14 @@
                     <span>Dashboard</span>
                 </a>
             </li>
-            <li>
-                <a href="{{ route('punto_venta.inicio') }}" class="{{ request()->routeIs('punto_venta.*') ? 'active' : '' }}">
-                    <i class="bi bi-cart"></i>
-                    <span>Punto de Venta</span>
-                </a>
-            </li>
+            @if (auth()->check() && auth()->user()->rolEnNegocio(app(\App\Services\ContextoNegocio::class)->id()) === 'cajero')
+                <li>
+                    <a href="{{ route('punto_venta.inicio') }}" class="{{ request()->routeIs('punto_venta.*') ? 'active' : '' }}">
+                        <i class="bi bi-cart"></i>
+                        <span>Punto de Venta</span>
+                    </a>
+                </li>
+            @endif
             
             <li class="menu-label">Inventario</li>
             <li>

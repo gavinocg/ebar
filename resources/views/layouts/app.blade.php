@@ -21,12 +21,14 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('punto_venta.inicio') }}">
-                            <i class="bi bi-cart"></i> Punto de Venta
-                        </a>
-                    </li>
+                <ul class="navbar-nav me-auto">
+                    @if (auth()->check() && auth()->user()->rolEnNegocio(app(\App\Services\ContextoNegocio::class)->id()) === 'cajero')
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('punto_venta.inicio') }}">
+                                <i class="bi bi-cart"></i> Punto de Venta
+                            </a>
+                        </li>
+                    @endif
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('productos.index') }}">
                             <i class="bi bi-box"></i> Productos
@@ -80,6 +82,16 @@
                             <li><a class="dropdown-item" href="{{ route('reportes.cajeros') }}">Por cajero</a></li>
                             <li><a class="dropdown-item" href="{{ route('caja.reporte') }}">Arqueos de caja</a></li>
                         </ul>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <form method="POST" action="{{ route('cerrar_sesion') }}">
+                            @csrf
+                            <button type="submit" class="btn btn-outline-light btn-sm ms-lg-2 mt-2 mt-lg-0">
+                                <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+                            </button>
+                        </form>
                     </li>
                 </ul>
             </div>

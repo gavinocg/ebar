@@ -43,6 +43,14 @@ class ControladorAutenticacion extends Controller
         }
 
         if ($membresias === 1) {
+            $membresia = MembresiaNegocio::where('usuario_id', Auth::id())
+                ->where('esta_activa', true)
+                ->first();
+
+            if ($membresia && in_array($membresia->rol, ['propietario', 'admin_bar'], true)) {
+                return redirect()->route('panel.inicio');
+            }
+
             return redirect()->route('punto_venta.inicio');
         }
 
@@ -124,7 +132,11 @@ class ControladorAutenticacion extends Controller
             return redirect()->route('negocio.seleccionar');
         }
 
-        return redirect()->route('punto_venta.inicio');
+        if ($membresiaCajero) {
+            return redirect()->route('punto_venta.inicio');
+        }
+
+        return redirect()->route('negocio.seleccionar');
     }
 
     public function destroy(Request $request): RedirectResponse
