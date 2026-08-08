@@ -179,16 +179,27 @@ class PlataformaTest extends TestCase
         $this->get(route('negocio.seleccionar'))->assertOk()->assertSee('Selecciona tu bar');
 
         $this->post(route('negocio.seleccionar.guardar'), ['negocio_id' => $negocioDos->id])
-            ->assertRedirect(route('punto_venta.inicio'));
+            ->assertRedirect(route('panel.inicio'));
 
         $this->assertSame((int) $negocioDos->id, (int) session('negocio_id'));
     }
 
-    public function test_un_solo_bar_redirige_directo_al_pos(): void
+    public function test_admin_bar_con_un_solo_bar_va_al_panel(): void
     {
         $negocio = $this->crearBarConMembresia();
         $usuario = User::factory()->create();
         MembresiaNegocio::create(['negocio_id' => $negocio->id, 'usuario_id' => $usuario->id, 'rol' => 'admin_bar', 'esta_activa' => true]);
+
+        $this->actingAs($usuario);
+
+        $this->get(route('negocio.seleccionar'))->assertRedirect(route('panel.inicio'));
+    }
+
+    public function test_un_cajero_con_un_solo_bar_va_al_pos(): void
+    {
+        $negocio = $this->crearBarConMembresia();
+        $usuario = User::factory()->create();
+        MembresiaNegocio::create(['negocio_id' => $negocio->id, 'usuario_id' => $usuario->id, 'rol' => 'cajero', 'esta_activa' => true]);
 
         $this->actingAs($usuario);
 

@@ -19,7 +19,7 @@ class ControladorSeleccionNegocio extends Controller
         if ($membresias->count() === 1) {
             $request->session()->put('negocio_id', $membresias->first()->negocio_id);
 
-            return redirect()->route('punto_venta.inicio');
+            return redirect()->route($this->destinoPorRol($membresias->first()->rol));
         }
 
         if ($membresias->isEmpty()) {
@@ -54,7 +54,11 @@ class ControladorSeleccionNegocio extends Controller
             }
         }
 
-        return redirect()->route('punto_venta.inicio')->with('success', 'Bar seleccionado.');
+        $membresia = $this->membresiasDelUsuario()
+            ->where('negocio_id', $datos['negocio_id'])
+            ->first();
+
+        return redirect()->route($this->destinoPorRol($membresia?->rol))->with('success', 'Bar seleccionado.');
     }
 
     public function cambiarSucursal(Request $request): RedirectResponse
@@ -72,7 +76,11 @@ class ControladorSeleccionNegocio extends Controller
 
         $request->session()->put('sucursal_id', $sucursal->id);
 
-        return redirect()->route('punto_venta.inicio')->with('success', 'Sucursal cambiada a ' . $sucursal->nombre);
+        $membresia = $this->membresiasDelUsuario()
+            ->where('negocio_id', $negocioId)
+            ->first();
+
+        return redirect()->route($this->destinoPorRol($membresia?->rol))->with('success', 'Sucursal cambiada a ' . $sucursal->nombre);
     }
 
     public function cambiar(Request $request): RedirectResponse
@@ -80,6 +88,11 @@ class ControladorSeleccionNegocio extends Controller
         $request->session()->forget('negocio_id');
 
         return redirect()->route('negocio.seleccionar');
+    }
+
+    private function destinoPorRol(?string $rol): string
+    {
+        return $rol === 'cajero' ? 'punto_venta.inicio' : 'panel.inicio';
     }
 
     private function membresiasDelUsuario()
