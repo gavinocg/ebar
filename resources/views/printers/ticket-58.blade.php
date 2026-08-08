@@ -27,8 +27,12 @@
     @endforeach
     <hr>
     <div class="linea total"><span>Total</span><span>${{ number_format($sale->total, 2) }}</span></div>
-    <div class="linea"><span>Pago</span><span>${{ number_format($sale->pagado, 2) }}</span></div>
-    <div class="linea"><span>Cambio</span><span>${{ number_format($sale->cambio, 2) }}</span></div>
+    @if($sale->metodo_pago !== 'credito')
+        <div class="linea"><span>Pago</span><span>${{ number_format($sale->pagado, 2) }}</span></div>
+        <div class="linea"><span>Cambio</span><span>${{ number_format($sale->cambio, 2) }}</span></div>
+    @else
+        <div class="linea"><span>Estado</span><span>Crédito</span></div>
+    @endif
     @if($business->mensaje_comprobante)
         <p class="centro">{{ $business->mensaje_comprobante }}</p>
     @endif

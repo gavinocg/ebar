@@ -201,7 +201,7 @@
 @push('scripts')
 <script>
 let cart = [];
-let currentTotal = 0;
+let currentTotalCents = 0;
 let lastSaleHtml = null;
 let bluetoothDevice = null;
 let bluetoothCharacteristic = null;
@@ -356,22 +356,25 @@ function clearCart() {
 }
 
 function updateTotals() {
-    const base = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-    const tax = chargeTax ? (base * (taxPercentage / 100)) : 0;
-    const total = base + tax;
-    currentTotal = total;
-    
-    document.getElementById('subtotal').textContent = '$' + base.toFixed(2);
+    let subtotalCents = 0;
+    cart.forEach(item => {
+        subtotalCents += Math.round(item.price * 100) * item.qty;
+    });
+    const taxCents = chargeTax ? Math.round(subtotalCents * taxPercentage / 100) : 0;
+    const totalCents = subtotalCents + taxCents;
+    currentTotalCents = totalCents;
+
+    document.getElementById('subtotal').textContent = '$' + (subtotalCents / 100).toFixed(2);
     
     const taxRow = document.getElementById('taxRow');
     const taxLabel = document.getElementById('taxLabel');
     if (chargeTax && taxRow && taxLabel) {
         taxRow.style.display = '';
         taxLabel.textContent = 'IVA (' + taxPercentage + '%):';
-        document.getElementById('tax').textContent = '$' + tax.toFixed(2);
+        document.getElementById('tax').textContent = '$' + (taxCents / 100).toFixed(2);
     }
     
-    document.getElementById('total').textContent = '$' + total.toFixed(2);
+    document.getElementById('total').textContent = '$' + (totalCents / 100).toFixed(2);
     
     const badge = document.getElementById('cartBadge');
     const count = cart.reduce((sum, item) => sum + item.qty, 0);
@@ -388,8 +391,8 @@ function checkout() {
     
     updateTotals();
     
-    document.getElementById('modalTotal').textContent = '$' + currentTotal.toFixed(2);
-    document.getElementById('paidAmount').value = currentTotal.toFixed(2);
+    document.getElementById('modalTotal').textContent = '$' + (currentTotalCents / 100).toFixed(2);
+    document.getElementById('paidAmount').value = (currentTotalCents / 100).toFixed(2);
     document.getElementById('changeAmount').textContent = '$0.00';
     
     const modal = new bootstrap.Modal(document.getElementById('checkoutModal'));
@@ -397,9 +400,9 @@ function checkout() {
 }
 
 document.getElementById('paidAmount').addEventListener('input', function() {
-    const paid = parseFloat(this.value) || 0;
-    const change = paid - currentTotal;
-    document.getElementById('changeAmount').textContent = '$' + Math.max(0, change).toFixed(2);
+    const paidCents = Math.round((parseFloat(this.value) || 0) * 100);
+    const changeCents = paidCents - currentTotalCents;
+    document.getElementById('changeAmount').textContent = '$' + (Math.max(0, changeCents) / 100).toFixed(2);
 });
 
 document.getElementById('paymentMethod').addEventListener('change', actualizarCamposPago);
@@ -411,7 +414,7 @@ function actualizarCamposPago() {
     document.getElementById('creditoFields').hidden = !esCredito;
     document.getElementById('transferenciaFields').hidden = !esTransferencia;
     document.getElementById('paidAmount').disabled = esCredito;
-    document.getElementById('paidAmount').value = esCredito ? '0.00' : currentTotal.toFixed(2);
+    document.getElementById('paidAmount').value = esCredito ? '0.00' : (currentTotalCents / 100).toFixed(2);
     document.querySelectorAll('.quick-amount').forEach(button => button.disabled = esCredito);
     document.getElementById('changeAmount').textContent = '$' + (esCredito ? '0.00' : '0.00');
 }
@@ -502,7 +505,7 @@ document.querySelectorAll('.quick-amount').forEach(btn => {
         const amount = this.dataset.amount;
         const input = document.getElementById('paidAmount');
         if (amount === 'exacto') {
-            input.value = currentTotal.toFixed(2);
+            input.value = (currentTotalCents / 100).toFixed(2);
         } else {
             input.value = amount;
         }
@@ -511,9 +514,10 @@ document.querySelectorAll('.quick-amount').forEach(btn => {
 });
 
 async function processSale() {
-    const paid = parseFloat(document.getElementById('paidAmount').value) || 0;
+    const metodoPago = document.getElementById('paymentMethod').value;
+    const paidCents = Math.round((parseFloat(document.getElementById('paidAmount').value) || 0) * 100);
     
-    if (paid < currentTotal) {
+    if (metodoPago !== 'credito' && paidCents < currentTotalCents) {
         alert('El monto recibido es insuficiente');
         return;
     }
@@ -534,8 +538,8 @@ async function processSale() {
             },
             body: JSON.stringify({
                 items: cart.map(item => ({ producto_id: item.id, cantidad: item.qty })),
-                metodo_pago: document.getElementById('paymentMethod').value,
-                pagado: paid.toFixed(2),
+                metodo_pago: metodoPago,
+                pagado: (paidCents / 100).toFixed(2),
                 notas: '',
                 clave_idempotencia: idempotencyKey,
                 cliente_id: document.getElementById('clienteId').value || '',
