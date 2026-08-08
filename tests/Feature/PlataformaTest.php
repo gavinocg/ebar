@@ -205,4 +205,16 @@ class PlataformaTest extends TestCase
 
         $this->get(route('negocio.seleccionar'))->assertRedirect(route('punto_venta.inicio'));
     }
+
+    public function test_rol_legacy_administrador_se_trata_como_propietario(): void
+    {
+        $negocio = $this->crearBarConMembresia();
+        $usuario = User::factory()->create();
+        MembresiaNegocio::create(['negocio_id' => $negocio->id, 'usuario_id' => $usuario->id, 'rol' => 'administrador', 'esta_activa' => true]);
+
+        $this->actingAs($usuario);
+
+        $this->get(route('punto_venta.inicio'))->assertRedirect(route('panel.inicio'));
+        $this->get(route('panel.inicio'))->assertOk();
+    }
 }

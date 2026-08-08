@@ -12,6 +12,7 @@ class AutorizarRolNegocio
     private const JERARQUIA = [
         'cajero' => 1,
         'admin_bar' => 2,
+        'administrador' => 3,
         'propietario' => 3,
     ];
 
@@ -20,24 +21,20 @@ class AutorizarRolNegocio
         $usuario = $request->user();
         $negocioId = app(ContextoNegocio::class)->id();
         $rolUsuario = $usuario ? $usuario->rolEnNegocio($negocioId) : null;
+        $nivelUsuario = self::JERARQUIA[$rolUsuario] ?? 0;
 
         if ($rol === 'cajero') {
-            if ($rolUsuario === 'cajero') {
-                return $next($request);
-            }
-
             if ($usuario && $usuario->rol === 'super_admin') {
                 return redirect()->route('plataforma.inicio');
             }
 
-            if (in_array($rolUsuario, ['propietario', 'admin_bar'], true)) {
-                return redirect()->route('panel.inicio');
+            if ($rolUsuario === 'cajero') {
+                return $next($request);
             }
 
-            return redirect()->route('negocio.seleccionar');
+            return redirect()->route('panel.inicio');
         }
 
-        $nivelUsuario = self::JERARQUIA[$rolUsuario] ?? 0;
         $nivelRequerido = self::JERARQUIA[$rol] ?? 0;
 
         abort_unless($nivelUsuario >= $nivelRequerido, 403, 'No tienes permisos para esta acción en el bar.');
