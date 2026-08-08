@@ -47,11 +47,11 @@ class ControladorAutenticacion extends Controller
                 ->where('esta_activa', true)
                 ->first();
 
-            if ($membresia && in_array($membresia->rol, ['propietario', 'admin_bar'], true)) {
-                return redirect()->route('panel.inicio');
+            if ($membresia && $membresia->rol === 'cajero') {
+                return redirect()->route('punto_venta.inicio');
             }
 
-            return redirect()->route('punto_venta.inicio');
+            return redirect()->route('panel.inicio');
         }
 
         return redirect()->route('negocio.seleccionar');
