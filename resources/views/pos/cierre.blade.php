@@ -1,5 +1,15 @@
 @extends('layouts.pos')
 
+@push('styles')
+<style>
+    body {
+        overflow-y: auto !important;
+        height: auto !important;
+        min-height: 100vh;
+    }
+</style>
+@endpush
+
 @section('title', 'Cierre de caja')
 
 @section('content')
@@ -22,7 +32,8 @@
         <div class="card mb-3">
             <div class="card-header bg-warning py-2"><strong><i class="bi bi-receipt"></i> Comprobantes cobrados sin efectivo</strong></div>
             <div class="card-body p-0">
-                <table class="table table-sm mb-0">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
                     <thead>
                         <tr>
                             <th>Comprobante</th>
@@ -40,6 +51,7 @@
                         @endforeach
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
     @endif
