@@ -25,6 +25,7 @@ class ControladorImpresoras extends Controller
             'direccion' => 'nullable|string',
             'puerto' => 'nullable|integer|min:1|max:65535',
             'ancho_papel' => 'required|in:58mm,80mm,a4,a5,letter',
+            'es_predeterminada' => 'nullable|boolean',
         ]);
 
         if ($request->tipo_conexion === 'normal') {
@@ -35,7 +36,7 @@ class ControladorImpresoras extends Controller
             Printer::where('es_predeterminada', true)->update(['es_predeterminada' => false]);
         }
 
-        Printer::create($request->all());
+        Printer::create($request->validated());
 
         return redirect()->route('impresoras.index')->with('success', 'Impresora agregada');
     }
@@ -49,6 +50,7 @@ class ControladorImpresoras extends Controller
             'direccion' => 'nullable|string',
             'puerto' => 'nullable|integer|min:1|max:65535',
             'ancho_papel' => 'required|in:58mm,80mm,a4,a5,letter',
+            'es_predeterminada' => 'nullable|boolean',
         ]);
 
         if ($request->tipo_conexion === 'normal') {
@@ -61,7 +63,7 @@ class ControladorImpresoras extends Controller
                 ->update(['es_predeterminada' => false]);
         }
 
-        $printer->update($request->all());
+        $printer->update($request->validated());
 
         return redirect()->route('impresoras.index')->with('success', 'Impresora actualizada');
     }

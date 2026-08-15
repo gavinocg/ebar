@@ -62,12 +62,8 @@ class ControladorAutenticacion extends Controller
 
         $usuario = User::where('correo', $datos['correo'])->where('esta_activo', true)->first();
 
-        if (!$usuario) {
-            return back()->withErrors(['correo' => 'No encontramos un usuario con ese correo.'])->onlyInput('correo');
-        }
-
-        if (blank($usuario->pin)) {
-            return back()->withErrors(['correo' => 'Este usuario no tiene PIN configurado. Contacta al administrador.'])->onlyInput('correo');
+        if (!$usuario || blank($usuario->pin)) {
+            return back()->withErrors(['correo' => 'Credenciales no válidas.'])->onlyInput('correo');
         }
 
         $request->session()->put('cajero_pin_id', $usuario->id);
@@ -94,14 +90,23 @@ class ControladorAutenticacion extends Controller
             return redirect()->route('inicio_sesion.cajero');
         }
 
+        $intento = \App\Models\IntentoPin::firstOrCreate(['usuario_id' => $usuario->id]);
+
+        if ($intento->estaBloqueado()) {
+            $segundos = ceil($intento->bloqueado_hasta->diffInSeconds(now()));
+            return redirect()->back()->withErrors(['pin' => "Demasiados intentos. Espera {$segundos} segundos."]);
+        }
+
         $datos = $request->validate([
             'pin' => 'required|digits:4',
         ]);
 
         if (!password_verify($datos['pin'], $usuario->pin)) {
+            $intento->registrarFallo();
             return redirect()->back()->withErrors(['pin' => 'PIN incorrecto.']);
         }
 
+        $intento->resetear();
         $request->session()->forget('cajero_pin_id');
         $request->session()->regenerate();
         Auth::login($usuario);

@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Services\ServicioImpresoraTermica;
 use App\Services\ServicioCobro;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 
 class ControladorPuntoVenta extends Controller
@@ -41,7 +42,7 @@ class ControladorPuntoVenta extends Controller
 
         $sucursalId = app(ContextoNegocio::class)->sucursalId();
 
-        $products = Product::with('categoria')
+        $products = Product::with(['categoria', 'variantes', 'gruposModificadores.modificadores'])
             ->where('esta_activo', true)
             ->where(function ($q) use ($sucursalId) {
                 $q->whereNull('sucursal_id')
@@ -70,7 +71,7 @@ class ControladorPuntoVenta extends Controller
                     ->when($sucursalId, fn ($query) => $query->orWhere('sucursal_id', $sucursalId));
             })
             ->where(function ($q) use ($query) {
-                $q->where('nombre', 'like', "%{$query}%")
+                $q->where('nombre', 'like', '%' . str_replace(['%', '_'], ['\\%', '\\_'], $query) . '%')
                   ->orWhere('codigo_barras', $query);
             })
             ->limit(20)
@@ -122,21 +123,51 @@ class ControladorPuntoVenta extends Controller
         return redirect()->route('inicio_sesion.pin');
     }
 
+    public function guardarCarrito(Request $request): JsonResponse
+    {
+        $request->validate([
+            'carrito' => 'required|array',
+            'carrito.*.id' => 'required|string',
+            'carrito.*.name' => 'required|string',
+            'carrito.*.price' => 'required|numeric|min:0',
+            'carrito.*.qty' => 'required|integer|min:1',
+            'carrito.*.stock' => 'required|integer|min:0',
+        ]);
+
+        session(['pos_carrito' => $request->carrito]);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function cargarCarrito(): JsonResponse
+    {
+        $carrito = session('pos_carrito', []);
+
+        return response()->json(['carrito' => $carrito]);
+    }
+
     public function cobrar(Request $request, ServicioCobro $servicioCobro)
     {
         try {
             $request->validate([
                 'items' => 'required|array|min:1|max:100',
-                'items.*.producto_id' => 'required|integer|distinct|exists:productos,id',
+                'items.*.producto_id' => 'required|integer|exists:productos,id',
                 'items.*.cantidad' => 'required|integer|min:1|max:10000',
-                'metodo_pago' => 'required|in:efectivo,credito,transferencia',
-                'pagado' => 'required|numeric|min:0|max:99999999.99',
+                'items.*.variante_id' => 'nullable|integer|exists:producto_variantes,id',
+                'items.*.modificadores' => 'nullable|array',
+                'items.*.modificadores.*.modificador_id' => 'required_with:items.*.modificadores|integer|exists:modificadores,id',
+                'items.*.modificadores.*.precio_extra' => 'required_with:items.*.modificadores|numeric|min:0',
+                'metodo_pago' => 'required|in:efectivo,credito,transferencia,dividido',
+                'pagado' => 'required|numeric|min:0|max:9999999999.99',
                 'notas' => 'nullable|string|max:1000',
                 'clave_idempotencia' => 'required|string|max:100',
                 'cliente_id' => 'required_if:metodo_pago,credito|nullable|integer|exists:clientes,id',
                 'descripcion_cliente' => 'required_if:metodo_pago,credito|nullable|string|max:255',
                 'entidad_financiera' => 'required_if:metodo_pago,transferencia|nullable|string|max:100',
                 'numero_comprobante_pago' => 'required_if:metodo_pago,transferencia|nullable|string|max:100',
+                'pagos_divididos' => 'required_if:metodo_pago,dividido|nullable|array|min:1',
+                'pagos_divididos.*.metodo' => 'required_with:pagos_divididos|string|in:efectivo,transferencia',
+                'pagos_divididos.*.monto' => 'required_with:pagos_divididos|numeric|min:0.01',
             ]);
 
             $sucursalId = app(ContextoNegocio::class)->sucursalId();
@@ -163,6 +194,8 @@ class ControladorPuntoVenta extends Controller
                 $request->input('descripcion_cliente'),
                 $request->input('entidad_financiera'),
                 $request->input('numero_comprobante_pago'),
+                null,
+                $request->input('pagos_divididos'),
             );
 
             $sale->load('detalles');

@@ -10,6 +10,7 @@ use App\Models\Plan;
 use App\Models\Sucursal;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -54,8 +55,9 @@ class ControladorNegocios extends Controller
             'moneda' => $datos['moneda'],
         ]);
 
+        app(\App\Services\ContextoNegocio::class)->establecer($negocio->id);
+
         Sucursal::create([
-            'negocio_id' => $negocio->id,
             'nombre' => $datos['nombre_sucursal'] ?: 'Sucursal principal',
             'esta_activa' => true,
         ]);
@@ -72,12 +74,11 @@ class ControladorNegocios extends Controller
             'fecha_vencimiento' => now()->addDays(30),
         ]);
 
-        $admin = User::create([
-            'nombre' => $datos['nombre_admin'],
-            'correo' => $datos['correo_admin'],
-            'password' => $datos['clave_admin'],
-            'rol' => 'propietario',
-        ]);
+        $admin = new User();
+        $admin->nombre = $datos['nombre_admin'];
+        $admin->correo = $datos['correo_admin'];
+        $admin->password = $datos['clave_admin'];
+        $admin->save();
 
         MembresiaNegocio::create([
             'negocio_id' => $negocio->id,
@@ -125,7 +126,15 @@ class ControladorNegocios extends Controller
 
     public function destroy(Negocio $negocio): RedirectResponse
     {
-        $negocio->delete();
+        if ($negocio->ventas()->exists()) {
+            return redirect()->route('plataforma.negocios.index')
+                ->with('error', 'No se puede eliminar un bar que tiene ventas registradas.');
+        }
+
+        DB::transaction(function () use ($negocio) {
+            $negocio->configuracion()->delete();
+            $negocio->delete();
+        });
 
         return redirect()->route('plataforma.negocios.index')->with('success', 'Bar eliminado.');
     }

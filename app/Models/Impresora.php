@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\PerteneceANegocio;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Impresora extends Model
 {
@@ -13,7 +14,6 @@ class Impresora extends Model
         'sucursal_id',
         'nombre',
         'tipo_conexion',
-        'tipo_impresora',
         'direccion',
         'puerto',
         'ancho_papel',
@@ -26,6 +26,11 @@ class Impresora extends Model
         'es_predeterminada' => 'boolean',
         'puerto' => 'integer'
     ];
+
+    public function sucursal(): BelongsTo
+    {
+        return $this->belongsTo(Sucursal::class, 'sucursal_id');
+    }
 
     public function scopePredeterminada($query)
     {

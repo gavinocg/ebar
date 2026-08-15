@@ -30,10 +30,6 @@ class AppServiceProvider extends ServiceProvider
             return $usuario->esPropietario();
         });
 
-        Gate::before(function ($usuario, $ability) {
-            return $usuario->esPropietario() ?: null;
-        });
-
         if (app()->environment('production')) {
             URL::forceScheme('https');
         }

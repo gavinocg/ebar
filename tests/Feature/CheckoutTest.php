@@ -38,7 +38,7 @@ class CheckoutTest extends TestCase
 
     public function test_usuario_del_bar_no_puede_ver_la_plataforma(): void
     {
-        $this->actingAs(User::factory()->create(['rol' => 'cajero']));
+        $this->actingAs(User::factory()->create());
 
         $this->get(route('plataforma.inicio'))->assertForbidden();
     }
@@ -498,7 +498,7 @@ class CheckoutTest extends TestCase
         );
         app(ContextoNegocio::class)->establecer($negocio->id);
 
-        $usuario = User::factory()->create(['rol' => 'cajero']);
+        $usuario = User::factory()->create();
         \App\Models\MembresiaNegocio::create([
             'negocio_id' => $negocio->id,
             'usuario_id' => $usuario->id,
@@ -535,7 +535,7 @@ class CheckoutTest extends TestCase
         );
         app(ContextoNegocio::class)->establecer($negocio->id);
 
-        $usuario = User::factory()->create(['rol' => 'propietario']);
+        $usuario = User::factory()->create();
         \App\Models\MembresiaNegocio::create([
             'negocio_id' => $negocio->id,
             'usuario_id' => $usuario->id,

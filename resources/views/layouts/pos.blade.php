@@ -412,7 +412,7 @@
                 <i class="bi bi-geo-alt"></i> {{ $sucursalActual?->nombre ?? 'Sucursal' }}
             </span>
             <div class="d-flex align-items-center">
-                @if($printer && $printer->tipo_conexion === 'bluetooth')
+                @if(isset($printer) && $printer && $printer->tipo_conexion === 'bluetooth')
                     <button id="conectarBluetoothBtn" type="button" class="btn btn-outline-info btn-sm me-2">
                         <i class="bi bi-bluetooth"></i> Conectar impresora
                     </button>

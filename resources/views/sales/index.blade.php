@@ -32,10 +32,14 @@
                                 <td>
                                     @if($sale->metodo_pago == 'efectivo')
                                         <span class="badge bg-success">Efectivo</span>
-                                    @elseif($sale->metodo_pago == 'tarjeta')
-                                        <span class="badge bg-primary">Tarjeta</span>
-                                    @else
+                                    @elseif($sale->metodo_pago == 'credito')
+                                        <span class="badge bg-warning text-dark">Crédito</span>
+                                    @elseif($sale->metodo_pago == 'transferencia')
                                         <span class="badge bg-info">Transferencia</span>
+                                    @elseif($sale->metodo_pago == 'dividido')
+                                        <span class="badge bg-primary">Dividido</span>
+                                    @else
+                                        <span class="badge bg-secondary">{{ ucfirst($sale->metodo_pago) }}</span>
                                     @endif
                                 </td>
                                 <td>

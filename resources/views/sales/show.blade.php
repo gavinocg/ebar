@@ -28,10 +28,14 @@
                 <p><strong>Método de pago:</strong> 
                     @if($sale->metodo_pago == 'efectivo')
                         Efectivo
-                    @elseif($sale->metodo_pago == 'tarjeta')
-                        Tarjeta
-                    @else
+                    @elseif($sale->metodo_pago == 'credito')
+                        Crédito
+                    @elseif($sale->metodo_pago == 'transferencia')
                         Transferencia
+                    @elseif($sale->metodo_pago == 'dividido')
+                        Dividido
+                    @else
+                        {{ ucfirst($sale->metodo_pago) }}
                     @endif
                 </p>
             </div>

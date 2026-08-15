@@ -35,4 +35,14 @@ class MovimientoEfectivo extends Model
     {
         return $this->belongsTo(User::class, 'usuario_id');
     }
+
+    public function sucursal(): BelongsTo
+    {
+        return $this->belongsTo(Sucursal::class, 'sucursal_id');
+    }
+
+    public function caja(): BelongsTo
+    {
+        return $this->belongsTo(Caja::class, 'caja_id');
+    }
 }

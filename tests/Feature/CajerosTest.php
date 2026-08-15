@@ -24,7 +24,8 @@ class CajerosTest extends TestCase
     {
         $plan = Plan::create(['nombre' => 'Básico', 'duracion_dias' => 30, 'limite_cajeros' => $limiteCajeros, 'limite_cajas' => 1, 'limite_sucursales' => 1]);
         $negocio = Negocio::create(['nombre' => 'Bar', 'identificador' => 'bar-' . str()->random(6), 'esta_activo' => true]);
-        Sucursal::create(['negocio_id' => $negocio->id, 'nombre' => 'Principal']);
+        app(ContextoNegocio::class)->establecer($negocio->id);
+        Sucursal::create(['nombre' => 'Principal']);
 
         Membresia::create([
             'negocio_id' => $negocio->id,
@@ -39,7 +40,7 @@ class CajerosTest extends TestCase
 
     private function propietario(Negocio $negocio): User
     {
-        $admin = User::factory()->create(['rol' => 'propietario']);
+        $admin = User::factory()->create();
         MembresiaNegocio::create(['negocio_id' => $negocio->id, 'usuario_id' => $admin->id, 'rol' => 'propietario', 'esta_activa' => true]);
         app(ContextoNegocio::class)->establecer($negocio->id);
 
@@ -48,7 +49,7 @@ class CajerosTest extends TestCase
 
     private function adminBar(Negocio $negocio): User
     {
-        $admin = User::factory()->create(['rol' => 'admin_bar']);
+        $admin = User::factory()->create();
         MembresiaNegocio::create(['negocio_id' => $negocio->id, 'usuario_id' => $admin->id, 'rol' => 'admin_bar', 'esta_activa' => true]);
         app(ContextoNegocio::class)->establecer($negocio->id);
 
@@ -57,7 +58,7 @@ class CajerosTest extends TestCase
 
     private function cajero(Negocio $negocio): User
     {
-        $cajero = User::factory()->create(['rol' => 'cajero', 'pin' => Hash::make('1234')]);
+        $cajero = User::factory()->create(['pin' => Hash::make('1234')]);
         MembresiaNegocio::create(['negocio_id' => $negocio->id, 'usuario_id' => $cajero->id, 'rol' => 'cajero', 'esta_activa' => true]);
 
         return $cajero;
@@ -159,7 +160,7 @@ class CajerosTest extends TestCase
         $this->delete(route('cajeros.destroy', $cajero))->assertRedirect(route('cajeros.index'));
 
         $this->assertDatabaseHas('membresias_negocio', ['negocio_id' => $negocio->id, 'usuario_id' => $cajero->id, 'esta_activa' => false]);
-        $this->assertDatabaseHas('usuarios', ['id' => $cajero->id, 'esta_activo' => false]);
+        $this->assertDatabaseHas('usuarios', ['id' => $cajero->id, 'esta_activo' => true]);
     }
 
     public function test_cajero_desactivado_no_puede_acceder_al_pos(): void

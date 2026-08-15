@@ -109,9 +109,12 @@
                     <div class="fw-semibold">{{ $negocio->membresia->fecha_vencimiento->format('d/m/Y') }}</div>
                 </div>
                 <div class="col-md-3 d-flex gap-2 justify-content-md-end flex-wrap">
-                    <a href="{{ route('plataforma.negocios.membresia.renovar', $negocio) }}" class="btn btn-sm btn-outline-success">
-                        <i class="bi bi-arrow-repeat"></i> Renovar
-                    </a>
+                    <form method="POST" action="{{ route('plataforma.negocios.membresia.renovar', $negocio) }}">
+                        @csrf
+                        <button class="btn btn-sm btn-outline-success">
+                            <i class="bi bi-arrow-repeat"></i> Renovar
+                        </button>
+                    </form>
                     @if ($negocio->membresia->estado === 'suspendida')
                         <form method="POST" action="{{ route('plataforma.negocios.membresia.reactivar', $negocio) }}">
                             @csrf

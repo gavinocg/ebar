@@ -42,31 +42,31 @@ class ControladorInventario extends Controller
             'motivo' => 'required|string|max:255',
         ]);
 
-        $producto = Producto::lockForUpdate()->findOrFail($datos['producto_id']);
-
-        if (!$producto->maneja_existencias) {
-            return back()->withErrors(['producto_id' => 'Este producto no controla existencias.']);
-        }
-
         $tipo = $datos['tipo'];
         $cantidad = (int) $datos['cantidad'];
 
         $cambia = [
-            'ajuste' => true,           // entrada
-            'mercancias' => true,       // entrada
-            'devolucion' => true,       // entrada
-            'ajuste_negativo' => false, // salida
+            'ajuste' => true,
+            'mercancias' => true,
+            'devolucion' => true,
+            'ajuste_negativo' => false,
         ];
         $esEntrada = $cambia[$tipo] ?? true;
 
-        $anterior = $producto->existencias;
-        $nueva = $esEntrada ? $anterior + $cantidad : $anterior - $cantidad;
+        return DB::transaction(function () use ($datos, $tipo, $cantidad, $esEntrada, $auditoria) {
+            $producto = Producto::lockForUpdate()->findOrFail($datos['producto_id']);
 
-        if ($nueva < 0) {
-            return back()->withErrors(['cantidad' => 'El ajuste dejaría existencias negativas.']);
-        }
+            if (!$producto->maneja_existencias) {
+                return back()->withErrors(['producto_id' => 'Este producto no controla existencias.']);
+            }
 
-        DB::transaction(function () use ($producto, $tipo, $cantidad, $nueva, $anterior, $datos): void {
+            $anterior = $producto->existencias;
+            $nueva = $esEntrada ? $anterior + $cantidad : $anterior - $cantidad;
+
+            if ($nueva < 0) {
+                return back()->withErrors(['cantidad' => 'El ajuste dejaría existencias negativas.']);
+            }
+
             $producto->update(['existencias' => $nueva]);
 
             MovimientoInventario::create([
@@ -87,8 +87,8 @@ class ControladorInventario extends Controller
                 'anterior' => $anterior,
                 'nueva' => $nueva,
             ], 'ajuste_manual', $producto->id);
-        });
 
-        return back()->with('success', 'Ajuste de inventario registrado.');
+            return back()->with('success', 'Ajuste de inventario registrado.');
+        });
     }
 }

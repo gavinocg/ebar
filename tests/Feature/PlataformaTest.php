@@ -8,6 +8,7 @@ use App\Models\Negocio;
 use App\Models\Plan;
 use App\Models\Sucursal;
 use App\Models\User;
+use App\Services\ContextoNegocio;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -30,7 +31,9 @@ class PlataformaTest extends TestCase
             'esta_activo' => true,
         ], $atributos));
 
-        Sucursal::create(['negocio_id' => $negocio->id, 'nombre' => 'Principal', 'esta_activa' => true]);
+        app(ContextoNegocio::class)->establecer($negocio->id);
+
+        Sucursal::create(['nombre' => 'Principal', 'esta_activa' => true]);
 
         Membresia::create(array_merge([
             'negocio_id' => $negocio->id,
@@ -52,7 +55,7 @@ class PlataformaTest extends TestCase
 
     public function test_usuario_del_bar_no_puede_gestionar_bares(): void
     {
-        $this->actingAs(User::factory()->create(['rol' => 'cajero']));
+        $this->actingAs(User::factory()->create());
 
         $this->get(route('plataforma.negocios.index'))->assertForbidden();
     }
@@ -80,7 +83,7 @@ class PlataformaTest extends TestCase
         $this->assertSame('Bar San Felipe', $negocio->nombre);
         $this->assertSame('prueba', $negocio->membresia->estado ?? 'no-registrada');
         $this->assertDatabaseHas('sucursales', ['negocio_id' => $negocio->id, 'nombre' => 'Central']);
-        $this->assertDatabaseHas('usuarios', ['correo' => 'dueno@bar.com', 'rol' => 'propietario']);
+        $this->assertDatabaseHas('usuarios', ['correo' => 'dueno@bar.com', 'rol' => null]);
         $this->assertDatabaseHas('membresias_negocio', ['negocio_id' => $negocio->id, 'usuario_id' => User::where('correo', 'dueno@bar.com')->first()->id, 'rol' => 'propietario']);
         $this->assertDatabaseHas('configuraciones_negocio', ['negocio_id' => $negocio->id]);
     }
@@ -125,7 +128,7 @@ class PlataformaTest extends TestCase
         $negocio = $this->crearBarConMembresia();
         $fechaAnterior = $negocio->membresia->fecha_vencimiento;
 
-        $this->get(route('plataforma.negocios.membresia.renovar', $negocio))->assertRedirect();
+        $this->post(route('plataforma.negocios.membresia.renovar', $negocio))->assertRedirect();
 
         $negocio->membresia->refresh();
         $this->assertTrue($negocio->membresia->fecha_vencimiento->greaterThan($fechaAnterior));

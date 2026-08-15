@@ -27,6 +27,7 @@
                             <i class="bi bi-cart"></i> Punto de Venta
                         </a>
                     </li>
+                    @if (auth()->user()?->esAdminDelNegocioActual())
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('productos.index') }}">
                             <i class="bi bi-box"></i> Productos
@@ -62,11 +63,15 @@
                             <i class="bi bi-people"></i> Cajeros
                         </a>
                     </li>
+                    @endif
                     @if (auth()->check() && auth()->user()->rol !== 'super_admin')
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ route('negocio.cambiar') }}">
-                                <i class="bi bi-arrow-left-right"></i> Cambiar de bar
-                            </a>
+                            <form method="POST" action="{{ route('negocio.cambiar') }}" class="d-inline">
+                                @csrf
+                                <button type="submit" class="nav-link btn btn-link">
+                                    <i class="bi bi-arrow-left-right"></i> Cambiar de bar
+                                </button>
+                            </form>
                         </li>
                     @endif
                     <li class="nav-item dropdown">

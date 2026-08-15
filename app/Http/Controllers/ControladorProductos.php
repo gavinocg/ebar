@@ -6,6 +6,7 @@ use App\Models\Producto as Product;
 use App\Models\Categoria as Category;
 use App\Models\Sucursal;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -43,6 +44,7 @@ class ControladorProductos extends Controller
             'distintivo_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'destacado' => 'nullable|boolean',
             'precio' => 'required|numeric|min:0',
+            'descuento' => 'nullable|numeric|min:0|max:100',
             'existencias' => 'required_if:maneja_existencias,1|nullable|integer|min:0',
             'nivel_minimo' => 'nullable|integer|min:0',
             'maneja_existencias' => 'nullable|boolean',
@@ -196,26 +198,28 @@ class ControladorProductos extends Controller
 
         fclose($archivo);
 
-        foreach ($filas as $fila) {
-            $consulta = Product::query();
+        return DB::transaction(function () use ($filas, &$creados, &$actualizados) {
+            foreach ($filas as $fila) {
+                $consulta = Product::query();
 
-            if (!blank($fila['codigo_barras'])) {
-                $consulta->where('codigo_barras', $fila['codigo_barras']);
-            } else {
-                $consulta->where('nombre', $fila['nombre']);
+                if (!blank($fila['codigo_barras'])) {
+                    $consulta->where('codigo_barras', $fila['codigo_barras']);
+                } else {
+                    $consulta->where('nombre', $fila['nombre']);
+                }
+
+                $producto = $consulta->first();
+
+                if ($producto) {
+                    $producto->update(array_filter($fila, fn ($v, $k) => in_array($k, $producto->getFillable(), true) && !blank($v), ARRAY_FILTER_USE_BOTH));
+                    $actualizados++;
+                } else {
+                    Product::create($fila);
+                    $creados++;
+                }
             }
 
-            $producto = $consulta->first();
-
-            if ($producto) {
-                $producto->update($fila);
-                $actualizados++;
-            } else {
-                Product::create($fila);
-                $creados++;
-            }
-        }
-
-        return back()->with('success', "Importación completada: {$creados} creados, {$actualizados} actualizados.");
+            return back()->with('success', "Importación completada: {$creados} creados, {$actualizados} actualizados.");
+        });
     }
 }

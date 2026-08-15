@@ -1,4 +1,4 @@
-@extends('layouts.sidebar')
+@extends('layouts.pos')
 
 @section('title', 'Desbloquear POS')
 

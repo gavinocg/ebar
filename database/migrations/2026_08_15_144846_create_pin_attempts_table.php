@@ -1,0 +1,26 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('pin_intentos', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('usuario_id')->constrained('usuarios')->cascadeOnDelete();
+            $table->integer('intentos')->default(0);
+            $table->timestamp('bloqueado_hasta')->nullable();
+            $table->timestamps();
+
+            $table->unique('usuario_id');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('pin_intentos');
+    }
+};

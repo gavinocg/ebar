@@ -30,7 +30,8 @@ class EstablecerContextoNegocio
                 ->first();
         }
 
-        if (!$membresia && !MembresiaNegocio::where('usuario_id', Auth::id())->exists() && app()->environment('testing')) {
+        // Testing only: allow users with no memberships to pass (used in test helpers)
+        if (app()->environment('testing') && !$membresia && !MembresiaNegocio::where('usuario_id', Auth::id())->exists()) {
             return $next($request);
         }
 

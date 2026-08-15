@@ -54,19 +54,18 @@ class ControladorCajeros extends Controller
             'correo' => ['required', 'email', 'unique:usuarios,correo'],
             'clave' => 'required|string|min:8',
             'pin' => ['required', 'digits:4'],
-            'sucursal_id' => 'required|integer|exists:sucursales,id',
+            'sucursal_id' => ['required', 'integer', \Illuminate\Validation\Rule::exists('sucursales', 'id')->where('negocio_id', $negocioId)],
             'cuadre_activo' => 'nullable|boolean',
             'aprobacion_activa' => 'nullable|boolean',
         ]);
 
-        $usuario = User::create([
-            'nombre' => $datos['nombre'],
-            'correo' => $datos['correo'],
-            'password' => $datos['clave'],
-            'pin' => $datos['pin'],
-            'rol' => 'cajero',
-            'esta_activo' => true,
-        ]);
+        $usuario = new User();
+        $usuario->nombre = $datos['nombre'];
+        $usuario->correo = $datos['correo'];
+        $usuario->password = $datos['clave'];
+        $usuario->pin = $datos['pin'];
+        $usuario->esta_activo = true;
+        $usuario->save();
 
         MembresiaNegocio::create([
             'negocio_id' => $negocioId,
@@ -90,7 +89,7 @@ class ControladorCajeros extends Controller
             'nombre' => 'required|string|max:255',
             'correo' => ['required', 'email', Rule::unique('usuarios', 'correo')->ignore($cajero->id)],
             'pin' => 'nullable|string|digits:4',
-            'sucursal_id' => 'required|integer|exists:sucursales,id',
+            'sucursal_id' => ['required', 'integer', \Illuminate\Validation\Rule::exists('sucursales', 'id')->where('negocio_id', $negocioId)],
             'cuadre_activo' => 'nullable|boolean',
             'aprobacion_activa' => 'nullable|boolean',
         ]);
@@ -124,8 +123,6 @@ class ControladorCajeros extends Controller
             ->where('usuario_id', $cajero->id)
             ->where('rol', 'cajero')
             ->update(['esta_activa' => false]);
-
-        $cajero->update(['esta_activo' => false]);
 
         return redirect()->route('cajeros.index')->with('success', 'Cajero desactivado.');
     }

@@ -4,12 +4,15 @@ namespace App\Models;
 
 use App\Models\Concerns\PerteneceANegocio;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TurnoCaja extends Model
 {
     use PerteneceANegocio;
+    use SoftDeletes;
+
     protected $table = 'turnos_caja';
 
     protected $fillable = [
@@ -24,6 +27,8 @@ class TurnoCaja extends Model
         'diferencia',
         'billetes',
         'monedas',
+        'aprobado_por',
+        'aprobado_en',
         'estado',
         'notas',
     ];
@@ -57,5 +62,15 @@ class TurnoCaja extends Model
     public function movimientosEfectivo(): HasMany
     {
         return $this->hasMany(MovimientoEfectivo::class, 'turno_caja_id');
+    }
+
+    public function sucursal(): BelongsTo
+    {
+        return $this->belongsTo(Sucursal::class, 'sucursal_id');
+    }
+
+    public function aprobadoPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'aprobado_por');
     }
 }

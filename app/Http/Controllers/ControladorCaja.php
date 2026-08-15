@@ -21,39 +21,47 @@ class ControladorCaja extends Controller
     public function abrir(Request $request): RedirectResponse
     {
         $datos = $request->validate([
-            'fondo_inicial' => 'required|numeric|min:0|max:99999999.99',
+            'fondo_inicial' => 'required|numeric|min:0|max:9999999999.99',
             'caja_id' => 'nullable|integer|exists:cajas,id',
         ]);
-
-        if ($this->turnoAbierto()) {
-            return back()->withErrors(['caja' => 'Ya tienes un turno de caja abierto.']);
-        }
 
         $caja = Caja::where('esta_activa', true)
             ->when($request->filled('caja_id'), fn ($q) => $q->where('id', $datos['caja_id']))
             ->orderBy('id')
             ->firstOrFail();
 
-        TurnoCaja::create([
-            'sucursal_id' => $caja->sucursal_id,
-            'caja_id' => $caja->id,
-            'usuario_id' => Auth::id(),
-            'fondo_inicial' => $datos['fondo_inicial'],
-            'abierto_en' => now(),
-            'estado' => 'abierta',
-        ]);
+        return DB::transaction(function () use ($datos, $caja) {
+            $turnoExistente = TurnoCaja::where('usuario_id', Auth::id())
+                ->where('estado', 'abierta')
+                ->lockForUpdate()
+                ->first();
 
-        $turno = $this->turnoAbierto();
-        MovimientoEfectivo::create([
-            'caja_id' => $caja->id,
-            'turno_caja_id' => $turno->id,
-            'usuario_id' => Auth::id(),
-            'tipo' => 'fondo_inicial',
-            'monto' => $datos['fondo_inicial'],
-            'motivo' => 'Apertura de caja',
-        ]);
+            if ($turnoExistente) {
+                return back()->withErrors(['caja' => 'Ya tienes un turno de caja abierto.']);
+            }
 
-        return back()->with('success', 'Turno de caja abierto correctamente.');
+            $turno = TurnoCaja::create([
+                'sucursal_id' => $caja->sucursal_id,
+                'caja_id' => $caja->id,
+                'usuario_id' => Auth::id(),
+                'fondo_inicial' => $datos['fondo_inicial'],
+                'abierto_en' => now(),
+                'estado' => 'abierta',
+            ]);
+
+            MovimientoEfectivo::create([
+                'negocio_id' => $turno->negocio_id,
+                'sucursal_id' => $caja->sucursal_id,
+                'caja_id' => $caja->id,
+                'turno_caja_id' => $turno->id,
+                'usuario_id' => Auth::id(),
+                'tipo' => 'fondo_inicial',
+                'monto' => $datos['fondo_inicial'],
+                'motivo' => 'Apertura de caja',
+            ]);
+
+            return back()->with('success', 'Turno de caja abierto correctamente.');
+        });
     }
 
     public function cerrarForm()
@@ -120,60 +128,62 @@ class ControladorCaja extends Controller
             ]);
         }
 
-        if ($esFinal && $cuadreActivo) {
-            $totalBilletes = 0;
-            foreach ($datos['billetes'] as $denominacion => $cantidad) {
-                $totalBilletes += ((float) $denominacion) * (int) $cantidad;
+        return DB::transaction(function () use ($turno, $esFinal, $cuadreActivo, $aprobacionActiva, $datos, $auditoria) {
+            if ($esFinal && $cuadreActivo) {
+                $totalBilletes = 0;
+                foreach ($datos['billetes'] as $denominacion => $cantidad) {
+                    $totalBilletes += ((float) $denominacion) * (int) $cantidad;
+                }
+
+                $totalMonedas = 0;
+                foreach ($datos['monedas'] as $denominacion => $cantidad) {
+                    $totalMonedas += ((float) $denominacion) * (int) $cantidad;
+                }
+
+                $contado = round($totalBilletes + $totalMonedas, 2);
+            } else {
+                $contado = null;
             }
 
-            $totalMonedas = 0;
-            foreach ($datos['monedas'] as $denominacion => $cantidad) {
-                $totalMonedas += ((float) $denominacion) * (int) $cantidad;
+        $esperado = round((float) $turno->movimientosEfectivo()->where('tipo', '!=', 'transferencia')->sum('monto'), 2);
+
+            if ($esFinal) {
+                $estado = $aprobacionActiva ? 'pendiente_aprobacion' : 'aprobada';
+            } else {
+                $estado = 'cerrada';
             }
 
-            $contado = round($totalBilletes + $totalMonedas, 2);
-        } else {
-            $contado = null;
-        }
+            $turno->update([
+                'cerrado_en' => $esFinal ? now() : null,
+                'efectivo_esperado' => $esperado,
+                'efectivo_contado' => $contado,
+                'diferencia' => $contado !== null ? round($contado - $esperado, 2) : null,
+                'billetes' => $esFinal && $cuadreActivo ? $datos['billetes'] : null,
+                'monedas' => $esFinal && $cuadreActivo ? $datos['monedas'] : null,
+                'notas' => $datos['notas'] ?? null,
+                'estado' => $estado,
+            ]);
 
-        $esperado = round((float) $turno->movimientosEfectivo()->sum('monto'), 2);
+            $tipoCierre = $esFinal ? 'final' : 'temporal';
 
-        if ($esFinal) {
-            $estado = $aprobacionActiva ? 'pendiente_aprobacion' : 'aprobada';
-        } else {
-            $estado = 'cerrada';
-        }
+            $auditoria->registrar('caja', 'cierre_turno', "Cierre {$tipoCierre} de turno #" . $turno->id, [
+                'caja_id' => $turno->caja_id,
+                'esperado' => $esperado,
+                'contado' => $contado,
+                'es_final' => $esFinal,
+                'estado' => $estado,
+            ], TurnoCaja::class, $turno->id);
 
-        $turno->update([
-            'cerrado_en' => $esFinal ? now() : null,
-            'efectivo_esperado' => $esperado,
-            'efectivo_contado' => $contado,
-            'diferencia' => $contado !== null ? round($contado - $esperado, 2) : null,
-            'billetes' => $esFinal && $cuadreActivo ? $datos['billetes'] : null,
-            'monedas' => $esFinal && $cuadreActivo ? $datos['monedas'] : null,
-            'notas' => $datos['notas'] ?? null,
-            'estado' => $estado,
-        ]);
+            if ($esFinal && $aprobacionActiva) {
+                $mensaje = 'Cierre registrado. Pendiente de visto bueno del administrador.';
+            } elseif ($esFinal) {
+                $mensaje = 'Cierre final registrado y confirmado.';
+            } else {
+                $mensaje = 'Cierre temporal registrado. Puedes reabrir si lo necesitas.';
+            }
 
-        $tipoCierre = $esFinal ? 'final' : 'temporal';
-
-        $auditoria->registrar('caja', 'cierre_turno', "Cierre {$tipoCierre} de turno #" . $turno->id, [
-            'caja_id' => $turno->caja_id,
-            'esperado' => $esperado,
-            'contado' => $contado,
-            'es_final' => $esFinal,
-            'estado' => $estado,
-        ], TurnoCaja::class, $turno->id);
-
-        if ($esFinal && $aprobacionActiva) {
-            $mensaje = 'Cierre registrado. Pendiente de visto bueno del administrador.';
-        } elseif ($esFinal) {
-            $mensaje = 'Cierre final registrado y confirmado.';
-        } else {
-            $mensaje = 'Cierre temporal registrado. Puedes reabrir si lo necesitas.';
-        }
-
-        return redirect()->route('punto_venta.inicio')->with('success', $mensaje);
+            return redirect()->route('punto_venta.inicio')->with('success', $mensaje);
+        });
     }
 
     public function cuadresPendientes(): View
@@ -220,6 +230,10 @@ class ControladorCaja extends Controller
         $this->authorize('administrar', Caja::class);
         $negocioId = app(ContextoNegocio::class)->id();
 
+        $request->validate([
+            'motivo' => 'required|string|max:500',
+        ]);
+
         abort_unless($turnoCaja->negocio_id === $negocioId, 404);
         abort_unless($turnoCaja->estado === 'pendiente_aprobacion', 422, 'Este cuadre no está pendiente.');
 
@@ -242,6 +256,10 @@ class ControladorCaja extends Controller
     public function solicitarModificacion(TurnoCaja $turnoCaja, Request $request): RedirectResponse
     {
         $negocioId = app(ContextoNegocio::class)->id();
+
+        $request->validate([
+            'motivo' => 'required|string|max:500',
+        ]);
 
         abort_unless($turnoCaja->negocio_id === $negocioId, 404);
         abort_unless(in_array($turnoCaja->estado, ['aprobada', 'cerrada'], true), 422, 'Este cuadre no puede modificarse.');
@@ -283,7 +301,7 @@ class ControladorCaja extends Controller
     {
         $datos = $request->validate([
             'tipo' => 'required|in:entrada,retiro,gasto',
-            'monto' => 'required|numeric|min:0.01|max:99999999.99',
+            'monto' => 'required|numeric|min:0.01|max:9999999999.99',
             'motivo' => 'required|string|max:255',
         ]);
         $turno = $this->turnoAbierto();
@@ -297,6 +315,8 @@ class ControladorCaja extends Controller
             : abs((float) $datos['monto']);
 
         MovimientoEfectivo::create([
+            'negocio_id' => $turno->negocio_id,
+            'sucursal_id' => $turno->sucursal_id,
             'caja_id' => $turno->caja_id,
             'turno_caja_id' => $turno->id,
             'usuario_id' => Auth::id(),
@@ -311,7 +331,9 @@ class ControladorCaja extends Controller
     public function reabrir(TurnoCaja $turnoCaja, RegistradorAuditoria $auditoria): RedirectResponse
     {
         $this->authorize('administrar', Caja::class);
+        $negocioId = app(ContextoNegocio::class)->id();
 
+        abort_unless($turnoCaja->negocio_id === $negocioId, 404);
         abort_unless($turnoCaja->estado === 'cerrada', 422, 'Solo se pueden reabrir turnos cerrados.');
 
         $detalles = [
@@ -370,6 +392,9 @@ class ControladorCaja extends Controller
     public function turnoDetalle(TurnoCaja $turnoCaja)
     {
         $this->authorize('administrar', Caja::class);
+
+        $negocioId = app(ContextoNegocio::class)->id();
+        abort_unless($turnoCaja->negocio_id === $negocioId, 404);
 
         $turnoCaja->load('usuario', 'caja.sucursal', 'ventas', 'movimientosEfectivo');
 

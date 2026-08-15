@@ -17,11 +17,11 @@ class ControladorCajas extends Controller
         $negocioId = app(ContextoNegocio::class)->id();
         $negocio = Negocio::with('membresia.plan')->findOrFail($negocioId);
 
-        $cajas = Caja::with('sucursal')->orderByDesc('esta_activa')->orderBy('nombre')->get();
+        $cajas = Caja::with('sucursal')->where('negocio_id', $negocioId)->orderByDesc('esta_activa')->orderBy('nombre')->get();
 
         return view('cajas.index', [
             'cajas' => $cajas,
-            'sucursales' => Sucursal::where('esta_activa', true)->orderBy('nombre')->get(),
+            'sucursales' => Sucursal::where('negocio_id', $negocioId)->where('esta_activa', true)->orderBy('nombre')->get(),
             'limiteCajas' => $negocio->membresia?->plan?->limite_cajas ?? 0,
             'limiteAlcanzado' => $cajas->where('esta_activa', true)->count() >= ($negocio->membresia?->plan?->limite_cajas ?? 0),
         ]);
@@ -41,10 +41,11 @@ class ControladorCajas extends Controller
 
         $datos = $request->validate([
             'nombre' => 'required|string|max:255',
-            'sucursal_id' => 'nullable|integer|exists:sucursales,id',
+            'sucursal_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('sucursales', 'id')->where('negocio_id', $negocioId)],
         ]);
 
         Caja::create([
+            'negocio_id' => $negocioId,
             'nombre' => $datos['nombre'],
             'sucursal_id' => $datos['sucursal_id'] ?? null,
             'esta_activa' => true,

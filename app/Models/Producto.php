@@ -4,12 +4,16 @@ namespace App\Models;
 
 use App\Models\Concerns\PerteneceANegocio;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Producto extends Model
 {
     use PerteneceANegocio;
+    use SoftDeletes;
+
     protected $table = 'productos';
     protected $fillable = [
         'sucursal_id',
@@ -51,5 +55,15 @@ class Producto extends Model
     public function movimientosInventario(): HasMany
     {
         return $this->hasMany(MovimientoInventario::class, 'producto_id');
+    }
+
+    public function gruposModificadores(): BelongsToMany
+    {
+        return $this->belongsToMany(GrupoModificador::class, 'producto_grupo_modificador');
+    }
+
+    public function variantes(): HasMany
+    {
+        return $this->hasMany(ProductoVariante::class, 'producto_id');
     }
 }

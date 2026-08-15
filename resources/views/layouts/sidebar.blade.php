@@ -252,6 +252,36 @@
                 </a>
             </li>
             <li>
+                <a href="{{ route('reportes.productos') }}" class="{{ request()->routeIs('reportes.productos') ? 'active' : '' }}">
+                    <i class="bi bi-trophy"></i>
+                    <span>Productos</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('reportes.categorias') }}" class="{{ request()->routeIs('reportes.categorias') ? 'active' : '' }}">
+                    <i class="bi bi-tags"></i>
+                    <span>Categorias</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('reportes.metodos_pago') }}" class="{{ request()->routeIs('reportes.metodos_pago') ? 'active' : '' }}">
+                    <i class="bi bi-credit-card"></i>
+                    <span>Metodos de Pago</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('reportes.tendencias') }}" class="{{ request()->routeIs('reportes.tendencias') ? 'active' : '' }}">
+                    <i class="bi bi-graph-up-arrow"></i>
+                    <span>Tendencias</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('reportes.sucursal') }}" class="{{ request()->routeIs('reportes.sucursal') ? 'active' : '' }}">
+                    <i class="bi bi-building"></i>
+                    <span>Sucursal/Cajero</span>
+                </a>
+            </li>
+            <li>
                 <a href="{{ route('reportes.inventario') }}" class="{{ request()->routeIs('reportes.inventario') ? 'active' : '' }}">
                     <i class="bi bi-bar-chart"></i>
                     <span>Inventario</span>
@@ -260,7 +290,6 @@
             @endif
             
             <li class="menu-label">Configuración</li>
-            @if(auth()->user()?->esPropietario())
             @if(auth()->user()?->esPropietario())
             <li>
                 <a href="{{ route('cuadres.pendientes') }}" class="{{ request()->routeIs('cuadres.*') ? 'active' : '' }}">
@@ -293,7 +322,6 @@
                     <span>Cajas</span>
                 </a>
             </li>
-            @endif
             <li>
                 <a href="{{ route('caja.reporte') }}" class="{{ request()->routeIs('caja.reporte', 'caja.turno-detalle') ? 'active' : '' }}">
                     <i class="bi bi-cash-stack"></i>

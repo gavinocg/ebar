@@ -6,6 +6,7 @@ use App\Models\ConteoInventario;
 use App\Models\DetalleConteo;
 use App\Models\MovimientoInventario;
 use App\Models\Producto;
+use App\Services\ContextoNegocio;
 use App\Services\RegistradorAuditoria;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -37,41 +38,49 @@ class ControladorConteos extends Controller
             'productos.*.existencias_reales' => 'required|integer|min:0|max:1000000',
         ]);
 
-        $conteo = ConteoInventario::create([
-            'usuario_id' => auth()->id(),
-            'numero' => 'CNT-' . str_pad((string) (ConteoInventario::count() + 1), 5, '0', STR_PAD_LEFT),
-            'fecha' => now()->toDateString(),
-            'estado' => 'borrador',
-            'notas' => $datos['notas'] ?? null,
-        ]);
-
-        foreach ($datos['productos'] as $item) {
-            $producto = Producto::find($item['producto_id']);
-            $sistema = (int) $producto->existencias;
-            $reales = (int) $item['existencias_reales'];
-
-            $conteo->detalles()->create([
-                'producto_id' => $producto->id,
-                'existencias_sistema' => $sistema,
-                'existencias_reales' => $reales,
-                'diferencia' => $reales - $sistema,
+        return DB::transaction(function () use ($datos, $auditoria) {
+            $conteo = ConteoInventario::create([
+                'usuario_id' => auth()->id(),
+                'numero' => 'CNT-' . str_pad((string) (ConteoInventario::max('id') + 1), 5, '0', STR_PAD_LEFT),
+                'fecha' => now()->toDateString(),
+                'estado' => 'borrador',
+                'notas' => $datos['notas'] ?? null,
             ]);
-        }
 
-        $conteo->update(['estado' => 'abierto']);
+            foreach ($datos['productos'] as $item) {
+                $producto = Producto::find($item['producto_id']);
+                $sistema = (int) $producto->existencias;
+                $reales = (int) $item['existencias_reales'];
 
-        $auditoria->registrar('inventario', 'crear_conteo', 'Conteo ' . $conteo->numero, [
-            'detalles' => $conteo->detalles()->count(),
-        ], ConteoInventario::class, $conteo->id);
+                $conteo->detalles()->create([
+                    'producto_id' => $producto->id,
+                    'existencias_sistema' => $sistema,
+                    'existencias_reales' => $reales,
+                    'diferencia' => $reales - $sistema,
+                ]);
+            }
 
-        return redirect()->route('conteos.index')->with('success', 'Conteo creado. Aplica los ajustes para actualizar existencias.');
+            $conteo->update(['estado' => 'abierto']);
+
+            $auditoria->registrar('inventario', 'crear_conteo', 'Conteo ' . $conteo->numero, [
+                'detalles' => $conteo->detalles()->count(),
+            ], ConteoInventario::class, $conteo->id);
+
+            return redirect()->route('conteos.index')->with('success', 'Conteo creado. Aplica los ajustes para actualizar existencias.');
+        });
     }
 
     public function aplicar(ConteoInventario $conteo, RegistradorAuditoria $auditoria): RedirectResponse
     {
         abort_if($conteo->estado === 'aplicado', 422, 'Este conteo ya fue aplicado.');
 
+        $negocioId = app(ContextoNegocio::class)->id();
+        abort_unless($conteo->negocio_id === $negocioId, 404);
+
         DB::transaction(function () use ($conteo, $auditoria) {
+            $productoIds = $conteo->detalles->pluck('producto_id')->filter()->values()->all();
+            $productosLock = Producto::whereIn('id', $productoIds)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+
             foreach ($conteo->detalles as $detalle) {
                 $diferencia = $detalle->diferencia;
 
@@ -79,13 +88,18 @@ class ControladorConteos extends Controller
                     continue;
                 }
 
-                $anterior = $detalle->producto->existencias;
+                $producto = $productosLock->get($detalle->producto_id);
+                if (!$producto) {
+                    continue;
+                }
+
+                $anterior = $producto->existencias;
                 $nueva = $anterior + $diferencia;
 
-                $detalle->producto->update(['existencias' => $nueva]);
+                $producto->update(['existencias' => $nueva]);
 
                 MovimientoInventario::create([
-                    'producto_id' => $detalle->producto_id,
+                    'producto_id' => $producto->id,
                     'usuario_id' => auth()->id(),
                     'tipo' => 'ajuste',
                     'cantidad' => $diferencia,

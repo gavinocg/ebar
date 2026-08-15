@@ -38,6 +38,8 @@
                               data-name="{{ $product->nombre }}"
                               data-price="{{ $product->precio }}"
                               data-stock="{{ $product->maneja_existencias ? $product->existencias : 999999 }}"
+                              data-variantes="{{ htmlspecialchars(json_encode($product->variantes->map(fn($v) => ['id' => $v->id, 'nombre' => $v->nombre, 'precio' => (float)$v->precio, 'stock' => $v->stock]))) }}"
+                              data-grupos="{{ htmlspecialchars(json_encode($product->gruposModificadores->map(fn($g) => ['id' => $g->id, 'nombre' => $g->nombre, 'requerido' => $g->requerido, 'min' => $g->min_seleccion, 'max' => $g->max_seleccion, 'modificadores' => $g->modificadores->map(fn($m) => ['id' => $m->id, 'nombre' => $m->nombre, 'precio' => (float)$m->precio_extra])]))) }}"
                               style="background-color: {{ $product->color ?: '#ffffff' }}">
                             @if($product->distintivo)
                                 <span class="product-badge" style="background-color: {{ $product->distintivo_color ?: '#16a34a' }}">{{ $product->distintivo }}</span>
@@ -68,6 +70,12 @@
         <div class="cart-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="bi bi-cart"></i> Ticket</h5>
             <div>
+                <button class="btn btn-sm btn-outline-warning" id="ticketsAbiertosBtn" title="Tickets Abiertos" onclick="abrirModalTickets()">
+                    <i class="bi bi-journal-text"></i> <span id="ticketsCount" style="display:none">0</span>
+                </button>
+                <button class="btn btn-sm btn-outline-info" id="guardarTicketBtn" title="Guardar Ticket" onclick="guardarTicket()" disabled>
+                    <i class="bi bi-save"></i>
+                </button>
                 <form method="POST" action="{{ route('punto_venta.bloquear') }}" class="d-inline" title="Bloquear POS">
                     @csrf
                     <button type="submit" class="btn btn-sm btn-outline-light">
@@ -196,6 +204,35 @@
     </div>
 </div>
 
+<div class="modal fade" id="ticketsAbiertosModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title"><i class="bi bi-journal-text"></i> Tickets Abiertos</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                <div id="ticketsAbiertosLista"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="productOptionsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-gear"></i> Opciones del producto</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="productOptionsBody"></div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -205,6 +242,8 @@ let currentTotal = 0;
 let lastSaleHtml = null;
 let bluetoothDevice = null;
 let bluetoothCharacteristic = null;
+const cartSaveUrl = '{{ route("punto_venta.guardar_carrito") }}';
+const cartLoadUrl = '{{ route("punto_venta.cargar_carrito") }}';
 const bluetoothServiceUuid = '000018f0-0000-1000-8000-00805f9b34fb';
 const bluetoothCharacteristicUuid = '00002af1-0000-1000-8000-00805f9b34fb';
 const printerConfig = {!! $printer ? json_encode([
@@ -258,19 +297,132 @@ document.querySelectorAll('.product-card').forEach(card => {
         const name = this.dataset.name;
         const price = parseFloat(this.dataset.price);
         const stock = parseInt(this.dataset.stock);
+        const variantes = JSON.parse(this.dataset.variantes || '[]');
+        const grupos = JSON.parse(this.dataset.grupos || '[]');
         
-        const existing = cart.find(item => item.id === id);
-        if (existing) {
-            if (existing.qty >= stock) {
-                alert('No hay más stock disponible');
-                return;
-            }
-            existing.qty++;
-        } else {
-            cart.push({ id, name, price, qty: 1, stock });
+        if (variantes.length > 0 || grupos.length > 0) {
+            showProductOptions(id, name, price, stock, variantes, grupos);
+            return;
         }
         
-        renderCart();
+        addToCart(id, name, price, stock);
+    });
+});
+
+function addToCart(id, name, price, stock, varianteId = null, varianteNombre = null, modificadores = []) {
+    const cartKey = id + (varianteId ? '-' + varianteId : '');
+    const existing = cart.find(item => item.cartKey === cartKey);
+    const precioConModificadores = modificadores.reduce((sum, m) => sum + m.precio_extra, 0);
+    
+    if (existing) {
+        if (existing.qty >= stock) {
+            alert('No hay más stock disponible');
+            return;
+        }
+        existing.qty++;
+    } else {
+        cart.push({
+            id,
+            cartKey,
+            name: name + (varianteNombre ? ' - ' + varianteNombre : ''),
+            price: price + precioConModificadores,
+            qty: 1,
+            stock,
+            variante_id: varianteId,
+            modificadores,
+        });
+    }
+    
+    renderCart();
+    syncCart();
+}
+
+function showProductOptions(id, name, price, stock, variantes, grupos) {
+    const modal = document.getElementById('productOptionsModal');
+    const body = document.getElementById('productOptionsBody');
+    let html = '';
+    
+    if (variantes.length > 0) {
+        html += '<div class="mb-3"><label class="form-label fw-bold">Variante:</label><select class="form-select" id="optVariante">';
+        html += '<option value="">Sin variante</option>';
+        variantes.forEach(v => {
+            const stockInfo = v.stock !== null ? ` (Stock: ${v.stock})` : '';
+            html += `<option value="${v.id}" data-precio="${v.precio}" data-stock="${v.stock ?? 999999}">${v.nombre} - $${parseFloat(v.precio).toFixed(2)}${stockInfo}</option>`;
+        });
+        html += '</select></div>';
+    }
+    
+    if (grupos.length > 0) {
+        grupos.forEach(grupo => {
+            html += `<div class="mb-3"><label class="form-label fw-bold">${grupo.nombre}${grupo.requerido ? ' *' : ''}</label><div class="list-group list-group-flush">`;
+            grupo.modificadores.forEach(m => {
+                html += `<label class="list-group-item d-flex justify-content-between align-items-center">
+                    <div><input type="checkbox" class="form-check-input me-2" name="grupo_${grupo.id}" value="${m.id}" data-precio="${m.precio}" data-grupo-id="${grupo.id}" data-min="${grupo.min}" data-max="${grupo.max}" ${grupo.requerido && grupo.modificadores.length === 1 ? 'checked disabled' : ''}> ${m.nombre}</div>
+                    <span class="text-muted">+$${parseFloat(m.precio).toFixed(2)}</span>
+                </label>`;
+            });
+            html += '</div></div>';
+        });
+    }
+    
+    html += '<div class="d-flex gap-2 mt-3"><button class="btn btn-success flex-fill" onclick="confirmProductOptions(\'' + id + '\', \'' + name.replace(/'/g, "\\'") + '\', ' + price + ', ' + stock + ')">Agregar</button><button class="btn btn-outline-secondary" onclick="closeProductOptions()">Cancelar</button></div>';
+    
+    body.innerHTML = html;
+    modal.dataset.productId = id;
+    modal.dataset.productName = name;
+    modal.dataset.productPrice = price;
+    modal.dataset.productStock = stock;
+    new bootstrap.Modal(modal).show();
+}
+
+function confirmProductOptions(id, name, price, stock) {
+    const varianteSelect = document.getElementById('optVariante');
+    let varianteId = null;
+    let varianteNombre = null;
+    let selectedPrice = price;
+    let selectedStock = stock;
+    
+    if (varianteSelect && varianteSelect.value) {
+        varianteId = parseInt(varianteSelect.value);
+        const opt = varianteSelect.options[varianteSelect.selectedIndex];
+        varianteNombre = opt.text.split(' - ')[0];
+        selectedPrice = parseFloat(opt.dataset.precio);
+        selectedStock = parseInt(opt.dataset.stock);
+    }
+    
+    const modificadores = [];
+    document.querySelectorAll('#productOptionsBody input[type="checkbox"]:checked').forEach(cb => {
+        if (cb.dataset.grupoId) {
+            modificadores.push({
+                modificador_id: parseInt(cb.value),
+                precio_extra: parseFloat(cb.dataset.precio),
+            });
+        }
+    });
+    
+    const grupos = JSON.parse(document.querySelector(`.product-card[data-id="${id}"]`).dataset.grupos || '[]');
+    grupos.forEach(grupo => {
+        if (grupo.requerido) {
+            const checked = modificadores.filter(m => {
+                const cb = document.querySelector(`input[value="${m.modificador_id}"][data-grupo-id="${grupo.id}"]`);
+                return cb;
+            });
+            if (checked.length < grupo.min) {
+                alert(`Debes seleccionar al menos ${grupo.min} opción(es) de ${grupo.nombre}`);
+                return;
+            }
+        }
+    });
+    
+    closeProductOptions();
+    addToCart(id, name, selectedPrice, selectedStock, varianteId, varianteNombre, modificadores);
+}
+
+function closeProductOptions() {
+    const modal = document.getElementById('productOptionsModal');
+    bootstrap.Modal.getInstance(modal)?.hide();
+}
+        syncCart();
     });
 });
 
@@ -294,6 +446,7 @@ function renderCart() {
     if (cart.length === 0) {
         container.innerHTML = '<div class="empty-cart"><i class="bi bi-cart-x"></i><p>Carrito vacío</p></div>';
         document.getElementById('checkoutBtn').disabled = true;
+        document.getElementById('guardarTicketBtn').disabled = true;
         updateTotals();
         return;
     }
@@ -323,6 +476,7 @@ function renderCart() {
     
     container.innerHTML = html;
     document.getElementById('checkoutBtn').disabled = false;
+    document.getElementById('guardarTicketBtn').disabled = false;
     updateTotals();
 }
 
@@ -340,11 +494,13 @@ function changeQty(index, delta) {
     }
     
     renderCart();
+    syncCart();
 }
 
 function removeItem(index) {
     cart.splice(index, 1);
     renderCart();
+    syncCart();
 }
 
 function clearCart() {
@@ -352,6 +508,33 @@ function clearCart() {
     if (confirm('¿Vaciar el carrito?')) {
         cart = [];
         renderCart();
+        syncCart();
+    }
+}
+
+async function syncCart() {
+    try {
+        await fetch(cartSaveUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' },
+            body: JSON.stringify({ carrito: cart }),
+        });
+    } catch (e) {
+        console.warn('No se pudo sincronizar carrito:', e);
+    }
+}
+
+async function loadCartFromServer() {
+    if (cart.length > 0) return;
+    try {
+        const res = await fetch(cartLoadUrl, { headers: { 'Accept': 'application/json' } });
+        const data = await res.json();
+        if (data.carrito && data.carrito.length > 0) {
+            cart = data.carrito;
+            renderCart();
+        }
+    } catch (e) {
+        console.warn('No se pudo cargar carrito:', e);
     }
 }
 
@@ -519,7 +702,7 @@ async function processSale() {
     }
     
     const btn = document.querySelector('#checkoutModal button[onclick="processSale()"]');
-    const idempotencyKey = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+    const idempotencyKey = crypto.randomUUID ? crypto.randomUUID() : ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
     btn.disabled = true;
     btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Procesando...';
     
@@ -533,7 +716,12 @@ async function processSale() {
                 'X-Requested-With': 'XMLHttpRequest'
             },
             body: JSON.stringify({
-                items: cart.map(item => ({ producto_id: item.id, cantidad: item.qty })),
+                items: cart.map(item => ({
+                    producto_id: item.id,
+                    cantidad: item.qty,
+                    variante_id: item.variante_id || null,
+                    modificadores: item.modificadores || [],
+                })),
                 metodo_pago: document.getElementById('paymentMethod').value,
                 pagado: paid.toFixed(2),
                 notas: '',
@@ -566,6 +754,7 @@ async function processSale() {
                 alert('Venta registrada, pero no hay una impresora seleccionada por defecto.');
                 cart = [];
                 renderCart();
+                syncCart();
                 return;
             }
 
@@ -582,6 +771,7 @@ async function processSale() {
             alert('Venta registrada: ' + data.sale.numero_comprobante);
             cart = [];
             renderCart();
+            syncCart();
         } else {
             throw new Error(data.message || 'No se pudo registrar la venta.');
         }
@@ -701,5 +891,169 @@ function printTicketHtml(htmlContent) {
 function toggleCart() {
     document.getElementById('cartPanel').classList.toggle('show');
 }
+
+let ticketsAbiertos = [];
+
+async function cargarTicketsAbiertos() {
+    try {
+        const response = await fetch('{{ route("tickets_abiertos.index") }}', {
+            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await response.json();
+        ticketsAbiertos = data;
+        const badge = document.getElementById('ticketsCount');
+        if (ticketsAbiertos.length > 0) {
+            badge.textContent = ticketsAbiertos.length;
+            badge.style.display = 'inline';
+        } else {
+            badge.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error cargando tickets:', error);
+    }
+}
+
+function abrirModalTickets() {
+    renderTicketsAbiertos();
+    const modal = new bootstrap.Modal(document.getElementById('ticketsAbiertosModal'));
+    modal.show();
+}
+
+function renderTicketsAbiertos() {
+    const container = document.getElementById('ticketsAbiertosLista');
+    if (ticketsAbiertos.length === 0) {
+        container.innerHTML = '<div class="text-center text-muted py-4"><i class="bi bi-journal-x" style="font-size:48px"></i><p class="mt-2">No hay tickets abiertos</p></div>';
+        return;
+    }
+
+    let html = '';
+    ticketsAbiertos.forEach(ticket => {
+        const total = ticket.detalles.reduce((sum, d) => sum + parseFloat(d.subtotal), 0);
+        const itemCount = ticket.detalles.reduce((sum, d) => sum + d.cantidad, 0);
+        html += `
+            <div class="list-group-item list-group-item-action">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1">${ticket.nombre || 'Ticket #' + ticket.id}</h6>
+                        <small class="text-muted">${ticket.detalles.length} productos, ${itemCount} unidades</small>
+                        ${ticket.descripcion ? '<br><small class="text-muted"><i class="bi bi-chat-dots"></i> ' + ticket.descripcion + '</small>' : ''}
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-bold text-success">$${total.toFixed(2)}</div>
+                        <div class="btn-group btn-group-sm mt-1">
+                            <button class="btn btn-outline-primary" onclick="restaurarTicket(${ticket.id})" title="Restaurar">
+                                <i class="bi bi-arrow-return-left"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="eliminarTicket(${ticket.id})" title="Eliminar">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+async function guardarTicket() {
+    if (cart.length === 0) return;
+
+    const nombre = prompt('Nombre del ticket (opcional):', '');
+
+    const items = cart.map(item => ({
+        producto_id: item.id,
+        producto_variante_id: item.variante_id || null,
+        nombre_producto: item.name,
+        cantidad: item.qty,
+        precio: item.price,
+        descuento: 0,
+        modificadores: item.modificadores || [],
+    }));
+
+    try {
+        const response = await fetch('{{ route("tickets_abiertos.store") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ nombre: nombre || null, items })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            cart = [];
+            renderCart();
+            syncCart();
+            cargarTicketsAbiertos();
+            alert('Ticket guardado correctamente');
+        } else {
+            throw new Error(data.message || 'No se pudo guardar el ticket');
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+async function restaurarTicket(ticketId) {
+    try {
+        const response = await fetch(`/tickets-abiertos/${ticketId}`, {
+            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const ticket = await response.json();
+
+        cart = ticket.detalles.map(d => ({
+            id: d.producto_id,
+            cartKey: d.producto_id + (d.producto_variante_id ? '-' + d.producto_variante_id : ''),
+            name: d.nombre_producto,
+            price: parseFloat(d.precio),
+            qty: d.cantidad,
+            stock: 999999,
+            variante_id: d.producto_variante_id || null,
+            modificadores: d.modificadores || [],
+        }));
+
+        renderCart();
+        syncCart();
+        bootstrap.Modal.getInstance(document.getElementById('ticketsAbiertosModal')).hide();
+    } catch (error) {
+        alert('Error al restaurar ticket: ' + error.message);
+    }
+}
+
+async function eliminarTicket(ticketId) {
+    if (!confirm('¿Eliminar este ticket?')) return;
+
+    try {
+        const response = await fetch(`/tickets-abiertos/${ticketId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            cargarTicketsAbiertos();
+            renderTicketsAbiertos();
+        }
+    } catch (error) {
+        alert('Error al eliminar ticket: ' + error.message);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    cargarTicketsAbiertos();
+    loadCartFromServer();
+});
+
+document.getElementById('guardarTicketBtn').addEventListener('click', function() {
+    this.disabled = cart.length === 0;
+});
 </script>
 @endpush

@@ -7,6 +7,7 @@ use App\Models\MovimientoInventario;
 use App\Models\OrdenCompra;
 use App\Models\Producto;
 use App\Models\Proveedor;
+use App\Services\ContextoNegocio;
 use App\Services\RegistradorAuditoria;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -81,59 +82,73 @@ class ControladorCompras extends Controller
             'items.*.precio_unitario' => 'required|numeric|min:0',
         ]);
 
-        $numero = 'OC-' . str_pad((string) (OrdenCompra::count() + 1), 5, '0', STR_PAD_LEFT);
+        return DB::transaction(function () use ($datos, $auditoria) {
+            $maxNumero = (int) DB::select("SELECT COALESCE(CAST(SUBSTRING(numero, 4) AS UNSIGNED), 0) as max_num FROM ordenes_compra ORDER BY id DESC LIMIT 1")[0]->max_num ?? 0;
+            $numero = 'OC-' . str_pad((string) ($maxNumero + 1), 5, '0', STR_PAD_LEFT);
 
-        $total = 0;
-        foreach ($datos['items'] as $item) {
-            $total += round((float) $item['cantidad'] * (float) $item['precio_unitario'], 2);
-        }
+            $total = 0;
+            foreach ($datos['items'] as $item) {
+                $total += round((float) $item['cantidad'] * (float) $item['precio_unitario'], 2);
+            }
 
-        $orden = OrdenCompra::create([
-            'proveedor_id' => $datos['proveedor_id'],
-            'usuario_id' => auth()->id(),
-            'numero' => $numero,
-            'fecha' => $datos['fecha'] ?? now()->toDateString(),
-            'estado' => 'pendiente',
-            'subtotal' => $total,
-            'impuesto' => 0,
-            'total' => $total,
-            'notas' => $datos['notas'] ?? null,
-        ]);
-
-        foreach ($datos['items'] as $item) {
-            $subtotal = round((float) $item['cantidad'] * (float) $item['precio_unitario'], 2);
-            $orden->detalles()->create([
-                'producto_id' => $item['producto_id'],
-                'cantidad' => $item['cantidad'],
-                'precio_unitario' => $item['precio_unitario'],
-                'subtotal' => $subtotal,
+            $orden = OrdenCompra::create([
+                'proveedor_id' => $datos['proveedor_id'],
+                'usuario_id' => auth()->id(),
+                'numero' => $numero,
+                'fecha' => $datos['fecha'] ?? now()->toDateString(),
+                'estado' => 'pendiente',
+                'subtotal' => $total,
+                'impuesto' => 0,
+                'total' => $total,
+                'notas' => $datos['notas'] ?? null,
             ]);
-        }
 
-        $auditoria->registrar('compras', 'crear_orden', 'Orden de compra ' . $orden->numero, [
-            'proveedor_id' => $orden->proveedor_id,
-            'total' => $total,
-        ], OrdenCompra::class, $orden->id);
+            foreach ($datos['items'] as $item) {
+                $subtotal = round((float) $item['cantidad'] * (float) $item['precio_unitario'], 2);
+                $orden->detalles()->create([
+                    'producto_id' => $item['producto_id'],
+                    'cantidad' => $item['cantidad'],
+                    'precio_unitario' => $item['precio_unitario'],
+                    'subtotal' => $subtotal,
+                ]);
+            }
 
-        return back()->with('success', 'Orden de compra registrada.');
+            $auditoria->registrar('compras', 'crear_orden', 'Orden de compra ' . $orden->numero, [
+                'proveedor_id' => $orden->proveedor_id,
+                'total' => $total,
+            ], OrdenCompra::class, $orden->id);
+
+            return back()->with('success', 'Orden de compra registrada.');
+        });
     }
 
     public function recibir(OrdenCompra $ordenCompra, RegistradorAuditoria $auditoria): RedirectResponse
     {
         abort_unless(in_array($ordenCompra->estado, ['pendiente', 'recepcion']), 422, 'Esta orden ya fue recibida.');
 
+        $negocioId = app(ContextoNegocio::class)->id();
+        abort_unless($ordenCompra->negocio_id === $negocioId, 404);
+
         DB::transaction(function () use ($ordenCompra, $auditoria) {
+            $productoIds = $ordenCompra->detalles->pluck('producto_id')->filter()->values()->all();
+            $productosLock = Producto::whereIn('id', $productoIds)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+
             foreach ($ordenCompra->detalles as $detalle) {
                 if (!$detalle->producto?->maneja_existencias) {
                     continue;
                 }
 
-                $anterior = $detalle->producto->existencias;
+                $producto = $productosLock->get($detalle->producto_id);
+                if (!$producto) {
+                    continue;
+                }
+
+                $anterior = $producto->existencias;
                 $nueva = $anterior + $detalle->cantidad;
-                $detalle->producto->update(['existencias' => $nueva]);
+                $producto->update(['existencias' => $nueva]);
 
                 MovimientoInventario::create([
-                    'producto_id' => $detalle->producto_id,
+                    'producto_id' => $producto->id,
                     'usuario_id' => auth()->id(),
                     'tipo' => 'mercancias',
                     'cantidad' => $detalle->cantidad,

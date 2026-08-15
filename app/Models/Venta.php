@@ -4,12 +4,15 @@ namespace App\Models;
 
 use App\Models\Concerns\PerteneceANegocio;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Venta extends Model
 {
     use PerteneceANegocio;
+    use SoftDeletes;
+
     protected $table = 'ventas';
     protected $fillable = [
         'sucursal_id',
@@ -34,6 +37,7 @@ class Venta extends Model
         'pagado',
         'cambio',
         'notas',
+        'pagos_divididos',
     ];
 
     protected $casts = [
@@ -46,6 +50,7 @@ class Venta extends Model
         'total' => 'decimal:2',
         'pagado' => 'decimal:2',
         'cambio' => 'decimal:2',
+        'pagos_divididos' => 'array',
     ];
 
     public function detalles(): HasMany

@@ -90,8 +90,16 @@
                                 <td>
                                     @if ($turno->estado === 'abierta')
                                         <span class="badge bg-success">Abierto</span>
-                                    @else
+                                    @elseif ($turno->estado === 'cerrada')
                                         <span class="badge bg-secondary">Cerrado</span>
+                                    @elseif ($turno->estado === 'pendiente_aprobacion')
+                                        <span class="badge bg-warning text-dark">Pendiente Aprobación</span>
+                                    @elseif ($turno->estado === 'aprobada')
+                                        <span class="badge bg-primary">Aprobado</span>
+                                    @elseif ($turno->estado === 'pendiente_modificacion')
+                                        <span class="badge bg-info">Pendiente Modificación</span>
+                                    @else
+                                        <span class="badge bg-light text-dark">{{ $turno->estado }}</span>
                                     @endif
                                 </td>
                                 <td class="text-end">

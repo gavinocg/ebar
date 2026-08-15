@@ -37,6 +37,7 @@ class ControladorSucursales extends Controller
         ]);
 
         Sucursal::create([
+            'negocio_id' => $negocioId,
             'nombre' => $datos['nombre'],
             'direccion' => $datos['direccion'],
             'telefono' => $datos['telefono'],
@@ -48,6 +49,9 @@ class ControladorSucursales extends Controller
 
     public function update(Request $request, Sucursal $sucursal): RedirectResponse
     {
+        $negocioId = app(ContextoNegocio::class)->id();
+        abort_unless($sucursal->negocio_id === $negocioId, 404);
+
         $datos = $request->validate([
             'nombre' => 'required|string|max:255',
             'direccion' => 'nullable|string|max:255',
@@ -67,6 +71,13 @@ class ControladorSucursales extends Controller
 
     public function destroy(Sucursal $sucursal): RedirectResponse
     {
+        $negocioId = app(ContextoNegocio::class)->id();
+        abort_unless($sucursal->negocio_id === $negocioId, 404);
+
+        if ($sucursal->turnosCaja()->where('estado', 'abierta')->exists()) {
+            return back()->withErrors(['nombre' => 'No se puede eliminar una sucursal con turnos abiertos.']);
+        }
+
         $sucursal->delete();
 
         return redirect()->route('sucursales.index')->with('success', 'Sucursal eliminada.');

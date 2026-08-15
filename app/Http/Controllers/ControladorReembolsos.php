@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Reembolso;
 use App\Models\Venta;
+use App\Services\ContextoNegocio;
 use App\Services\ServicioReembolso;
 use Illuminate\Http\Request;
 
@@ -23,6 +24,9 @@ class ControladorReembolsos extends Controller
     public function crear(Request $request, Venta $venta, ServicioReembolso $servicioReembolso)
     {
         $this->authorize('reembolsar', $venta);
+
+        $negocioId = app(ContextoNegocio::class)->id();
+        abort_unless($venta->negocio_id === $negocioId, 404);
 
         $validados = $request->validate([
             'tipo' => 'required|in:parcial,total',
