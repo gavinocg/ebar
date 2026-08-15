@@ -87,6 +87,16 @@
                         </ul>
                     </li>
                 </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <form method="POST" action="{{ route('cerrar_sesion') }}">
+                            @csrf
+                            <button type="submit" class="btn btn-outline-light btn-sm ms-lg-2 mt-2 mt-lg-0">
+                                <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+                            </button>
+                        </form>
+                    </li>
+                </ul>
             </div>
         </div>
     </nav>

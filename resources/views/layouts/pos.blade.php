@@ -307,6 +307,11 @@
         }
         
         @media (max-width: 768px) {
+            .navbar .container-fluid {
+                flex-wrap: wrap;
+                gap: 6px 0;
+            }
+
             :root {
                 --sidebar-width: 70px;
                 --cart-width: 100%;

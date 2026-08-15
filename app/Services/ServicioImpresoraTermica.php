@@ -116,8 +116,12 @@ class ServicioImpresoraTermica
 
         $this->commands[] = $this->separador() . "\n";
         $this->commands[] = $this->alinearColumnas('Total', '$' . number_format((float) $sale->total, 2, '.', '')) . "\n";
-        $this->commands[] = $this->alinearColumnas('Pago', '$' . number_format((float) $sale->pagado, 2, '.', '')) . "\n";
-        $this->commands[] = $this->alinearColumnas('Cambio', '$' . number_format((float) $sale->cambio, 2, '.', '')) . "\n";
+        if ($sale->metodo_pago === 'credito') {
+            $this->commands[] = $this->alinearColumnas('Pago', 'CREDITO') . "\n";
+        } else {
+            $this->commands[] = $this->alinearColumnas('Pago', '$' . number_format((float) $sale->pagado, 2, '.', '')) . "\n";
+            $this->commands[] = $this->alinearColumnas('Cambio', '$' . number_format((float) $sale->cambio, 2, '.', '')) . "\n";
+        }
         $this->commands[] = "\n";
         $this->centrar();
         $mensaje = trim((string) $this->business->mensaje_comprobante) ?: 'GRACIAS POR SU COMPRA!';
@@ -215,8 +219,10 @@ class ServicioImpresoraTermica
         $this->commands[] = "\n";
         $this->commands[] = "\x1B\x61\x00";
         $this->commands[] = "Pago: " . strtoupper($sale->metodo_pago) . "\n";
-        $this->commands[] = "Recibido: $" . number_format($sale->pagado, 2) . "\n";
-        $this->commands[] = "Cambio: $" . number_format($sale->cambio, 2) . "\n";
+        if ($sale->metodo_pago !== 'credito') {
+            $this->commands[] = "Recibido: $" . number_format($sale->pagado, 2) . "\n";
+            $this->commands[] = "Cambio: $" . number_format($sale->cambio, 2) . "\n";
+        }
     }
 
     private function agregarPie($sale)

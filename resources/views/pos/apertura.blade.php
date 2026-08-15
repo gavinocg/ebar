@@ -1,10 +1,20 @@
 @extends('layouts.pos')
 
+@push('styles')
+<style>
+    body {
+        overflow-y: auto !important;
+        height: auto !important;
+        min-height: 100vh;
+    }
+</style>
+@endpush
+
 @section('title', 'Apertura de caja')
 
 @section('content')
-<div class="d-flex justify-content-center align-items-center" style="min-height: 70vh;">
-    <div class="card shadow-sm" style="width: 380px;">
+<div class="d-flex justify-content-center align-items-center" style="min-height: 70vh; padding: 16px;">
+    <div class="card shadow-sm w-100" style="max-width: 380px;">
         <div class="card-body text-center p-4">
             <i class="bi bi-cash-coin display-4 text-success"></i>
             <h5 class="mt-2 mb-1">Apertura de caja</h5>
