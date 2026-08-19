@@ -31,11 +31,23 @@ Convertir e-Bar en una plataforma SaaS multi-tenant para administrar bares escol
 
 | Versión | Fases | Alcance | Estado |
 |---|---|---|---|
-| **v1.00** | 0 – 18 | Núcleo SaaS multi-tenant: plataforma, cajeros, caja, inventario, ventas avanzadas, reportes, auditoría, variantes/modificadores, pruebas, aislamiento, integridad, seguridad, RBAC | `COMPLETADO` |
-| **v2.0.0** | 19 – 21 | Operación móvil/PWA/offline, restaurante/cocina/KDS, API/webhooks/integraciones de pago | `PENDIENTE` |
+| **v1.00** | 0 – 18 | Núcleo SaaS multi-tenant: plataforma, cajeros, caja, inventario, ventas avanzadas, reportes, auditoría, variantes/modificadores, pruebas, aislamiento, integridad, seguridad, RBAC | `EN_PROGRESO` |
+| **v2.0.0** | 19 – 21 | Operación móvil/PWA/offline, restaurante/cocina/KDS, API/webhooks/integraciones de pago | `BLOQUEADO` |
 
-- **v1.00** cierra con la Fase 18 (RBAC) y la Fase 6 completa (reportes + impuestos + XLSX/PDF). Suite: 221 pruebas / 778 aserciones.
-- **v2.0.0** inicia con la Fase 19 (Operación móvil, PWA y modo offline).
+### Regla de prioridad
+
+> **Solo se trabajará en v1.00 hasta terminarla al 100%.** No se desarrollará absolutamente nada de v2.0.0 (Fases 19-21) hasta nueva orden. v2.0.0 permanece `BLOQUEADO` y no se tocará bajo ninguna circunstancia mientras no haya una instrucción explícita que lo autorice.
+
+### Pendientes para cerrar v1.00 al 100%
+
+- [ ] `PENDIENTE` Fase 10 — Pruebas de aislamiento de acceso y pagos.
+- [ ] `PENDIENTE` Fase 11 — Mantener la agenda de crédito separada de fidelización, puntos y CRM.
+- [ ] `PENDIENTE` Despliegue — Rotar el token de Cloudflare compartido durante la configuración.
+
+### Notas
+
+- **v1.00** avanza con la Fase 18 (RBAC) y la Fase 6 completa (reportes + impuestos + XLSX/PDF). Suite actual: 221 pruebas / 778 aserciones.
+- **v2.0.0** iniciará con la Fase 19 (Operación móvil, PWA y modo offline) únicamente cuando v1.00 alcance el 100%.
 
 ## Estado Actual
 
@@ -367,15 +379,20 @@ Convertir e-Bar en una plataforma SaaS multi-tenant para administrar bares escol
 
 ## Próximo Paso
  
-**v2.0.0** — Fase 19: Operación móvil, PWA y modo offline (PENDIENTE).
+**v1.00** — Cerrar al 100% los pendientes restantes:
+1. Fase 10 — Pruebas de aislamiento de acceso y pagos.
+2. Fase 11 — Mantener la agenda de crédito separada de fidelización/puntos/CRM.
+3. Despliegue — Rotar el token de Cloudflare.
+ 
+> v2.0.0 (Fases 19-21) está `BLOQUEADO`. No se desarrollará nada de v2.0.0 hasta nueva orden.
  
 ---
  
 ## Estado de fases actualizado (2026-08-18)
  
-**v1.00 cerrado** (Fases 0-18): M ✅ · N ✅ · O ✅ · P ✅ · Q ✅ · R ✅ · S ✅ · T ✅ — parciales cerrados (11) + SplitPayment (12) + Factories (13) + Tests de brechas (14) + InventoryTest (15) + PurchaseOrdersTest (16) + ReportsTest (17) + CajaApprovalTest (18) + Fase 6 completa (impuestos + XLSX/PDF). — Suite base: **221 pruebas / 778 aserciones**.
+**v1.00** (Fases 0-18): M ✅ · N ✅ · O ✅ · P ✅ · Q ✅ · R ✅ · S ✅ · T ✅ — parciales cerrados (11) + SplitPayment (12) + Factories (13) + Tests de brechas (14) + InventoryTest (15) + PurchaseOrdersTest (16) + ReportsTest (17) + CajaApprovalTest (18) + Fase 6 completa (impuestos + XLSX/PDF). — Suite base: **221 pruebas / 778 aserciones**. Faltan 3 pendientes para el 100% (ver "Próximo Paso").
  
-**v2.0.0 inicia** (Fases 19-21): Operación móvil/PWA/offline → Restaurante/KDS → API/webhooks/pagos.
+**v2.0.0** (Fases 19-21): `BLOQUEADO` — no se desarrolla hasta nueva orden.
  
 ---
  
