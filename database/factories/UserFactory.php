@@ -30,6 +30,8 @@ class UserFactory extends Factory
             'correo_verificado_en' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'esta_activo' => true,
+            'debe_cambiar_password' => false,
         ];
     }
 

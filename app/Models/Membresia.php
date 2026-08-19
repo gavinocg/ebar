@@ -39,12 +39,12 @@ class Membresia extends Model
     public function estaVigente(): bool
     {
         return in_array($this->estado, ['prueba', 'activa'], true)
-            && !$this->fecha_vencimiento->isPast();
+            && !$this->fecha_vencimiento->copy()->endOfDay()->isPast();
     }
 
     public function estaVencida(): bool
     {
-        return $this->fecha_vencimiento->isPast();
+        return $this->fecha_vencimiento->copy()->endOfDay()->isPast();
     }
 
     public function aplicarVencimiento(): void

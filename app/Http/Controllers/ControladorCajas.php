@@ -60,7 +60,7 @@ class ControladorCajas extends Controller
 
         $datos = $request->validate([
             'nombre' => 'required|string|max:255',
-            'sucursal_id' => 'nullable|integer|exists:sucursales,id',
+            'sucursal_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('sucursales', 'id')->where('negocio_id', app(ContextoNegocio::class)->id())],
             'esta_activa' => 'nullable|boolean',
         ]);
 
@@ -77,8 +77,8 @@ class ControladorCajas extends Controller
     {
         $this->validarCajaDelNegocio($caja);
 
-        if ($caja->turnos()->where('estado', 'abierta')->exists()) {
-            return back()->withErrors(['nombre' => 'No se puede eliminar una caja con turnos abiertos.']);
+        if ($caja->turnos()->exists()) {
+            return back()->withErrors(['nombre' => 'No se puede eliminar una caja con historial de turnos.']);
         }
 
         $caja->delete();

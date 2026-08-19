@@ -26,6 +26,10 @@ use App\Http\Controllers\ControladorAuditorias;
 use App\Http\Controllers\ControladorReembolsos;
 use App\Http\Controllers\ControladorTicketsAbiertos;
 use App\Http\Controllers\ControladorReportes;
+use App\Http\Controllers\ControladorRoles;
+use App\Http\Controllers\ControladorContratos;
+use App\Http\Controllers\ControladorPagos;
+use App\Http\Controllers\ControladorAdminBar;
 use App\Services\ContextoNegocio;
 
 Route::get('/inicio-sesion', [AuthController::class, 'create'])->name('inicio_sesion');
@@ -37,27 +41,41 @@ Route::post('/inicio-sesion/pin', [AuthController::class, 'pinValidar'])->middle
 Route::post('/cerrar-sesion', [AuthController::class, 'destroy'])->middleware('auth')->name('cerrar_sesion');
 
 Route::middleware(['auth'])->group(function () {
+    Route::get('/cambiar-password', [AuthController::class, 'cambiarPassword'])->middleware('forzar_cambio_password')->name('password.cambiar');
+    Route::post('/cambiar-password', [AuthController::class, 'guardarPassword'])->middleware('forzar_cambio_password')->name('password.cambiar.guardar');
+});
+
+Route::middleware(['auth', 'forzar_cambio_password'])->group(function () {
     Route::get('/seleccionar-negocio', [ControladorSeleccionNegocio::class, 'mostrar'])->name('negocio.seleccionar');
     Route::post('/seleccionar-negocio', [ControladorSeleccionNegocio::class, 'guardar'])->name('negocio.seleccionar.guardar');
     Route::post('/negocio/cambiar', [ControladorSeleccionNegocio::class, 'cambiar'])->name('negocio.cambiar');
     Route::post('/negocio/cambiar-sucursal', [ControladorSeleccionNegocio::class, 'cambiarSucursal'])->name('negocio.sucursal.cambiar');
 });
 
-Route::middleware(['auth', 'super_admin'])->prefix('plataforma')->name('plataforma.')->group(function () {
+Route::middleware(['auth', 'super_admin', 'forzar_cambio_password'])->prefix('plataforma')->name('plataforma.')->group(function () {
     Route::get('/', [ControladorPlataforma::class, 'index'])->name('inicio');
     Route::get('/negocios', [ControladorNegocios::class, 'index'])->name('negocios.index');
     Route::get('/negocios/crear', [ControladorNegocios::class, 'create'])->name('negocios.create');
     Route::post('/negocios', [ControladorNegocios::class, 'store'])->name('negocios.store');
+    Route::get('/negocios/{negocio}', [ControladorNegocios::class, 'show'])->name('negocios.show');
     Route::get('/negocios/{negocio}/editar', [ControladorNegocios::class, 'edit'])->name('negocios.edit');
     Route::put('/negocios/{negocio}', [ControladorNegocios::class, 'update'])->name('negocios.update');
     Route::delete('/negocios/{negocio}', [ControladorNegocios::class, 'destroy'])->name('negocios.destroy');
+    Route::post('/negocios/{negocio}/contratos', [ControladorContratos::class, 'store'])->name('negocios.contratos.store');
     Route::post('/negocios/{negocio}/membresia/renovar', [ControladorMembresias::class, 'renovar'])->name('negocios.membresia.renovar');
     Route::post('/negocios/{negocio}/membresia/suspender', [ControladorMembresias::class, 'suspender'])->name('negocios.membresia.suspender');
     Route::post('/negocios/{negocio}/membresia/reactivar', [ControladorMembresias::class, 'reactivar'])->name('negocios.membresia.reactivar');
+    Route::post('/contratos/{contrato}/estado', [ControladorContratos::class, 'estado'])->name('contratos.estado');
+    Route::delete('/contratos/{contrato}', [ControladorContratos::class, 'destroy'])->name('contratos.destroy');
+    Route::post('/contratos/{contrato}/pagos', [ControladorPagos::class, 'store'])->name('contratos.pagos.store');
+    Route::post('/pagos/{pago}/anular', [ControladorPagos::class, 'anular'])->name('pagos.anular');
 });
 
-Route::middleware(['auth', 'negocio'])->group(function () {
+Route::middleware(['auth', 'forzar_cambio_password', 'negocio'])->group(function () {
     Route::get('/', function () {
+        if (auth()->user()->rol === 'super_admin') {
+            return redirect()->route('plataforma.inicio');
+        }
         if (auth()->user()->esPropietario() || auth()->user()->rolEnNegocio(app(ContextoNegocio::class)->id()) === 'admin_bar') {
             return redirect()->route('panel.inicio');
         }
@@ -66,7 +84,7 @@ Route::middleware(['auth', 'negocio'])->group(function () {
 
     Route::get('/punto-venta', [PosController::class, 'index'])->name('punto_venta.inicio')->middleware('rol_negocio:cajero');
     Route::get('/punto-venta/buscar', [PosController::class, 'buscar'])->name('punto_venta.buscar')->middleware('rol_negocio:cajero');
-    Route::post('/punto-venta/desbloquear', [PosController::class, 'desbloquear'])->name('punto_venta.desbloquear')->middleware('rol_negocio:cajero');
+    Route::post('/punto-venta/desbloquear', [PosController::class, 'desbloquear'])->name('punto_venta.desbloquear')->middleware(['rol_negocio:cajero', 'throttle:10,1']);
     Route::post('/punto-venta/bloquear', [PosController::class, 'bloquear'])->name('punto_venta.bloquear')->middleware('rol_negocio:cajero');
     Route::post('/punto-venta/cobrar', [PosController::class, 'cobrar'])->name('punto_venta.cobrar')->middleware('rol_negocio:cajero');
     Route::post('/punto-venta/carrito/guardar', [PosController::class, 'guardarCarrito'])->name('punto_venta.guardar_carrito')->middleware('rol_negocio:cajero');
@@ -88,6 +106,7 @@ Route::middleware(['auth', 'negocio'])->group(function () {
         ->middleware('rol_negocio:admin_bar')->name('caja.reporte');
     Route::get('/caja/turnos/{turnoCaja}', [ControladorCaja::class, 'turnoDetalle'])
         ->middleware('rol_negocio:admin_bar')->name('caja.turno-detalle');
+    Route::post('/ventas/{venta}/reembolsar', [ControladorReembolsos::class, 'crear'])->name('reembolsos.crear');
 
     Route::middleware('rol_negocio:admin_bar')->group(function () {
         Route::resource('categorias', CategoryController::class)->parameters(['categorias' => 'category'])->only(['index', 'store', 'update', 'destroy']);
@@ -101,7 +120,21 @@ Route::middleware(['auth', 'negocio'])->group(function () {
             ->middleware('rol_negocio:propietario');
         Route::resource('cajas', ControladorCajas::class)->parameters(['cajas' => 'caja'])->only(['index', 'store', 'update', 'destroy'])
             ->middleware('rol_negocio:propietario');
-        Route::resource('cajeros', ControladorCajeros::class)->parameters(['cajeros' => 'cajero'])->only(['index', 'store', 'update', 'destroy'])
+        Route::get('/cajeros', [ControladorCajeros::class, 'index'])->name('cajeros.index')
+            ->middleware('rol_negocio:admin_bar');
+        Route::post('/cajeros', [ControladorCajeros::class, 'store'])->name('cajeros.store')
+            ->middleware('rol_negocio:propietario');
+        Route::put('/cajeros/{cajero}', [ControladorCajeros::class, 'update'])->name('cajeros.update')
+            ->middleware('rol_negocio:admin_bar');
+        Route::delete('/cajeros/{cajero}', [ControladorCajeros::class, 'destroy'])->name('cajeros.destroy')
+            ->middleware('rol_negocio:propietario');
+        Route::get('/admin-bar', [ControladorAdminBar::class, 'index'])->name('admin-bar.index')
+            ->middleware('rol_negocio:propietario');
+        Route::post('/admin-bar', [ControladorAdminBar::class, 'store'])->name('admin-bar.store')
+            ->middleware('rol_negocio:propietario');
+        Route::put('/admin-bar/{admin}', [ControladorAdminBar::class, 'update'])->name('admin-bar.update')
+            ->middleware('rol_negocio:propietario');
+        Route::delete('/admin-bar/{admin}', [ControladorAdminBar::class, 'destroy'])->name('admin-bar.destroy')
             ->middleware('rol_negocio:propietario');
         Route::get('/inventario/historial', [ControladorInventario::class, 'historial'])->name('inventario.historial');
         Route::post('/inventario/ajustar', [ControladorInventario::class, 'ajustar'])->name('inventario.ajustar');
@@ -126,8 +159,11 @@ Route::middleware(['auth', 'negocio'])->group(function () {
         Route::post('/productos/etiquetas/imprimir', [ControladorEtiquetas::class, 'imprimir'])->name('etiquetas.imprimir');
         Route::get('/auditorias', [ControladorAuditorias::class, 'index'])->name('auditorias.index')
             ->middleware('rol_negocio:propietario');
+        Route::resource('roles', ControladorRoles::class)
+            ->parameters(['roles' => 'rol'])
+            ->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy'])
+            ->middleware('rol_negocio:propietario');
         Route::get('/reembolsos', [ControladorReembolsos::class, 'index'])->name('reembolsos.index');
-        Route::post('/ventas/{venta}/reembolsar', [ControladorReembolsos::class, 'crear'])->name('reembolsos.crear');
 
         Route::get('/panel', [DashboardController::class, 'index'])->name('panel.inicio');
         Route::get('/reportes/ventas', [DashboardController::class, 'reporteVentas'])->name('reportes.ventas')
@@ -135,7 +171,7 @@ Route::middleware(['auth', 'negocio'])->group(function () {
         Route::get('/reportes/inventario', [DashboardController::class, 'reporteInventario'])->name('reportes.inventario')
             ->middleware('rol_negocio:propietario');
         Route::get('/reportes/cajeros', [DashboardController::class, 'reportePorCajero'])->name('reportes.cajeros')
-            ->middleware('rol_negocio:propietario');
+            ->middleware('rol_negocio:admin_bar');
 
         Route::get('/reportes/productos', [ControladorReportes::class, 'productos'])->name('reportes.productos')
             ->middleware('rol_negocio:propietario');

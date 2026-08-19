@@ -19,15 +19,16 @@ class AutorizarRolNegocio
     public function handle(Request $request, Closure $next, string $rol): Response
     {
         $usuario = $request->user();
+
+        if ($usuario && $usuario->rol === 'super_admin') {
+            return redirect()->route('plataforma.inicio');
+        }
+
         $negocioId = app(ContextoNegocio::class)->id();
         $rolUsuario = $usuario ? $usuario->rolEnNegocio($negocioId) : null;
         $nivelUsuario = self::JERARQUIA[$rolUsuario] ?? 0;
 
         if ($rol === 'cajero') {
-            if ($usuario && $usuario->rol === 'super_admin') {
-                return redirect()->route('plataforma.inicio');
-            }
-
             if ($rolUsuario === 'cajero') {
                 return $next($request);
             }

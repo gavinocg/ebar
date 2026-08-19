@@ -14,8 +14,6 @@ class Impresora extends Model
         'sucursal_id',
         'nombre',
         'tipo_conexion',
-        'direccion',
-        'puerto',
         'ancho_papel',
         'esta_activa',
         'es_predeterminada'
@@ -23,8 +21,7 @@ class Impresora extends Model
 
     protected $casts = [
         'esta_activa' => 'boolean',
-        'es_predeterminada' => 'boolean',
-        'puerto' => 'integer'
+        'es_predeterminada' => 'boolean'
     ];
 
     public function sucursal(): BelongsTo
@@ -37,13 +34,8 @@ class Impresora extends Model
         return $query->where('es_predeterminada', true)->where('esta_activa', true);
     }
 
-    public function esTermica()
+    public function esBluetooth(): bool
     {
-        return in_array($this->tipo_conexion, ['bluetooth', 'wifi', 'lan']);
-    }
-
-    public function esConvencional()
-    {
-        return $this->tipo_conexion === 'normal';
+        return $this->tipo_conexion === 'bluetooth';
     }
 }

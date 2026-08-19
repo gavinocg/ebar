@@ -17,6 +17,7 @@ use App\Services\ServicioCobro;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Validation\Rule;
 
 class ControladorPuntoVenta extends Controller
 {
@@ -96,20 +97,29 @@ class ControladorPuntoVenta extends Controller
 
     public function desbloquear(Request $request)
     {
+        $usuario = $request->user();
+
+        $intento = \App\Models\IntentoPin::firstOrCreate(['usuario_id' => $usuario->id]);
+
+        if ($intento->estaBloqueado()) {
+            $segundos = ceil($intento->bloqueado_hasta->diffInSeconds(now()));
+            return redirect()->back()->withErrors(['pin' => "Demasiados intentos. Espera {$segundos} segundos."]);
+        }
+
         $datos = $request->validate([
             'pin' => 'required|digits:4',
         ]);
-
-        $usuario = $request->user();
 
         if (blank($usuario->pin)) {
             return redirect()->back()->withErrors(['pin' => 'Este usuario no tiene PIN configurado.']);
         }
 
         if (! password_verify($datos['pin'], $usuario->pin)) {
+            $intento->registrarFallo();
             return redirect()->back()->withErrors(['pin' => 'PIN incorrecto.']);
         }
 
+        $intento->resetear();
         $request->session()->put('pos_desbloqueado', true);
 
         return redirect()->route('punto_venta.inicio');
@@ -149,19 +159,21 @@ class ControladorPuntoVenta extends Controller
     public function cobrar(Request $request, ServicioCobro $servicioCobro)
     {
         try {
+            $negocioId = app(ContextoNegocio::class)->id();
+
             $request->validate([
                 'items' => 'required|array|min:1|max:100',
-                'items.*.producto_id' => 'required|integer|exists:productos,id',
+                'items.*.producto_id' => ['required', 'integer', Rule::exists('productos', 'id')->where('negocio_id', $negocioId)],
                 'items.*.cantidad' => 'required|integer|min:1|max:10000',
-                'items.*.variante_id' => 'nullable|integer|exists:producto_variantes,id',
+                'items.*.variante_id' => ['nullable', 'integer', Rule::exists('producto_variantes', 'id')->where('negocio_id', $negocioId)],
                 'items.*.modificadores' => 'nullable|array',
-                'items.*.modificadores.*.modificador_id' => 'required_with:items.*.modificadores|integer|exists:modificadores,id',
+                'items.*.modificadores.*.modificador_id' => ['required_with:items.*.modificadores', 'integer', Rule::exists('modificadores', 'id')->where('negocio_id', $negocioId)],
                 'items.*.modificadores.*.precio_extra' => 'required_with:items.*.modificadores|numeric|min:0',
                 'metodo_pago' => 'required|in:efectivo,credito,transferencia,dividido',
                 'pagado' => 'required|numeric|min:0|max:9999999999.99',
                 'notas' => 'nullable|string|max:1000',
                 'clave_idempotencia' => 'required|string|max:100',
-                'cliente_id' => 'required_if:metodo_pago,credito|nullable|integer|exists:clientes,id',
+                'cliente_id' => ['required_if:metodo_pago,credito', 'nullable', 'integer', Rule::exists('clientes', 'id')->where('negocio_id', $negocioId)],
                 'descripcion_cliente' => 'required_if:metodo_pago,credito|nullable|string|max:255',
                 'entidad_financiera' => 'required_if:metodo_pago,transferencia|nullable|string|max:100',
                 'numero_comprobante_pago' => 'required_if:metodo_pago,transferencia|nullable|string|max:100',
@@ -202,31 +214,19 @@ class ControladorPuntoVenta extends Controller
             $printer = Printer::predeterminada()->first();
 
             if ($printer) {
-                if ($printer->esConvencional()) {
-                    $viewName = in_array($printer->ancho_papel, ['a4', 'letter']) ? 'printers.ticket-a4' : 'printers.ticket-a5';
-                    $ticketHtml = view($viewName, compact('sale'))->render();
-                    return response()->json([
-                        'success' => true,
-                        'type' => 'normal',
-                        'sale' => $sale,
-                        'ticket_html' => $ticketHtml,
-                    ]);
-                } else {
-                    $servicioImpresora = new ServicioImpresoraTermica($printer);
-                    $ticketData = $servicioImpresora->imprimirComprobante($sale);
-                    $connectionData = $servicioImpresora->obtenerDatosConexion();
-                    $ticketView = $printer->ancho_papel === '58mm' ? 'printers.ticket-58' : 'printers.ticket-a4';
-                    $ticketHtml = view($ticketView, compact('sale'))->render();
-                    
-                    return response()->json([
-                        'success' => true,
-                        'type' => 'thermal',
-                        'sale' => $sale,
-                        'ticket' => base64_encode($ticketData),
-                        'ticket_html' => $ticketHtml,
-                        'printer' => $connectionData,
-                    ]);
-                }
+                $servicioImpresora = new ServicioImpresoraTermica($printer);
+                $ticketData = $servicioImpresora->imprimirComprobante($sale);
+                $connectionData = $servicioImpresora->obtenerDatosConexion();
+                $ticketView = 'printers.ticket-58';
+
+                return response()->json([
+                    'success' => true,
+                    'type' => 'thermal',
+                    'sale' => $sale,
+                    'ticket' => base64_encode($ticketData),
+                    'ticketView' => $ticketView,
+                    'datos' => $connectionData,
+                ]);
             }
 
             return response()->json([

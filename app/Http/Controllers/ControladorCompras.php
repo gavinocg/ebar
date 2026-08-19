@@ -12,6 +12,7 @@ use App\Services\RegistradorAuditoria;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class ControladorCompras extends Controller
@@ -72,19 +73,21 @@ class ControladorCompras extends Controller
 
     public function storeOrden(Request $request, RegistradorAuditoria $auditoria): RedirectResponse
     {
+        $negocioId = app(ContextoNegocio::class)->id();
+
         $datos = $request->validate([
-            'proveedor_id' => 'required|integer|exists:proveedores,id',
+            'proveedor_id' => ['required', 'integer', Rule::exists('proveedores', 'id')->where('negocio_id', $negocioId)],
             'fecha' => 'nullable|date',
             'notas' => 'nullable|string|max:255',
             'items' => 'required|array|min:1|max:100',
-            'items.*.producto_id' => 'required|integer|distinct|exists:productos,id',
+            'items.*.producto_id' => ['required', 'integer', 'distinct', Rule::exists('productos', 'id')->where('negocio_id', $negocioId)],
             'items.*.cantidad' => 'required|integer|min:1|max:100000',
             'items.*.precio_unitario' => 'required|numeric|min:0',
         ]);
 
         return DB::transaction(function () use ($datos, $auditoria) {
-            $maxNumero = (int) DB::select("SELECT COALESCE(CAST(SUBSTRING(numero, 4) AS UNSIGNED), 0) as max_num FROM ordenes_compra ORDER BY id DESC LIMIT 1")[0]->max_num ?? 0;
-            $numero = 'OC-' . str_pad((string) ($maxNumero + 1), 5, '0', STR_PAD_LEFT);
+            $ultimoId = (int) OrdenCompra::withoutGlobalScopes()->orderByDesc('id')->lockForUpdate()->value('id');
+            $numero = 'OC-' . str_pad((string) ($ultimoId + 1), 5, '0', STR_PAD_LEFT);
 
             $total = 0;
             foreach ($datos['items'] as $item) {
@@ -124,16 +127,26 @@ class ControladorCompras extends Controller
 
     public function recibir(OrdenCompra $ordenCompra, RegistradorAuditoria $auditoria): RedirectResponse
     {
-        abort_unless(in_array($ordenCompra->estado, ['pendiente', 'recepcion']), 422, 'Esta orden ya fue recibida.');
-
         $negocioId = app(ContextoNegocio::class)->id();
         abort_unless($ordenCompra->negocio_id === $negocioId, 404);
 
         DB::transaction(function () use ($ordenCompra, $auditoria) {
-            $productoIds = $ordenCompra->detalles->pluck('producto_id')->filter()->values()->all();
+            $orden = OrdenCompra::whereKey($ordenCompra->id)->lockForUpdate()->first();
+
+            abort_unless($orden && in_array($orden->estado, ['pendiente', 'recepcion'], true), 422, 'Esta orden ya fue recibida.');
+
+            foreach ($orden->detalles as $detalle) {
+                abort_if(
+                    $detalle->producto?->variantes()->where('esta_activo', true)->exists(),
+                    422,
+                    "El producto {$detalle->producto->nombre} se controla por variantes; registra su ingreso desde las variantes."
+                );
+            }
+
+            $productoIds = $orden->detalles->pluck('producto_id')->filter()->values()->all();
             $productosLock = Producto::whereIn('id', $productoIds)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
 
-            foreach ($ordenCompra->detalles as $detalle) {
+            foreach ($orden->detalles as $detalle) {
                 if (!$detalle->producto?->maneja_existencias) {
                     continue;
                 }
@@ -155,16 +168,16 @@ class ControladorCompras extends Controller
                     'existencias_anteriores' => $anterior,
                     'existencias_posteriores' => $nueva,
                     'tipo_referencia' => OrdenCompra::class,
-                    'id_referencia' => $ordenCompra->id,
-                    'notas' => 'Recepción de orden ' . $ordenCompra->numero,
+                    'id_referencia' => $orden->id,
+                    'notas' => 'Recepción de orden ' . $orden->numero,
                 ]);
             }
 
-            $ordenCompra->update(['estado' => 'recibida', 'recibida_en' => now()]);
+            $orden->update(['estado' => 'recibida', 'recibida_en' => now()]);
 
-            $auditoria->registrar('compras', 'recepcion_orden', 'Recepción de orden ' . $ordenCompra->numero, [
-                'orden_id' => $ordenCompra->id,
-            ], OrdenCompra::class, $ordenCompra->id);
+            $auditoria->registrar('compras', 'recepcion_orden', 'Recepción de orden ' . $orden->numero, [
+                'orden_id' => $orden->id,
+            ], OrdenCompra::class, $orden->id);
         });
 
         return back()->with('success', 'Mercancía recibida y existencias actualizadas.');

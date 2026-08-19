@@ -27,7 +27,15 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(ConfiguracionNegocio::class, ConfiguracionPolicy::class);
 
         Gate::define('reportes.ver', function ($usuario) {
-            return $usuario->esPropietario();
+            return $usuario->tienePermiso('reporte.ventas');
+        });
+
+        Gate::define('reportes.cajeros', function ($usuario) {
+            return $usuario->tienePermiso('reporte.cajeros');
+        });
+
+        Gate::define('reportes.ventas_o_cajeros', function ($usuario) {
+            return $usuario->tienePermiso('reporte.ventas') || $usuario->tienePermiso('reporte.cajeros');
         });
 
         if (app()->environment('production')) {

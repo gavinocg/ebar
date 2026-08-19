@@ -64,6 +64,10 @@ class ControladorCategorias extends Controller
 
     public function destroy(Category $category)
     {
+        if ($category->productos()->exists()) {
+            return back()->withErrors(['nombre' => 'No se puede eliminar una categoría con productos asociados.']);
+        }
+
         if ($category->imagen_path) {
             Storage::disk('public')->delete($category->imagen_path);
         }

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Caja;
 use App\Models\Membresia;
 use App\Models\MembresiaNegocio;
 use App\Models\Negocio;
@@ -15,6 +16,74 @@ use Tests\TestCase;
 class PlataformaTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_una_membresia_sigue_vigente_el_dia_de_su_vencimiento(): void
+    {
+        $membresia = new Membresia(['estado' => 'activa', 'fecha_vencimiento' => now()->toDateString()]);
+        $this->assertTrue($membresia->estaVigente());
+        $this->assertFalse($membresia->estaVencida());
+
+        $vencida = new Membresia(['estado' => 'activa', 'fecha_vencimiento' => now()->subDay()->toDateString()]);
+        $this->assertFalse($vencida->estaVigente());
+        $this->assertTrue($vencida->estaVencida());
+    }
+
+    public function test_renovar_rechaza_membresias_suspendidas_y_canceladas(): void
+    {
+        $this->actingAs($this->superAdmin());
+
+        $suspendida = $this->crearBarConMembresia([], ['estado' => 'suspendida', 'fecha_vencimiento' => now()->addDays(30)]);
+        $this->post(route('plataforma.negocios.membresia.renovar', $suspendida))->assertStatus(422);
+        $this->assertSame('suspendida', $suspendida->membresia->refresh()->estado);
+
+        $cancelada = $this->crearBarConMembresia([], ['estado' => 'cancelada', 'fecha_vencimiento' => now()->addDays(30)]);
+        $this->post(route('plataforma.negocios.membresia.renovar', $cancelada))->assertStatus(422);
+        $this->assertSame('cancelada', $cancelada->membresia->refresh()->estado);
+    }
+
+    public function test_un_bar_no_puede_tener_dos_contratos_activos(): void
+    {
+        $this->actingAs($this->superAdmin());
+        $negocio = $this->crearBarConMembresia();
+
+        $payload = [
+            'fecha_inicio' => now()->toDateString(),
+            'fecha_fin' => now()->addYear()->toDateString(),
+            'forma_contratacion' => 'mensual',
+        ];
+
+        $this->post(route('plataforma.negocios.contratos.store', $negocio), $payload)->assertRedirect();
+        $this->post(route('plataforma.negocios.contratos.store', $negocio), $payload)->assertStatus(422);
+
+        $this->assertSame(1, \App\Models\Contrato::where('negocio_id', $negocio->id)->where('estado', 'activo')->count());
+    }
+
+    public function test_eliminar_bar_desactiva_membresias_y_cancela_contratos(): void
+    {
+        $this->actingAs($this->superAdmin());
+
+        $plan = Plan::create(['nombre' => 'Pro', 'duracion_dias' => 30, 'limite_cajeros' => 5, 'limite_cajas' => 3, 'limite_sucursales' => 2]);
+
+        $this->post(route('plataforma.negocios.store'), [
+            'nombre' => 'Bar a eliminar',
+            'zona_horaria' => 'America/Guayaquil',
+            'moneda' => 'USD',
+            'plan_id' => $plan->id,
+            'numero_sucursales_contratadas' => 1,
+            'nombre_admin' => 'Dueño',
+            'correo_admin' => 'eliminar@bar.com',
+            'clave_admin' => 'secreto123',
+            'clave_admin_confirmation' => 'secreto123',
+        ])->assertRedirect();
+
+        $negocio = Negocio::where('identificador', 'bar-a-eliminar')->firstOrFail();
+
+        $this->delete(route('plataforma.negocios.destroy', $negocio))->assertRedirect();
+
+        $this->assertSoftDeleted('negocios', ['id' => $negocio->id]);
+        $this->assertDatabaseHas('membresias_negocio', ['negocio_id' => $negocio->id, 'esta_activa' => false]);
+        $this->assertDatabaseHas('contratos', ['negocio_id' => $negocio->id, 'estado' => 'cancelado']);
+    }
 
     private function superAdmin(): User
     {
@@ -68,63 +137,118 @@ class PlataformaTest extends TestCase
 
         $this->post(route('plataforma.negocios.store'), [
             'nombre' => 'Bar San Felipe',
-            'identificador' => 'bar-san-felipe',
             'zona_horaria' => 'America/Guayaquil',
             'moneda' => 'USD',
             'plan_id' => $plan->id,
+            'numero_sucursales_contratadas' => 2,
             'nombre_admin' => 'Dueño',
             'correo_admin' => 'dueno@bar.com',
+            'cedula_admin' => '1002003000',
+            'celular_admin' => '0964142527',
             'clave_admin' => 'secreto123',
             'clave_admin_confirmation' => 'secreto123',
             'nombre_sucursal' => 'Central',
-        ])->assertRedirect(route('plataforma.negocios.index'));
+            'n_cajeros_sucursal' => 2,
+        ])->assertRedirect();
 
         $negocio = Negocio::where('identificador', 'bar-san-felipe')->firstOrFail();
+        $this->get(route('plataforma.negocios.show', $negocio))->assertOk();
         $this->assertSame('Bar San Felipe', $negocio->nombre);
         $this->assertSame('prueba', $negocio->membresia->estado ?? 'no-registrada');
         $this->assertDatabaseHas('sucursales', ['negocio_id' => $negocio->id, 'nombre' => 'Central']);
-        $this->assertDatabaseHas('usuarios', ['correo' => 'dueno@bar.com', 'rol' => null]);
+        $this->assertDatabaseHas('usuarios', ['correo' => 'dueno@bar.com']);
         $this->assertDatabaseHas('membresias_negocio', ['negocio_id' => $negocio->id, 'usuario_id' => User::where('correo', 'dueno@bar.com')->first()->id, 'rol' => 'propietario']);
         $this->assertDatabaseHas('configuraciones_negocio', ['negocio_id' => $negocio->id]);
+        $this->assertDatabaseHas('contratos', ['negocio_id' => $negocio->id, 'estado' => 'activo']);
     }
 
-    public function test_creacion_de_bar_valida_identificador_unico(): void
+    public function test_creacion_de_bar_genera_identificadores_unicos(): void
     {
         $plan = Plan::create(['nombre' => 'Pro', 'duracion_dias' => 30, 'limite_cajeros' => 5, 'limite_cajas' => 3, 'limite_sucursales' => 2]);
 
         $this->actingAs($this->superAdmin());
 
-        $this->post(route('plataforma.negocios.store'), [
-            'nombre' => 'Uno',
-            'identificador' => 'repetido',
+        $base = [
             'zona_horaria' => 'America/Guayaquil',
             'moneda' => 'USD',
             'plan_id' => $plan->id,
+            'numero_sucursales_contratadas' => 1,
+            'clave_admin' => 'secreto123',
+            'clave_admin_confirmation' => 'secreto123',
+        ];
+
+        $this->post(route('plataforma.negocios.store'), array_merge($base, ['nombre' => 'Mi Bar', 'correo_admin' => 'a@b.com', 'nombre_admin' => 'A']))->assertRedirect();
+        $this->post(route('plataforma.negocios.store'), array_merge($base, ['nombre' => 'Mi Bar', 'correo_admin' => 'b@c.com', 'nombre_admin' => 'B']))->assertRedirect();
+
+        $ids = Negocio::pluck('identificador')->filter(fn ($i) => str_starts_with((string) $i, 'mi-bar'))->values()->all();
+        $this->assertCount(2, $ids);
+        $this->assertSame('mi-bar', $ids[0]);
+        $this->assertSame('mi-bar-1', $ids[1]);
+    }
+
+    public function test_creacion_de_bar_rechaza_ruc_duplicado(): void
+    {
+        $plan = Plan::create(['nombre' => 'Pro', 'duracion_dias' => 30, 'limite_cajeros' => 5, 'limite_cajas' => 3, 'limite_sucursales' => 2]);
+
+        $this->actingAs($this->superAdmin());
+
+        $base = [
+            'zona_horaria' => 'America/Guayaquil',
+            'moneda' => 'USD',
+            'plan_id' => $plan->id,
+            'numero_sucursales_contratadas' => 1,
             'nombre_admin' => 'A',
-            'correo_admin' => 'a@b.com',
             'clave_admin' => 'secreto123',
             'clave_admin_confirmation' => 'secreto123',
-        ])->assertSessionHasNoErrors();
+            'ruc' => '1002003000001',
+        ];
 
-        $this->post(route('plataforma.negocios.store'), [
-            'nombre' => 'Dos',
-            'identificador' => 'repetido',
-            'zona_horaria' => 'America/Guayaquil',
-            'moneda' => 'USD',
-            'plan_id' => $plan->id,
-            'nombre_admin' => 'B',
-            'correo_admin' => 'b@c.com',
-            'clave_admin' => 'secreto123',
-            'clave_admin_confirmation' => 'secreto123',
-        ])->assertSessionHasErrors('identificador');
+        $this->post(route('plataforma.negocios.store'), array_merge($base, ['nombre' => 'Uno', 'correo_admin' => 'a@b.com']))->assertRedirect();
+        $this->post(route('plataforma.negocios.store'), array_merge($base, ['nombre' => 'Dos', 'correo_admin' => 'b@c.com']))->assertSessionHasErrors('ruc');
 
-        $this->assertSame(1, Negocio::where('identificador', 'repetido')->count());
-        $this->assertSame(1, Negocio::where('identificador', 'repetido')->where('nombre', 'Uno')->count());
+        $this->assertSame(1, Negocio::where('ruc', '1002003000001')->count());
+    }
+
+    public function test_downgrade_de_plan_bloqueado_con_limites_excedidos(): void
+    {
+        $planBasico = Plan::create(['nombre' => 'Básico', 'duracion_dias' => 30, 'limite_cajeros' => 1, 'limite_cajas' => 0, 'limite_sucursales' => 0]);
+
+        $this->actingAs($this->superAdmin());
+        $negocio = $this->crearBarConMembresia();
+
+        MembresiaNegocio::create(['negocio_id' => $negocio->id, 'usuario_id' => User::factory()->create()->id, 'rol' => 'cajero', 'esta_activa' => true]);
+        MembresiaNegocio::create(['negocio_id' => $negocio->id, 'usuario_id' => User::factory()->create()->id, 'rol' => 'cajero', 'esta_activa' => true]);
+        Caja::create(['negocio_id' => $negocio->id, 'nombre' => 'Caja 1', 'esta_activa' => true]);
+
+        $planAnterior = $negocio->membresia->plan_id;
+
+        $this->put(route('plataforma.negocios.update', $negocio), [
+            'nombre' => $negocio->nombre,
+            'numero_sucursales_contratadas' => 1,
+            'plan_id' => $planBasico->id,
+        ])->assertSessionHasErrors('plan_id');
+
+        $this->assertSame($planAnterior, $negocio->membresia->refresh()->plan_id);
+    }
+
+    public function test_mismo_plan_no_bloquea_la_actualizacion(): void
+    {
+        $this->actingAs($this->superAdmin());
+        $negocio = $this->crearBarConMembresia();
+
+        $this->put(route('plataforma.negocios.update', $negocio), [
+            'nombre' => 'Bar renombrado',
+            'numero_sucursales_contratadas' => 1,
+            'plan_id' => $negocio->membresia->plan_id,
+        ])->assertRedirect();
+
+        $this->assertSame('Bar renombrado', $negocio->fresh()->nombre);
     }
 
     public function test_renovar_extiende_la_membresia(): void
     {
         $this->actingAs($this->superAdmin());
+
         $negocio = $this->crearBarConMembresia();
         $fechaAnterior = $negocio->membresia->fecha_vencimiento;
 
@@ -209,7 +333,7 @@ class PlataformaTest extends TestCase
         $this->get(route('negocio.seleccionar'))->assertRedirect(route('punto_venta.inicio'));
     }
 
-    public function test_rol_legacy_administrador_se_trata_como_propietario(): void
+    public function test_rol_legacy_administrador_va_al_panel(): void
     {
         $negocio = $this->crearBarConMembresia();
         $usuario = User::factory()->create();

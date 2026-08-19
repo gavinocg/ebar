@@ -27,6 +27,11 @@ class IntentoPin extends Model
 
     public function registrarFallo(): void
     {
+        if ($this->bloqueado_hasta !== null && now()->gte($this->bloqueado_hasta)) {
+            $this->intentos = 0;
+            $this->bloqueado_hasta = null;
+        }
+
         $nuevosIntentos = $this->intentos + 1;
 
         if ($nuevosIntentos >= 5) {

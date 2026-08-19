@@ -6,6 +6,7 @@ use App\Models\Concerns\PerteneceANegocio;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Sucursal extends Model
 {
@@ -13,9 +14,18 @@ class Sucursal extends Model
 
     protected $table = 'sucursales';
 
-    protected $fillable = ['nombre', 'direccion', 'telefono', 'esta_activa'];
+    protected $fillable = ['nombre', 'direccion', 'telefono', 'provincia', 'canton', 'ciudad', 'esta_activa', 'n_cajeros_contratados'];
 
-    protected $casts = ['esta_activa' => 'boolean'];
+    protected $casts = ['esta_activa' => 'boolean', 'n_cajeros_contratados' => 'integer'];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Sucursal $sucursal): void {
+            if (!$sucursal->uuid) {
+                $sucursal->uuid = (string) Str::uuid();
+            }
+        });
+    }
 
     public function negocio(): BelongsTo
     {

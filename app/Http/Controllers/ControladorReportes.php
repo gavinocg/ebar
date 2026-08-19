@@ -10,6 +10,7 @@ use App\Models\Sucursal;
 use App\Services\ContextoNegocio;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Carbon\Carbon;
 
 class ControladorReportes extends Controller
@@ -142,7 +143,7 @@ class ControladorReportes extends Controller
 
     public function porSucursal(Request $request)
     {
-        $this->authorize('reportes.ver');
+        $this->authorize('reportes.ventas_o_cajeros');
         $request->validate([
             'start_date' => 'nullable|date|before_or_equal:end_date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
@@ -152,7 +153,7 @@ class ControladorReportes extends Controller
         $desde = $startDate . ' 00:00:00';
         $hasta = $endDate . ' 23:59:59';
 
-        $sucursales = Venta::whereBetween('created_at', [$desde, $hasta])
+        $sucursales = Venta::whereBetween('ventas.created_at', [$desde, $hasta])
             ->leftJoin('sucursales', 'ventas.sucursal_id', '=', 'sucursales.id')
             ->selectRaw('COALESCE(sucursales.nombre, "Sin sucursal") as sucursal_nombre')
             ->selectRaw('COUNT(*) as total_ventas')
@@ -162,7 +163,7 @@ class ControladorReportes extends Controller
             ->orderByDesc('total_ingreso')
             ->get();
 
-        $cajeros = Venta::whereBetween('created_at', [$desde, $hasta])
+        $cajeros = Venta::whereBetween('ventas.created_at', [$desde, $hasta])
             ->leftJoin('usuarios', 'ventas.usuario_id', '=', 'usuarios.id')
             ->selectRaw('COALESCE(usuarios.nombre, "Sin usuario") as cajero_nombre')
             ->selectRaw('COUNT(*) as total_ventas')

@@ -75,14 +75,22 @@ class CajerosTest extends TestCase
         $this->get(route('cajeros.index'))->assertOk()->assertSee('Cajeros');
     }
 
-    public function test_admin_bar_no_puede_gestionar_cajeros(): void
+    public function test_admin_bar_puede_ver_cajeros_pero_no_gestionarlos(): void
     {
         $negocio = $this->barConPlan();
         $admin = $this->adminBar($negocio);
+        $sucursal = Sucursal::where('negocio_id', $negocio->id)->first();
 
         $this->actingAs($admin);
 
-        $this->get(route('cajeros.index'))->assertForbidden();
+        $this->get(route('cajeros.index'))->assertOk();
+        $this->post(route('cajeros.store'), [
+            'nombre' => 'Nuevo',
+            'correo' => 'nuevo@bar.com',
+            'clave' => 'secreto123',
+            'pin' => '1234',
+            'sucursal_id' => $sucursal->id,
+        ])->assertForbidden();
     }
 
     public function test_cajero_no_puede_acceder_al_backoffice(): void
@@ -137,6 +145,7 @@ class CajerosTest extends TestCase
         $admin = $this->propietario($negocio);
         $sucursal = Sucursal::where('negocio_id', $negocio->id)->first();
         $this->cajero($negocio);
+        MembresiaNegocio::where('negocio_id', $negocio->id)->where('rol', 'cajero')->update(['sucursal_id' => $sucursal->id]);
 
         $this->actingAs($admin);
 
@@ -319,5 +328,62 @@ class CajerosTest extends TestCase
         $this->actingAs($admin);
 
         $this->get(route('caja.reporte'))->assertOk()->assertSee('Arqueos de caja');
+    }
+
+    public function test_admin_bar_aprueba_un_cuadre_pendiente(): void
+    {
+        $negocio = $this->barConPlan();
+        $admin = $this->adminBar($negocio);
+        $cajero = $this->cajero($negocio);
+        $caja = Caja::create(['nombre' => 'Caja 1', 'esta_activa' => true, 'negocio_id' => $negocio->id]);
+
+        $turno = TurnoCaja::create([
+            'caja_id' => $caja->id,
+            'usuario_id' => $cajero->id,
+            'fondo_inicial' => 100,
+            'abierto_en' => now()->subHour(),
+            'cerrado_en' => now(),
+            'efectivo_esperado' => 120,
+            'efectivo_contado' => 120,
+            'diferencia' => 0,
+            'estado' => 'pendiente_aprobacion',
+            'negocio_id' => $negocio->id,
+        ]);
+
+        app(ContextoNegocio::class)->establecer($negocio->id);
+        $this->actingAs($admin);
+
+        $this->post(route('cuadres.aprobar', $turno))->assertRedirect();
+
+        $turno->refresh();
+        $this->assertSame('aprobada', $turno->estado);
+        $this->assertSame($admin->id, $turno->aprobado_por);
+    }
+
+    public function test_admin_bar_puede_ver_el_reporte_por_cajero(): void
+    {
+        $negocio = $this->barConPlan();
+        $admin = $this->adminBar($negocio);
+        $cajero = $this->cajero($negocio);
+        $sucursal = Sucursal::where('negocio_id', $negocio->id)->first();
+
+        Venta::create([
+            'numero_comprobante' => 'CMP-000003',
+            'usuario_id' => $cajero->id,
+            'subtotal' => 20,
+            'impuesto' => 0,
+            'impuesto_habilitado' => false,
+            'porcentaje_impuesto' => 0,
+            'total' => 20,
+            'metodo_pago' => 'efectivo',
+            'pagado' => 20,
+            'cambio' => 0,
+            'sucursal_id' => $sucursal->id ?? null,
+        ]);
+
+        app(ContextoNegocio::class)->establecer($negocio->id);
+        $this->actingAs($admin);
+
+        $this->get(route('reportes.cajeros'))->assertOk()->assertSee($cajero->nombre);
     }
 }

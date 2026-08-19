@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.sidebar')
 
 @section('title', 'Editar bar')
 
@@ -8,12 +8,17 @@
         <span class="badge bg-dark">super_admin</span>
         <h1 class="h3 mt-2">Editar {{ $negocio->nombre }}</h1>
     </div>
-    <a href="{{ route('plataforma.negocios.index') }}" class="btn btn-outline-secondary">
-        <i class="bi bi-arrow-left"></i> Volver
-    </a>
+    <div class="d-flex gap-2">
+        <a href="{{ route('plataforma.negocios.show', $negocio) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+        <a href="{{ route('plataforma.negocios.edit', $negocio) }}" class="btn btn-primary">
+            <i class="bi bi-pencil"></i> Editar
+        </a>
+    </div>
 </div>
 
-<form method="POST" action="{{ route('plataforma.negocios.update', $negocio) }}" class="row g-3 bg-white shadow-sm rounded p-4">
+<form method="POST" action="{{ route('plataforma.negocios.update', $negocio) }}" enctype="multipart/form-data" class="row g-3 bg-white shadow-sm rounded p-4">
     @csrf
     @method('PUT')
 
@@ -23,8 +28,22 @@
     </div>
 
     <div class="col-md-6">
-        <label class="form-label">Identificador único *</label>
-        <input type="text" name="identificador" class="form-control" value="{{ old('identificador', $negocio->identificador) }}" required>
+        <label class="form-label">RUC *</label>
+        <input type="text" name="ruc" class="form-control" value="{{ old('ruc', $negocio->ruc) }}" maxlength="13">
+        <div class="form-text">13 dígitos, se valida su dígito verificador.</div>
+    </div>
+
+    <div class="col-md-4">
+        <label class="form-label">Nº sucursales contratadas (xNS) *</label>
+        <input type="number" name="numero_sucursales_contratadas" min="1" max="100" class="form-control" value="{{ old('numero_sucursales_contratadas', $negocio->numero_sucursales_contratadas ?? 1) }}" required>
+    </div>
+
+    <div class="col-md-4">
+        <label class="form-label">Logo</label>
+        <input type="file" name="logo" class="form-control" accept="image/*">
+        @if ($negocio->logo)
+            <div class="form-text">Actual: <img src="{{ \Illuminate\Support\Facades\Storage::url($negocio->logo) }}" alt="Logo" class="img-thumbnail" style="max-height: 28px;"></div>
+        @endif
     </div>
 
     <div class="col-md-4">
@@ -56,7 +75,7 @@
         </select>
     </div>
 
-    <div class="col-md-6">
+    <div class="col-md-4">
         <div class="form-check form-switch mt-4">
             <input class="form-check-input" type="checkbox" name="esta_activo" id="esta_activo" value="1" @checked(old('esta_activo', $negocio->esta_activo))>
             <label class="form-check-label" for="esta_activo">Bar activo</label>
@@ -64,7 +83,7 @@
     </div>
 
     <div class="col-12 d-flex justify-content-end gap-2">
-        <a href="{{ route('plataforma.negocios.index') }}" class="btn btn-outline-secondary">Cancelar</a>
+        <a href="{{ route('plataforma.negocios.show', $negocio) }}" class="btn btn-outline-secondary">Cancelar</a>
         <button type="submit" class="btn btn-primary">
             <i class="bi bi-check-circle"></i> Guardar
         </button>

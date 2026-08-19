@@ -3,6 +3,9 @@
 @section('title', 'Cajeros')
 
 @section('content')
+@php
+    $puedeCrear = auth()->user()->esPropietario();
+@endphp
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h1 class="h3">Cajeros</h1>
@@ -10,14 +13,34 @@
             {{ $cajeros->where('esta_activa', true)->count() }} de {{ $limiteCajeros }} cajeros activos según la configuración de tu bar.
         </p>
     </div>
-    @unless ($limiteAlcanzado)
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#crearCajero" @disabled($limiteAlcanzado)>
-            <i class="bi bi-person-plus"></i> Nuevo cajero
-        </button>
-    @else
-        <span class="badge bg-warning text-dark">Límite de cajeros alcanzado</span>
+    @if ($puedeCrear)
+        @unless ($limiteAlcanzado)
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#crearCajero">
+                <i class="bi bi-person-plus"></i> Nuevo cajero
+            </button>
+        @else
+            <span class="badge bg-warning text-dark">Límite de cajeros alcanzado</span>
+        @endif
     @endif
 </div>
+
+@if(count($limitesPorSucursal) > 0)
+    <div class="row mb-4 g-2">
+        @foreach($limitesPorSucursal as $sucursalId => $datos)
+            @php $sucursalNombre = $sucursales->firstWhere('id', $sucursalId)?->nombre ?? 'Sucursal'; @endphp
+            <div class="col-md-3">
+                <div class="card bg-white shadow-sm">
+                    <div class="card-body py-2">
+                        <div class="small text-muted">{{ $sucursalNombre }}</div>
+                        <div class="fw-bold">
+                            {{ $datos['activos'] }} / {{ $datos['limite'] > 0 ? $datos['limite'] : '∞' }} cajeros
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endforeach
+    </div>
+@endif
 
 <div class="table-responsive">
     <table class="table table-hover align-middle bg-white shadow-sm rounded">
@@ -77,11 +100,13 @@
                         <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editar{{ $cajero->id }}">
                             <i class="bi bi-pencil"></i>
                         </button>
-                        <form method="POST" action="{{ route('cajeros.destroy', $cajero->usuario) }}" class="d-inline" onsubmit="return confirm('¿Desactivar este cajero? Conservará su historial.')">
-                            @csrf
-                            @method('DELETE')
-                            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-person-x"></i></button>
-                        </form>
+                        @if ($puedeCrear)
+                            <form method="POST" action="{{ route('cajeros.destroy', $cajero->usuario) }}" class="d-inline" onsubmit="return confirm('¿Desactivar este cajero? Conservará su historial.')">
+                                @csrf
+                                @method('DELETE')
+                                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-person-x"></i></button>
+                            </form>
+                        @endif
                     </td>
                 </tr>
             @empty
@@ -128,6 +153,18 @@
                             @endforeach
                         </select>
                     </div>
+                    @if($rolesPersonalizados->isNotEmpty())
+                        <div class="mb-3">
+                            <label class="form-label">Rol</label>
+                            <select name="rol_id" class="form-select">
+                                <option value="">Rol de cajero (predeterminado)</option>
+                                @foreach($rolesPersonalizados as $rolPersonalizado)
+                                    <option value="{{ $rolPersonalizado->id }}">{{ $rolPersonalizado->nombre }}</option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted">Define los permisos que tendrá este cajero.</small>
+                        </div>
+                    @endif
                     <div class="form-check form-switch mb-2">
                         <input class="form-check-input" type="checkbox" name="cuadre_activo" id="cuadre_crear" value="1" checked>
                         <label class="form-check-label" for="cuadre_crear">Cuadre de caja activo (conteo de billetes/monedas)</label>
@@ -179,6 +216,17 @@
                                 @endforeach
                             </select>
                         </div>
+                        @if($rolesPersonalizados->isNotEmpty())
+                            <div class="mb-3">
+                                <label class="form-label">Rol</label>
+                                <select name="rol_id" class="form-select">
+                                    <option value="" @selected(!$cajero->rol_id || $cajero->rol_id === $rolCajeroDefaultId)>Rol de cajero (predeterminado)</option>
+                                    @foreach($rolesPersonalizados as $rolPersonalizado)
+                                        <option value="{{ $rolPersonalizado->id }}" @selected((int)$cajero->rol_id === $rolPersonalizado->id)>{{ $rolPersonalizado->nombre }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @endif
                         <div class="form-check form-switch mb-2">
                             <input class="form-check-input" type="checkbox" name="cuadre_activo" id="cuadre_{{ $cajero->id }}" value="1" @checked($cajero->cuadre_activo)>
                             <label class="form-check-label" for="cuadre_{{ $cajero->id }}">Cuadre de caja activo (conteo de billetes/monedas)</label>

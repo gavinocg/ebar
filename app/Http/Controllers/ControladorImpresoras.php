@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Impresora as Printer;
 use App\Models\Sucursal;
+use App\Services\ContextoNegocio;
 use App\Services\ServicioImpresoraTermica;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ControladorImpresoras extends Controller
 {
@@ -18,19 +20,15 @@ class ControladorImpresoras extends Controller
 
     public function store(Request $request)
     {
+        $negocioId = app(ContextoNegocio::class)->id();
+
         $request->validate([
-            'sucursal_id' => 'nullable|integer|exists:sucursales,id',
+            'sucursal_id' => ['nullable', 'integer', Rule::exists('sucursales', 'id')->where('negocio_id', $negocioId)],
             'nombre' => 'required|string|max:255',
-            'tipo_conexion' => 'required|in:bluetooth,wifi,lan,normal',
-            'direccion' => 'nullable|string',
-            'puerto' => 'nullable|integer|min:1|max:65535',
-            'ancho_papel' => 'required|in:58mm,80mm,a4,a5,letter',
+            'tipo_conexion' => 'required|in:bluetooth',
+            'ancho_papel' => 'required|in:58mm',
             'es_predeterminada' => 'nullable|boolean',
         ]);
-
-        if ($request->tipo_conexion === 'normal') {
-            $request->merge(['direccion' => null, 'puerto' => null]);
-        }
 
         if ($request->es_predeterminada) {
             Printer::where('es_predeterminada', true)->update(['es_predeterminada' => false]);
@@ -43,19 +41,15 @@ class ControladorImpresoras extends Controller
 
     public function update(Request $request, Printer $printer)
     {
+        $negocioId = app(ContextoNegocio::class)->id();
+
         $request->validate([
-            'sucursal_id' => 'nullable|integer|exists:sucursales,id',
+            'sucursal_id' => ['nullable', 'integer', Rule::exists('sucursales', 'id')->where('negocio_id', $negocioId)],
             'nombre' => 'required|string|max:255',
-            'tipo_conexion' => 'required|in:bluetooth,wifi,lan,normal',
-            'direccion' => 'nullable|string',
-            'puerto' => 'nullable|integer|min:1|max:65535',
-            'ancho_papel' => 'required|in:58mm,80mm,a4,a5,letter',
+            'tipo_conexion' => 'required|in:bluetooth',
+            'ancho_papel' => 'required|in:58mm',
             'es_predeterminada' => 'nullable|boolean',
         ]);
-
-        if ($request->tipo_conexion === 'normal') {
-            $request->merge(['direccion' => null, 'puerto' => null]);
-        }
 
         if ($request->es_predeterminada) {
             Printer::where('es_predeterminada', true)
@@ -77,19 +71,6 @@ class ControladorImpresoras extends Controller
     public function probar(Printer $printer)
     {
         try {
-            if ($printer->esConvencional()) {
-                $viewName = in_array($printer->ancho_papel, ['a4', 'letter']) ? 'printers.test-ticket-a4' : 'printers.test-ticket-html';
-                return response()->json([
-                    'success' => true,
-                    'type' => 'normal',
-                    'ticket_html' => view($viewName, [
-                        'printerName' => $printer->nombre,
-                        'date' => now()->format('d/m/Y H:i:s'),
-                        'paperSize' => strtoupper($printer->ancho_papel),
-                    ])->render(),
-                ]);
-            }
-
             $servicioImpresora = new ServicioImpresoraTermica($printer);
             $ticketData = $servicioImpresora->imprimirComprobantePrueba();
             $connectionData = $servicioImpresora->obtenerDatosConexion();
@@ -98,7 +79,7 @@ class ControladorImpresoras extends Controller
                 'success' => true,
                 'type' => 'thermal',
                 'ticket' => base64_encode($ticketData),
-                'printer' => $connectionData,
+                'datos' => $connectionData,
             ]);
         } catch (\Exception $e) {
             return response()->json([

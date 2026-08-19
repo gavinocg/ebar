@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.sidebar')
 
 @section('title', 'Bares')
 
@@ -18,10 +18,10 @@
         <thead class="table-light">
             <tr>
                 <th>Bar</th>
-                <th>Identificador</th>
+                <th>RUC</th>
                 <th>Sucursales</th>
+                <th>Contrato</th>
                 <th>Plan</th>
-                <th>Membresía</th>
                 <th>Estado</th>
                 <th class="text-end">Acciones</th>
             </tr>
@@ -29,23 +29,28 @@
         <tbody>
             @forelse($negocios as $negocio)
                 <tr>
-                    <td class="fw-semibold">{{ $negocio->nombre }}</td>
-                    <td><code>{{ $negocio->identificador }}</code></td>
-                    <td>{{ $negocio->sucursales->count() }}</td>
+                    <td class="fw-semibold">
+                        @if ($negocio->logo)
+                            <img src="{{ \Illuminate\Support\Facades\Storage::url($negocio->logo) }}" alt="Logo" class="me-2 img-thumbnail" style="max-height: 28px;">
+                        @endif
+                        {{ $negocio->nombre }}
+                    </td>
+                    <td><code>{{ $negocio->ruc ?: '—' }}</code></td>
+                    <td>{{ $negocio->sucursales->count() }} / {{ $negocio->numero_sucursales_contratadas }}</td>
+                    <td>
+                        @if ($contratoVigente = $negocio->contratos->first())
+                            <span class="badge bg-success">Activo</span>
+                            <br>
+                            <small class="text-muted">hasta {{ $contratoVigente->fecha_fin->format('d/m/Y') }}</small>
+                        @else
+                            <span class="badge bg-danger">Sin contrato vigente</span>
+                        @endif
+                    </td>
                     <td>
                         @if ($negocio->membresia?->plan)
                             <span class="badge bg-info text-dark">{{ $negocio->membresia->plan->nombre }}</span>
                         @else
                             <span class="badge bg-secondary">Sin plan</span>
-                        @endif
-                    </td>
-                    <td>
-                        @if ($negocio->membresia)
-                            {{ $negocio->membresia->estado }}
-                            <br>
-                            <small class="text-muted">vence {{ $negocio->membresia->fecha_vencimiento->format('d/m/Y') }}</small>
-                        @else
-                            <span class="badge bg-secondary">Sin membresía</span>
                         @endif
                     </td>
                     <td>
@@ -56,6 +61,9 @@
                         @endif
                     </td>
                     <td class="text-end">
+                        <a href="{{ route('plataforma.negocios.show', $negocio) }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-eye"></i> Ver
+                        </a>
                         <a href="{{ route('plataforma.negocios.edit', $negocio) }}" class="btn btn-sm btn-outline-primary">
                             <i class="bi bi-pencil"></i> Editar
                         </a>

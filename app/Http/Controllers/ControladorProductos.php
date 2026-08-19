@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Producto as Product;
 use App\Models\Categoria as Category;
 use App\Models\Sucursal;
+use App\Services\ContextoNegocio;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ControladorProductos extends Controller
@@ -33,9 +35,11 @@ class ControladorProductos extends Controller
     {
         $this->authorize('gestionar', Product::class);
 
+        $negocioId = app(ContextoNegocio::class)->id();
+
         $request->validate([
-            'sucursal_id' => 'nullable|integer|exists:sucursales,id',
-            'categoria_id' => 'required|exists:categorias,id',
+            'sucursal_id' => ['nullable', 'integer', Rule::exists('sucursales', 'id')->where('negocio_id', $negocioId)],
+            'categoria_id' => ['required', Rule::exists('categorias', 'id')->where('negocio_id', $negocioId)],
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'imagen' => 'nullable|file|mimes:jpeg,jpg,png,webp|max:2048|dimensions:max_width=2000,max_height=2000',
@@ -48,7 +52,7 @@ class ControladorProductos extends Controller
             'existencias' => 'required_if:maneja_existencias,1|nullable|integer|min:0',
             'nivel_minimo' => 'nullable|integer|min:0',
             'maneja_existencias' => 'nullable|boolean',
-            'codigo_barras' => 'nullable|string|unique:productos,codigo_barras',
+            'codigo_barras' => ['nullable', 'string', Rule::unique('productos', 'codigo_barras')->where('negocio_id', $negocioId)->whereNull('deleted_at')],
         ]);
 
         $datos = $request->only([
@@ -80,9 +84,11 @@ class ControladorProductos extends Controller
     {
         $this->authorize('gestionar', $product);
 
+        $negocioId = app(ContextoNegocio::class)->id();
+
         $request->validate([
-            'sucursal_id' => 'nullable|integer|exists:sucursales,id',
-            'categoria_id' => 'required|exists:categorias,id',
+            'sucursal_id' => ['nullable', 'integer', Rule::exists('sucursales', 'id')->where('negocio_id', $negocioId)],
+            'categoria_id' => ['required', Rule::exists('categorias', 'id')->where('negocio_id', $negocioId)],
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'imagen' => 'nullable|file|mimes:jpeg,jpg,png,webp|max:2048|dimensions:max_width=2000,max_height=2000',
@@ -95,7 +101,7 @@ class ControladorProductos extends Controller
             'existencias' => 'required_if:maneja_existencias,1|nullable|integer|min:0',
             'nivel_minimo' => 'nullable|integer|min:0',
             'maneja_existencias' => 'nullable|boolean',
-            'codigo_barras' => 'nullable|string|unique:productos,codigo_barras,' . $product->id,
+            'codigo_barras' => ['nullable', 'string', Rule::unique('productos', 'codigo_barras')->where('negocio_id', $negocioId)->whereNull('deleted_at')->ignore($product->id)],
         ]);
 
         $datos = $request->only([
@@ -104,7 +110,11 @@ class ControladorProductos extends Controller
         ]);
         $datos['esta_activo'] = $request->boolean('esta_activo');
         $datos['maneja_existencias'] = $request->boolean('maneja_existencias');
-        $datos['existencias'] = $datos['maneja_existencias'] ? ($datos['existencias'] ?? 0) : 0;
+        if ($datos['maneja_existencias']) {
+            $datos['existencias'] = $datos['existencias'] ?? 0;
+        } else {
+            unset($datos['existencias']);
+        }
         $datos['destacado'] = $request->boolean('destacado');
         if ($request->hasFile('imagen')) {
             if ($product->imagen_path) {
@@ -123,6 +133,10 @@ class ControladorProductos extends Controller
 
         if ($product->imagen_path) {
             Storage::disk('public')->delete($product->imagen_path);
+        }
+        if ($product->codigo_barras) {
+            $product->codigo_barras = null;
+            $product->save();
         }
         $product->delete();
         return redirect()->route('productos.index')->with('success', 'Producto eliminado');
@@ -153,8 +167,6 @@ class ControladorProductos extends Controller
         rewind($csv);
 
         return response()->streamDownload(function () use ($csv) {
-            stream_get_contents($csv);
-            rewind($csv);
             fpassthru($csv);
         }, 'productos-' . now()->format('Y-m-d') . '.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
@@ -183,14 +195,25 @@ class ControladorProductos extends Controller
                 continue;
             }
 
+            $categoriaId = $categorias->get(trim($datos['categoria'] ?? ''));
+
+            if ($categoriaId === null) {
+                continue;
+            }
+
+            $precio = (float) ($datos['precio'] ?? 0);
+            $descuento = (float) ($datos['descuento'] ?? 0);
+            $existencias = (int) ($datos['existencias'] ?? 0);
+            $nivelMinimo = (int) ($datos['nivel_minimo'] ?? 0);
+
             $filas[] = [
                 'nombre' => trim($datos['nombre']),
-                'categoria_id' => $categorias->get(trim($datos['categoria'] ?? '')),
-                'precio' => (float) ($datos['precio'] ?? 0),
-                'descuento' => (float) ($datos['descuento'] ?? 0),
-                'existencias' => (int) ($datos['existencias'] ?? 0),
-                'nivel_minimo' => (int) ($datos['nivel_minimo'] ?? 0) ?: null,
-                'codigo_barras' => $datos['codigo_barras'] ?? null,
+                'categoria_id' => $categoriaId,
+                'precio' => max(0.0, $precio),
+                'descuento' => min(100.0, max(0.0, $descuento)),
+                'existencias' => max(0, $existencias),
+                'nivel_minimo' => max(0, $nivelMinimo) ?: null,
+                'codigo_barras' => blank($datos['codigo_barras'] ?? null) ? null : trim($datos['codigo_barras']),
                 'sucursal_id' => $sucursales->get(trim($datos['sucursal'] ?? '')) ?: null,
                 'maneja_existencias' => (bool) ($datos['maneja_existencias'] ?? true),
             ];
@@ -219,7 +242,7 @@ class ControladorProductos extends Controller
                 }
             }
 
-            return back()->with('success', "Importación completada: {$creados} creados, {$actualizados} actualizados.");
+            return back()->with('success', "ImportaciÃ³n completada: {$creados} creados, {$actualizados} actualizados.");
         });
     }
 }

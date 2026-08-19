@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ConfiguracionNegocio as BusinessSetting;
+use App\Services\RegistradorAuditoria;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -16,8 +17,10 @@ class ControladorConfiguracionNegocio extends Controller
         return view('settings.business', compact('settings'));
     }
 
-    public function update(Request $request)
+    public function update(Request $request, RegistradorAuditoria $auditoria)
     {
+        $this->authorize('administrar', BusinessSetting::class);
+
         $request->validate([
             'nombre_negocio' => 'required|string|max:255',
             'logotipo' => 'nullable|image|mimes:jpeg,jpg,png,gif|max:2048',
@@ -37,8 +40,8 @@ class ControladorConfiguracionNegocio extends Controller
         $settings->telefono = $request->telefono;
         $settings->direccion = $request->direccion;
         $settings->mensaje_comprobante = $request->mensaje_comprobante;
-        $settings->cobrar_impuesto = $request->cobrar_impuesto == '1';
-        $settings->descuento_activo = $request->descuento_activo == '1';
+        $settings->cobrar_impuesto = $request->boolean('cobrar_impuesto');
+        $settings->descuento_activo = $request->boolean('descuento_activo');
         $settings->porcentaje_impuesto = $request->porcentaje_impuesto ?? 15.00;
 
         if ($request->hasFile('logotipo')) {
@@ -50,6 +53,11 @@ class ControladorConfiguracionNegocio extends Controller
         }
 
         $settings->save();
+
+        $auditoria->registrar('configuracion', 'actualizar', 'Configuración del negocio actualizada', [
+            'cobrar_impuesto' => $settings->cobrar_impuesto,
+            'porcentaje_impuesto' => $settings->porcentaje_impuesto,
+        ], BusinessSetting::class, $settings->id);
 
         return redirect()->route('configuracion.negocio')->with('success', 'Configuración actualizada');
     }

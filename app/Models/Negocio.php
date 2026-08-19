@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Negocio extends Model
 {
@@ -13,13 +14,36 @@ class Negocio extends Model
 
     protected $table = 'negocios';
 
-    protected $fillable = ['nombre', 'identificador', 'esta_activo', 'zona_horaria', 'moneda'];
+    protected $fillable = ['nombre', 'identificador', 'ruc', 'logo', 'esta_activo', 'zona_horaria', 'moneda', 'numero_sucursales_contratadas'];
 
-    protected $casts = ['esta_activo' => 'boolean'];
+    protected $casts = ['esta_activo' => 'boolean', 'numero_sucursales_contratadas' => 'integer'];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Negocio $negocio): void {
+            if (!$negocio->uuid) {
+                $negocio->uuid = (string) Str::uuid();
+            }
+        });
+    }
 
     public function configuracion(): HasOne
     {
         return $this->hasOne(ConfiguracionNegocio::class, 'negocio_id');
+    }
+
+    public function contratos(): HasMany
+    {
+        return $this->hasMany(Contrato::class, 'negocio_id');
+    }
+
+    public function contratoVigente(): ?Contrato
+    {
+        return $this->contratos()
+            ->where('estado', 'activo')
+            ->whereDate('fecha_fin', '>=', now()->toDateString())
+            ->orderByDesc('fecha_fin')
+            ->first();
     }
 
     public function sucursales(): HasMany

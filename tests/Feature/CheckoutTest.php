@@ -11,6 +11,8 @@ use App\Models\Negocio;
 use App\Services\ContextoNegocio;
 use App\Models\Impresora;
 use App\Models\Venta;
+use App\Models\Cliente;
+use App\Models\ProductoVariante;
 use App\Services\ServicioImpresoraTermica;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -392,7 +394,7 @@ class CheckoutTest extends TestCase
         ]);
         $this->assertDatabaseHas('movimientos_efectivo', [
             'tipo' => 'retiro',
-            'monto' => 20,
+            'monto' => -20,
             'motivo' => 'Reembolso ' . $venta->numero_comprobante,
         ]);
         $this->assertDatabaseHas('auditorias', [
@@ -446,7 +448,7 @@ class CheckoutTest extends TestCase
         $this->assertSame(3, (int) $product->fresh()->existencias);
     }
 
-    public function test_reembolso_requiere_admin_del_bar(): void
+    public function test_cajero_puede_crear_un_reembolso(): void
     {
         $cajero = $this->cajero();
         $this->actingAs($cajero);
@@ -469,12 +471,333 @@ class CheckoutTest extends TestCase
 
         $this->post(route('reembolsos.crear', $venta), [
             'tipo' => 'total',
-            'motivo' => 'Sin autorización',
+            'motivo' => 'Devolución autorizada',
             'metodo' => 'efectivo',
             'items' => [$venta->detalles->first()->id => 1],
-        ])->assertForbidden();
+        ])->assertRedirect();
+
+        $this->assertDatabaseCount('reembolsos', 1);
+        $this->assertSame(2, (int) $product->fresh()->existencias);
+    }
+
+    public function test_reembolso_en_efectivo_requiere_turno_abierto(): void
+    {
+        $cajero = $this->cajero();
+        $this->actingAs($cajero);
+        $this->abrirTurno($cajero);
+        $product = $this->product(price: 10, stock: 2);
+        BusinessSetting::create([
+            'nombre_negocio' => 'Prueba',
+            'cobrar_impuesto' => false,
+            'porcentaje_impuesto' => 0,
+        ]);
+
+        $this->postJson(route('punto_venta.cobrar'), [
+            'items' => [['producto_id' => $product->id, 'cantidad' => 1]],
+            'metodo_pago' => 'efectivo',
+            'pagado' => '10.00',
+            'clave_idempotencia' => 'venta-turno-cerrado',
+        ])->assertOk();
+
+        $venta = Venta::first();
+        TurnoCaja::where('usuario_id', $cajero->id)->update(['estado' => 'cerrada', 'cerrado_en' => now()]);
+
+        $this->post(route('reembolsos.crear', $venta), [
+            'tipo' => 'total',
+            'motivo' => 'Intento tras cerrar la caja',
+            'metodo' => 'efectivo',
+            'items' => [$venta->detalles->first()->id => 1],
+        ])->assertRedirect()->assertSessionHas('error');
 
         $this->assertDatabaseCount('reembolsos', 0);
+    }
+
+    public function test_venta_en_efectivo_registra_el_cambio_como_retiro(): void
+    {
+        $usuario = $this->cajero();
+        $this->actingAs($usuario);
+        $this->abrirTurno($usuario);
+        $product = $this->product(price: 10, stock: 3);
+        BusinessSetting::create([
+            'nombre_negocio' => 'Prueba',
+            'cobrar_impuesto' => false,
+            'porcentaje_impuesto' => 0,
+        ]);
+
+        $this->postJson(route('punto_venta.cobrar'), [
+            'items' => [['producto_id' => $product->id, 'cantidad' => 2]],
+            'metodo_pago' => 'efectivo',
+            'pagado' => '25.00',
+            'clave_idempotencia' => 'cambio-efectivo-test',
+        ])->assertOk();
+
+        $venta = Venta::first();
+
+        $this->assertDatabaseHas('movimientos_efectivo', [
+            'tipo' => 'venta',
+            'monto' => 25,
+        ]);
+        $this->assertDatabaseHas('movimientos_efectivo', [
+            'tipo' => 'retiro',
+            'monto' => -5,
+            'motivo' => 'Cambio de venta ' . $venta->numero_comprobante,
+        ]);
+
+        $turno = $this->turnoActual($usuario);
+        $this->assertSame(20.0, (float) $turno->movimientosEfectivo()->sum('monto'));
+    }
+
+    public function test_idempotencia_entre_usuarios_devuelve_la_venta_existente(): void
+    {
+        $primerCajero = $this->cajero();
+        $this->actingAs($primerCajero);
+        $this->abrirTurno($primerCajero);
+        $product = $this->product(price: 10, stock: 5);
+        BusinessSetting::create([
+            'nombre_negocio' => 'Prueba',
+            'cobrar_impuesto' => false,
+            'porcentaje_impuesto' => 0,
+        ]);
+
+        $this->postJson(route('punto_venta.cobrar'), [
+            'items' => [['producto_id' => $product->id, 'cantidad' => 1]],
+            'metodo_pago' => 'efectivo',
+            'pagado' => '10.00',
+            'clave_idempotencia' => 'clave-compartida',
+        ])->assertOk();
+        $ventaOriginal = Venta::first();
+
+        $segundoCajero = $this->cajero();
+        $this->actingAs($segundoCajero);
+        $this->abrirTurno($segundoCajero);
+
+        $response = $this->postJson(route('punto_venta.cobrar'), [
+            'items' => [['producto_id' => $product->id, 'cantidad' => 1]],
+            'metodo_pago' => 'efectivo',
+            'pagado' => '10.00',
+            'clave_idempotencia' => 'clave-compartida',
+        ]);
+
+        $response->assertOk()->assertJsonPath('sale.numero_comprobante', $ventaOriginal->numero_comprobante);
+        $this->assertDatabaseCount('ventas', 1);
+    }
+
+    public function test_descuento_de_producto_mayor_al_100_no_genera_totales_negativos(): void
+    {
+        $usuario = $this->cajero();
+        $this->actingAs($usuario);
+        $this->abrirTurno($usuario);
+
+        $categoria = Category::create(['nombre' => 'Pruebas']);
+        $producto = Product::create([
+            'categoria_id' => $categoria->id,
+            'nombre' => 'Producto con descuento desmedido',
+            'precio' => 10,
+            'descuento' => 150,
+            'existencias' => 10,
+            'esta_activo' => true,
+        ]);
+        BusinessSetting::create([
+            'nombre_negocio' => 'Prueba',
+            'cobrar_impuesto' => false,
+            'porcentaje_impuesto' => 0,
+            'descuento_activo' => true,
+        ]);
+
+        $this->postJson(route('punto_venta.cobrar'), [
+            'items' => [['producto_id' => $producto->id, 'cantidad' => 1]],
+            'metodo_pago' => 'efectivo',
+            'pagado' => '0.00',
+            'clave_idempotencia' => 'descuento-150-test',
+        ])->assertOk();
+
+        $venta = Venta::first();
+        $this->assertSame('0.00', number_format($venta->total, 2));
+        $this->assertSame('10.00', number_format($venta->descuento, 2));
+        $this->assertSame('0.00', number_format($venta->pagado, 2));
+    }
+
+    public function test_variante_con_stock_no_se_decrementa_si_el_producto_no_maneja_existencias(): void
+    {
+        $usuario = $this->cajero();
+        $this->actingAs($usuario);
+        $this->abrirTurno($usuario);
+
+        $categoria = Category::create(['nombre' => 'Pruebas']);
+        $producto = Product::create([
+            'categoria_id' => $categoria->id,
+            'nombre' => 'Servicio con variante',
+            'precio' => 5,
+            'existencias' => 0,
+            'maneja_existencias' => false,
+            'esta_activo' => true,
+        ]);
+        $variante = ProductoVariante::create([
+            'producto_id' => $producto->id,
+            'nombre' => 'Grande',
+            'precio' => 5,
+            'stock' => 2,
+            'esta_activo' => true,
+        ]);
+        BusinessSetting::create([
+            'nombre_negocio' => 'Prueba',
+            'cobrar_impuesto' => false,
+            'porcentaje_impuesto' => 0,
+        ]);
+
+        $this->postJson(route('punto_venta.cobrar'), [
+            'items' => [['producto_id' => $producto->id, 'variante_id' => $variante->id, 'cantidad' => 1]],
+            'metodo_pago' => 'efectivo',
+            'pagado' => '5.00',
+            'clave_idempotencia' => 'variante-sin-existencias-test',
+        ])->assertOk();
+
+        $this->assertSame(2, (int) $variante->fresh()->stock);
+        $this->assertDatabaseCount('movimientos_inventario', 0);
+    }
+
+    public function test_reembolso_en_credito_es_viable_sin_movimiento_de_efectivo(): void
+    {
+        $cajero = $this->cajero();
+        $this->actingAs($cajero);
+        $this->abrirTurno($cajero);
+        $product = $this->product(price: 10, stock: 3);
+        $cliente = Cliente::create(['nombre' => 'Cliente fiado', 'esta_activo' => true]);
+        BusinessSetting::create([
+            'nombre_negocio' => 'Prueba',
+            'cobrar_impuesto' => false,
+            'porcentaje_impuesto' => 0,
+        ]);
+
+        $this->postJson(route('punto_venta.cobrar'), [
+            'items' => [['producto_id' => $product->id, 'cantidad' => 2]],
+            'metodo_pago' => 'credito',
+            'pagado' => '0.00',
+            'cliente_id' => $cliente->id,
+            'descripcion_cliente' => 'Fiado a la casa',
+            'clave_idempotencia' => 'venta-credito-reembolso',
+        ])->assertOk();
+
+        $venta = Venta::first();
+        $this->assertSame(0.0, (float) $venta->pagado);
+
+        $this->actingAs($this->adminBar());
+
+        $this->post(route('reembolsos.crear', $venta), [
+            'tipo' => 'total',
+            'motivo' => 'Se perdona la deuda',
+            'metodo' => 'credito',
+            'items' => [$venta->detalles->first()->id => 2],
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('reembolsos', [
+            'venta_id' => $venta->id,
+            'tipo' => 'total',
+            'metodo' => 'credito',
+            'monto' => 20,
+        ]);
+        $this->assertDatabaseCount('movimientos_efectivo', 0);
+    }
+
+    public function test_reembolso_incluye_impuesto_proporcional(): void
+    {
+        $cajero = $this->cajero();
+        $this->actingAs($cajero);
+        $this->abrirTurno($cajero);
+        $product = $this->product(price: 10, stock: 4);
+        BusinessSetting::create([
+            'nombre_negocio' => 'Prueba',
+            'cobrar_impuesto' => true,
+            'porcentaje_impuesto' => 15,
+        ]);
+
+        $this->postJson(route('punto_venta.cobrar'), [
+            'items' => [['producto_id' => $product->id, 'cantidad' => 2]],
+            'metodo_pago' => 'efectivo',
+            'pagado' => '23.00',
+            'clave_idempotencia' => 'venta-iva-reembolso',
+        ])->assertOk();
+
+        $venta = Venta::first();
+        $this->assertSame('23.00', number_format($venta->total, 2));
+
+        $this->actingAs($this->adminBar());
+
+        $this->post(route('reembolsos.crear', $venta), [
+            'tipo' => 'parcial',
+            'motivo' => 'Devolución de una unidad',
+            'metodo' => 'efectivo',
+            'items' => [$venta->detalles->first()->id => 1],
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('reembolsos', [
+            'venta_id' => $venta->id,
+            'monto' => 11.5,
+        ]);
+    }
+
+    public function test_efectivo_esperado_excluye_transferencias(): void
+    {
+        $usuario = $this->cajero();
+        $this->actingAs($usuario);
+        $this->abrirTurno($usuario);
+        $product = $this->product(price: 10, stock: 10);
+        BusinessSetting::create([
+            'nombre_negocio' => 'Prueba',
+            'cobrar_impuesto' => false,
+            'porcentaje_impuesto' => 0,
+        ]);
+
+        $this->postJson(route('punto_venta.cobrar'), [
+            'items' => [['producto_id' => $product->id, 'cantidad' => 1]],
+            'metodo_pago' => 'transferencia',
+            'pagado' => '10.00',
+            'entidad_financiera' => 'Banco Test',
+            'numero_comprobante_pago' => 'TRF-001',
+            'clave_idempotencia' => 'transferencia-esperado',
+        ])->assertOk();
+
+        $this->postJson(route('punto_venta.cobrar'), [
+            'items' => [['producto_id' => $product->id, 'cantidad' => 2]],
+            'metodo_pago' => 'efectivo',
+            'pagado' => '20.00',
+            'clave_idempotencia' => 'efectivo-esperado',
+        ])->assertOk();
+
+        $this->post(route('caja.cerrar'), [
+            'es_final' => '1',
+            'billetes' => [20 => 1, 100 => 0, 50 => 0, 10 => 0, 5 => 0, 1 => 0],
+            'monedas' => [1 => 0, 0.50 => 0, 0.25 => 0, 0.10 => 0, 0.05 => 0, 0.01 => 0],
+        ])->assertRedirect();
+
+        $turno = TurnoCaja::where('usuario_id', $usuario->id)->first();
+        $this->assertSame(20.0, (float) $turno->fresh()->efectivo_esperado);
+    }
+
+    public function test_aprobar_cuadre_con_diferencia_material_exige_motivo(): void
+    {
+        $admin = $this->adminBar();
+        $this->actingAs($admin);
+
+        $turno = TurnoCaja::create([
+            'negocio_id' => Negocio::first()->id,
+            'usuario_id' => $admin->id,
+            'caja_id' => Caja::create(['nombre' => 'Caja 1', 'esta_activa' => true])->id,
+            'fondo_inicial' => 0,
+            'abierto_en' => now(),
+            'cerrado_en' => now(),
+            'efectivo_esperado' => 100,
+            'efectivo_contado' => 105,
+            'diferencia' => 5,
+            'estado' => 'pendiente_aprobacion',
+        ]);
+
+        $this->post(route('cuadres.aprobar', $turno))->assertSessionHasErrors('motivo');
+        $this->assertSame('pendiente_aprobacion', $turno->fresh()->estado);
+
+        $this->post(route('cuadres.aprobar', $turno), ['motivo' => 'Sobrante por redondeo'])
+            ->assertRedirect();
+        $this->assertSame('aprobada', $turno->fresh()->estado);
     }
 
     private function product(int $price = 10, int $stock = 10): Product

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Membresia;
 use App\Models\Negocio;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 
 class ControladorMembresias extends Controller
 {
@@ -14,13 +15,20 @@ class ControladorMembresias extends Controller
 
         abort_unless($membresia, 404, 'El bar no tiene membresía.');
 
-        $membresia->update([
-            'estado' => $membresia->estado === 'cancelada' ? 'cancelada' : 'activa',
-            'fecha_vencimiento' => max($membresia->fecha_vencimiento, now())->addDays(max((int) $membresia->plan->duracion_dias, 1)),
-            'fecha_renovacion' => now(),
-        ]);
+        return DB::transaction(function () use ($membresia) {
+            Membresia::whereKey($membresia->id)->lockForUpdate()->first();
+            $membresia->refresh();
 
-        return back()->with('success', 'Membresía renovada hasta ' . $membresia->fecha_vencimiento->format('d/m/Y') . '.');
+            abort_unless(in_array($membresia->estado, ['prueba', 'activa', 'vencida'], true), 422, 'No se puede renovar una membresía suspendida o cancelada. Usa la opción de reactivar.');
+
+            $membresia->update([
+                'estado' => 'activa',
+                'fecha_vencimiento' => max($membresia->fecha_vencimiento, now())->addDays(max((int) $membresia->plan->duracion_dias, 1)),
+                'fecha_renovacion' => now(),
+            ]);
+
+            return back()->with('success', 'Membresía renovada hasta ' . $membresia->fecha_vencimiento->format('d/m/Y') . '.');
+        });
     }
 
     public function suspender(Negocio $negocio): RedirectResponse

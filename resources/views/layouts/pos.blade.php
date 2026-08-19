@@ -417,7 +417,7 @@
                 <i class="bi bi-geo-alt"></i> {{ $sucursalActual?->nombre ?? 'Sucursal' }}
             </span>
             <div class="d-flex align-items-center">
-                @if(isset($printer) && $printer && $printer->tipo_conexion === 'bluetooth')
+                @if(isset($printer) && $printer)
                     <button id="conectarBluetoothBtn" type="button" class="btn btn-outline-info btn-sm me-2">
                         <i class="bi bi-bluetooth"></i> Conectar impresora
                     </button>
@@ -428,10 +428,12 @@
                 <a href="{{ route('caja.cerrar.form') }}" class="btn btn-outline-warning btn-sm me-2">
                     <i class="bi bi-lock-fill"></i> Cerrar caja
                 </a>
-                @if(auth()->user()->esAdminDelNegocioActual())
+                @if(auth()->user()->tienePermiso('venta.ver'))
                     <a href="{{ route('ventas.index') }}" class="btn btn-outline-light btn-sm me-2">
                         <i class="bi bi-receipt"></i> Ventas
                     </a>
+                @endif
+                @if(auth()->user()->tienePermiso('producto.ver'))
                     <a href="{{ route('productos.index') }}" class="btn btn-outline-light btn-sm">
                         <i class="bi bi-gear"></i> Admin
                     </a>

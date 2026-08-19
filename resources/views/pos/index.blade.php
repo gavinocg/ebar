@@ -246,11 +246,6 @@ const cartSaveUrl = '{{ route("punto_venta.guardar_carrito") }}';
 const cartLoadUrl = '{{ route("punto_venta.cargar_carrito") }}';
 const bluetoothServiceUuid = '000018f0-0000-1000-8000-00805f9b34fb';
 const bluetoothCharacteristicUuid = '00002af1-0000-1000-8000-00805f9b34fb';
-const printerConfig = {!! $printer ? json_encode([
-    'tipo' => $printer->tipo_conexion,
-    'direccion' => $printer->direccion,
-    'puerto' => $printer->puerto,
-]) : 'null' !!};
 @php
     $business = \App\Models\ConfiguracionNegocio::obtenerConfiguracion();
 @endphp
@@ -771,14 +766,13 @@ async function processSale() {
                 return;
             }
 
-            if (data.type === 'thermal' && data.ticket && data.printer) {
+            if (data.type === 'thermal' && data.ticket) {
                 try {
-                    await printTicket(data.ticket, data.printer);
+                    await printTicket(data.ticket, data.datos);
                 } catch (printError) {
                     alert('Venta registrada, pero no se pudo imprimir: ' + printError.message);
+                    showPrintFallback(data.ticket);
                 }
-            } else if (data.type === 'normal' && data.ticket_html) {
-                printTicketHtml(data.ticket_html);
             }
             
             alert('Venta registrada: ' + data.sale.numero_comprobante);
@@ -796,25 +790,14 @@ async function processSale() {
     }
 }
 
-async function printTicket(ticketBase64, printerData) {
-    const commands = atob(ticketBase64);
-
-    if (printerData.tipo === 'bluetooth') {
-        await printViaBluetooth(commands, printerData.direccion);
-    } else if (printerData.tipo === 'wifi' || printerData.tipo === 'lan') {
-        await printViaNetwork(commands, printerData.direccion, printerData.puerto);
-    } else {
-        throw new Error('La impresora predeterminada no tiene una conexión compatible.');
-    }
-}
-
-async function printViaBluetooth(commands, macAddress) {
+async function printTicket(ticketBase64, connectionData) {
     if (!bluetoothCharacteristic) {
-        throw new Error('Conecta la impresora Bluetooth antes de cobrar.');
+        await conectarImpresoraBluetooth();
     }
-    
+
+    const commands = atob(ticketBase64);
     const data = Uint8Array.from(commands, character => character.charCodeAt(0));
-    
+
     const chunkSize = 20;
     for (let i = 0; i < data.length; i += chunkSize) {
         const chunk = data.slice(i, i + chunkSize);
@@ -850,14 +833,6 @@ async function conectarImpresoraBluetooth() {
     bluetoothCharacteristic = await service.getCharacteristic(bluetoothCharacteristicUuid);
 }
 
-async function printViaNetwork(commands, ip, port) {
-    const response = await fetch(`http://${ip}:${port}`, {
-        method: 'POST',
-        body: commands,
-        mode: 'no-cors'
-    });
-}
-
 function showPrintFallback(ticketBase64) {
     const ticket = atob(ticketBase64);
     const htmlContent = `
@@ -865,7 +840,7 @@ function showPrintFallback(ticketBase64) {
         <head>
             <title>Ticket</title>
             <style>
-                body { font-family: monospace; width: 80mm; margin: 0 auto; padding: 5mm; }
+                body { font-family: monospace; width: 58mm; margin: 0 auto; padding: 5mm; }
                 pre { white-space: pre-wrap; word-wrap: break-word; }
             </style>
         </head>

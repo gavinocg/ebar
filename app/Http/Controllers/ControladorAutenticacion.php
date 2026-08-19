@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class ControladorAutenticacion extends Controller
@@ -23,12 +24,13 @@ class ControladorAutenticacion extends Controller
             'password' => 'required|string',
         ]);
 
-        if (!Auth::attempt($credentials, $request->boolean('remember'))) {
+        $usuario = User::where('correo', $credentials['correo'])->first();
+
+        if (!$usuario || !$usuario->esta_activo || !Auth::attempt($credentials, $request->boolean('remember'))) {
             return back()->withErrors(['correo' => 'Las credenciales no son válidas.'])->onlyInput('correo');
         }
 
         $request->session()->regenerate();
-        $request->session()->put('pos_desbloqueado', true);
 
         $membresias = MembresiaNegocio::where('usuario_id', Auth::id())
             ->where('esta_activa', true)
@@ -79,11 +81,11 @@ class ControladorAutenticacion extends Controller
         return redirect()->route('inicio_sesion.pin');
     }
 
-    public function pin(): View
+    public function pin(): View|RedirectResponse
     {
         $usuario = User::find(session('cajero_pin_id'));
 
-        if (!$usuario) {
+        if (!$usuario || !$usuario->esta_activo) {
             return redirect()->route('inicio_sesion.cajero');
         }
 
@@ -94,7 +96,7 @@ class ControladorAutenticacion extends Controller
     {
         $usuario = User::find(session('cajero_pin_id'));
 
-        if (!$usuario) {
+        if (!$usuario || !$usuario->esta_activo) {
             return redirect()->route('inicio_sesion.cajero');
         }
 
@@ -151,5 +153,65 @@ class ControladorAutenticacion extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('inicio_sesion');
+    }
+
+    public function cambiarPassword(): View
+    {
+        return view('auth.cambiar-password');
+    }
+
+    public function guardarPassword(Request $request): RedirectResponse
+    {
+        if (!Auth::validate([
+            'correo' => Auth::user()->correo,
+            'password' => $request->input('password_actual'),
+        ])) {
+            return back()->withErrors(['password_actual' => 'La contraseña actual no es correcta.']);
+        }
+
+        $datos = $request->validate([
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $usuario = Auth::user();
+        $usuario->password = $datos['password'];
+        $usuario->debe_cambiar_password = false;
+        $usuario->remember_token = null;
+        $usuario->save();
+
+        DB::table('sessions')
+            ->where('user_id', $usuario->id)
+            ->where('id', '!=', $request->session()->getId())
+            ->delete();
+
+        $request->session()->regenerate();
+
+        return redirect()->route($this->destinoDespuesDelCambio($request, $usuario));
+    }
+
+    private function destinoDespuesDelCambio(Request $request, User $usuario): string
+    {
+        if ($usuario->rol === 'super_admin') {
+            return 'plataforma.inicio';
+        }
+
+        $membresias = MembresiaNegocio::where('usuario_id', $usuario->id)
+            ->where('esta_activa', true)
+            ->get();
+
+        if ($membresias->count() > 1) {
+            return 'negocio.seleccionar';
+        }
+
+        $membresia = $membresias->first();
+
+        if (!$membresia) {
+            return 'negocio.seleccionar';
+        }
+
+        app(\App\Services\ContextoNegocio::class)->establecer($membresia->negocio_id);
+        $request->session()->put('negocio_id', $membresia->negocio_id);
+
+        return $membresia->rol === 'cajero' ? 'punto_venta.inicio' : 'panel.inicio';
     }
 }

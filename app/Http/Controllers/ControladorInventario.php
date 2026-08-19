@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\MovimientoInventario;
 use App\Models\Producto;
 use App\Models\Sucursal;
+use App\Services\ContextoNegocio;
 use App\Services\RegistradorAuditoria;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class ControladorInventario extends Controller
@@ -35,8 +37,10 @@ class ControladorInventario extends Controller
 
     public function ajustar(Request $request, RegistradorAuditoria $auditoria): RedirectResponse
     {
+        $negocioId = app(ContextoNegocio::class)->id();
+
         $datos = $request->validate([
-            'producto_id' => 'required|integer|exists:productos,id',
+            'producto_id' => ['required', 'integer', Rule::exists('productos', 'id')->where('negocio_id', $negocioId)],
             'cantidad' => 'required|integer|min:1|max:100000',
             'tipo' => 'required|in:entrada,ajuste,ajuste_negativo,devolucion,mercancias',
             'motivo' => 'required|string|max:255',
@@ -58,6 +62,10 @@ class ControladorInventario extends Controller
 
             if (!$producto->maneja_existencias) {
                 return back()->withErrors(['producto_id' => 'Este producto no controla existencias.']);
+            }
+
+            if ($producto->variantes()->where('esta_activo', true)->exists()) {
+                return back()->withErrors(['producto_id' => 'Este producto se controla por variantes; ajusta su stock desde las variantes.']);
             }
 
             $anterior = $producto->existencias;

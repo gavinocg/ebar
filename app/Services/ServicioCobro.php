@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ConfiguracionNegocio as BusinessSetting;
+use App\Models\Modificador;
 use App\Models\MovimientoInventario as InventoryMovement;
 use App\Models\Producto as Product;
 use App\Models\ProductoVariante;
@@ -12,14 +13,15 @@ use App\Models\MovimientoEfectivo;
 use App\Models\Cliente;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class ServicioCobro
 {
     public function crear(array $itemsData, string $paymentMethod, string $paid, ?string $notes, string $idempotencyKey, ?int $clienteId = null, ?string $descripcionCliente = null, ?string $entidadFinanciera = null, ?string $numeroComprobantePago = null, ?float $descuentoPorcentaje = null, ?array $pagosDivididos = null): Sale
     {
         return DB::transaction(function () use ($itemsData, $paymentMethod, $paid, $notes, $idempotencyKey, $clienteId, $descripcionCliente, $entidadFinanciera, $numeroComprobantePago, $descuentoPorcentaje, $pagosDivididos) {
-            $existingSale = Sale::where('clave_idempotencia', $idempotencyKey)->first();
+            $existingSale = Sale::where('clave_idempotencia', $idempotencyKey)
+                ->where('usuario_id', Auth::id())
+                ->first();
 
             if ($existingSale) {
                 return $existingSale->load('detalles');
@@ -47,6 +49,14 @@ class ServicioCobro
             $varianteIds = collect($itemsData)->pluck('variante_id')->filter()->unique()->all();
             $variantes = $varianteIds
                 ? ProductoVariante::whereIn('id', $varianteIds)->orderBy('id')->lockForUpdate()->get()->keyBy('id')
+                : collect();
+
+            $modificadorIds = collect($itemsData)
+                ->flatMap(fn ($item) => collect($item['modificadores'] ?? [])->pluck('modificador_id'))
+                ->unique()
+                ->all();
+            $modificadores = $modificadorIds
+                ? Modificador::whereIn('id', $modificadorIds)->orderBy('id')->lockForUpdate()->get()->keyBy('id')
                 : collect();
 
             $business = BusinessSetting::obtenerConfiguracion();
@@ -82,14 +92,27 @@ class ServicioCobro
                 }
 
                 $modificadoresTotal = 0;
+                $modificadoresFinales = [];
                 foreach ($modificadoresData as $mod) {
-                    $modificadoresTotal += (float) ($mod['precio_extra'] ?? 0);
+                    $modificador = $modificadores->get($mod['modificador_id'] ?? null);
+
+                    if (!$modificador || !$modificador->esta_activo) {
+                        throw new \RuntimeException('Uno de los modificadores ya no está disponible.');
+                    }
+
+                    $precioExtra = (float) $modificador->precio_extra;
+                    $modificadoresTotal += $precioExtra;
+                    $modificadoresFinales[] = [
+                        'modificador_id' => $modificador->id,
+                        'precio_extra' => $precioExtra,
+                    ];
                 }
 
                 $itemSubtotal = round(($unitPrice + $modificadoresTotal) * $quantity, 2);
                 $itemDescuento = 0;
                 if ($descuentoActivo && (float) ($product->descuento ?? 0) > 0) {
-                    $itemDescuento = round($itemSubtotal * ((float) $product->descuento / 100), 2);
+                    $descuentoCalculado = $itemSubtotal * ((float) $product->descuento / 100);
+                    $itemDescuento = round(min($itemSubtotal, $descuentoCalculado), 2);
                 }
                 $itemNeto = round($itemSubtotal - $itemDescuento, 2);
                 $subtotal = round($subtotal + $itemSubtotal, 2);
@@ -102,7 +125,7 @@ class ServicioCobro
                     'precio' => $unitPrice + $modificadoresTotal,
                     'descuento' => $itemDescuento,
                     'subtotal' => $itemNeto,
-                    'modificadores' => $modificadoresData,
+                    'modificadores' => $modificadoresFinales,
                 ];
             }
 
@@ -130,47 +153,58 @@ class ServicioCobro
             $descuentoTotal = $totalDescuentoProductos;
             $descuentoPorcentajeFinal = $descuentoActivo && $descuentoPorcentaje > 0 ? $descuentoPorcentaje : null;
 
-            $sale = Sale::create([
-                'sucursal_id' => $turnoCaja->sucursal_id,
-                'numero_comprobante' => 'PENDING-' . Str::uuid(),
-                'clave_idempotencia' => $idempotencyKey,
-                'turno_caja_id' => $turnoCaja->id,
-                'usuario_id' => Auth::id(),
-                'subtotal' => $subtotal,
-                'descuento' => $descuentoTotal,
-                'descuento_porcentaje' => $descuentoPorcentajeFinal,
-                'impuesto' => $tax,
-                'impuesto_habilitado' => $taxEnabled,
-                'porcentaje_impuesto' => $taxPercentage,
-                'total' => $total,
-                'metodo_pago' => $paymentMethod,
-                'pagado' => $paidAmount,
-                'cambio' => $cambio,
-                'notas' => $notes,
-                'cliente_id' => $cliente?->id,
-                'nombre_cliente' => $cliente?->nombre,
-                'descripcion_cliente' => $descripcionCliente,
-                'entidad_financiera' => $entidadFinanciera,
-                'numero_comprobante_pago' => $numeroComprobantePago,
-                'pagos_divididos' => $pagosDivididos,
-                'estado_cobro' => $paymentMethod === 'credito' ? 'pendiente' : 'pagado',
-            ]);
+            $ultimoNumero = (int) Sale::withoutGlobalScopes()
+                ->orderByDesc('id')
+                ->lockForUpdate()
+                ->value('id');
+            $numeroComprobante = 'CMP-' . str_pad((string) ($ultimoNumero + 1), 6, '0', STR_PAD_LEFT);
 
-            $sale->update([
-                'numero_comprobante' => 'CMP-' . str_pad((string) $sale->id, 6, '0', STR_PAD_LEFT),
-            ]);
+            try {
+                $sale = Sale::create([
+                    'sucursal_id' => $turnoCaja->sucursal_id,
+                    'numero_comprobante' => $numeroComprobante,
+                    'clave_idempotencia' => $idempotencyKey,
+                    'turno_caja_id' => $turnoCaja->id,
+                    'usuario_id' => Auth::id(),
+                    'subtotal' => $subtotal,
+                    'descuento' => $descuentoTotal,
+                    'descuento_porcentaje' => $descuentoPorcentajeFinal,
+                    'impuesto' => $tax,
+                    'impuesto_habilitado' => $taxEnabled,
+                    'porcentaje_impuesto' => $taxPercentage,
+                    'total' => $total,
+                    'metodo_pago' => $paymentMethod,
+                    'pagado' => $paidAmount,
+                    'cambio' => $cambio,
+                    'notas' => $notes,
+                    'cliente_id' => $cliente?->id,
+                    'nombre_cliente' => $cliente?->nombre,
+                    'descripcion_cliente' => $descripcionCliente,
+                    'entidad_financiera' => $entidadFinanciera,
+                    'numero_comprobante_pago' => $numeroComprobantePago,
+                    'pagos_divididos' => $pagosDivididos,
+                    'estado_cobro' => $paymentMethod === 'credito' ? 'pendiente' : 'pagado',
+                ]);
+            } catch (\Illuminate\Database\QueryException $e) {
+                $existente = Sale::where('clave_idempotencia', $idempotencyKey)->first();
+
+                if ($existente) {
+                    return $existente->load('detalles');
+                }
+
+                throw $e;
+            }
 
             foreach ($saleItems as $item) {
-                $modificadoresData = $item['modificadores'] ?? [];
+                $modificadoresFinales = $item['modificadores'] ?? [];
                 unset($item['modificadores']);
 
                 $detalle = $sale->detalles()->create($item);
 
-                if (!empty($modificadoresData)) {
-                    $modIds = array_column($modificadoresData, 'modificador_id');
-                    foreach ($modificadoresData as $mod) {
+                if (!empty($modificadoresFinales)) {
+                    foreach ($modificadoresFinales as $mod) {
                         $detalle->modificadores()->attach($mod['modificador_id'], [
-                            'precio_extra' => $mod['precio_extra'] ?? 0,
+                            'precio_extra' => $mod['precio_extra'],
                         ]);
                     }
                 }
@@ -196,7 +230,7 @@ class ServicioCobro
                     ]);
                 }
 
-                if ($hasVariantWithStock) {
+                if ($hasVariantWithStock && $product->maneja_existencias) {
                     $v = $variantes[$item['producto_variante_id']];
                     $v->decrement('stock', $item['cantidad']);
                 }
@@ -215,6 +249,21 @@ class ServicioCobro
                     'tipo_referencia' => Sale::class,
                     'id_referencia' => $sale->id,
                 ]);
+
+                if ($cambio > 0) {
+                    MovimientoEfectivo::create([
+                        'negocio_id' => $turnoCaja->negocio_id,
+                        'sucursal_id' => $turnoCaja->sucursal_id,
+                        'caja_id' => $turnoCaja->caja_id,
+                        'turno_caja_id' => $turnoCaja->id,
+                        'usuario_id' => Auth::id(),
+                        'tipo' => 'retiro',
+                        'monto' => -$cambio,
+                        'motivo' => 'Cambio de venta ' . $sale->numero_comprobante,
+                        'tipo_referencia' => Sale::class,
+                        'id_referencia' => $sale->id,
+                    ]);
+                }
             } elseif ($paymentMethod === 'transferencia') {
                 MovimientoEfectivo::create([
                     'negocio_id' => $turnoCaja->negocio_id,

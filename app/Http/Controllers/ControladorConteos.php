@@ -11,6 +11,7 @@ use App\Services\RegistradorAuditoria;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class ControladorConteos extends Controller
@@ -31,17 +32,22 @@ class ControladorConteos extends Controller
 
     public function store(Request $request, RegistradorAuditoria $auditoria): RedirectResponse
     {
+        $negocioId = app(ContextoNegocio::class)->id();
+
         $datos = $request->validate([
             'notas' => 'nullable|string|max:255',
             'productos' => 'required|array|min:1|max:200',
-            'productos.*.producto_id' => 'required|integer|exists:productos,id',
+            'productos.*.producto_id' => ['required', 'integer', Rule::exists('productos', 'id')->where('negocio_id', $negocioId)],
             'productos.*.existencias_reales' => 'required|integer|min:0|max:1000000',
         ]);
 
         return DB::transaction(function () use ($datos, $auditoria) {
+            $ultimoId = (int) ConteoInventario::withoutGlobalScopes()->orderByDesc('id')->lockForUpdate()->value('id');
+            $nextId = $ultimoId + 1;
+
             $conteo = ConteoInventario::create([
                 'usuario_id' => auth()->id(),
-                'numero' => 'CNT-' . str_pad((string) (ConteoInventario::max('id') + 1), 5, '0', STR_PAD_LEFT),
+                'numero' => 'CNT-' . str_pad((string) $nextId, 5, '0', STR_PAD_LEFT),
                 'fecha' => now()->toDateString(),
                 'estado' => 'borrador',
                 'notas' => $datos['notas'] ?? null,
@@ -72,12 +78,22 @@ class ControladorConteos extends Controller
 
     public function aplicar(ConteoInventario $conteo, RegistradorAuditoria $auditoria): RedirectResponse
     {
-        abort_if($conteo->estado === 'aplicado', 422, 'Este conteo ya fue aplicado.');
-
         $negocioId = app(ContextoNegocio::class)->id();
         abort_unless($conteo->negocio_id === $negocioId, 404);
 
         DB::transaction(function () use ($conteo, $auditoria) {
+            $conteoLock = ConteoInventario::whereKey($conteo->id)->lockForUpdate()->first();
+
+            abort_if(!$conteoLock || $conteoLock->estado === 'aplicado', 422, 'Este conteo ya fue aplicado.');
+
+            foreach ($conteo->detalles as $detalle) {
+                abort_if(
+                    $detalle->producto?->variantes()->where('esta_activo', true)->exists(),
+                    422,
+                    "El producto {$detalle->producto->nombre} se controla por variantes; ajusta su stock desde las variantes."
+                );
+            }
+
             $productoIds = $conteo->detalles->pluck('producto_id')->filter()->values()->all();
             $productosLock = Producto::whereIn('id', $productoIds)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
 
@@ -111,7 +127,7 @@ class ControladorConteos extends Controller
                 ]);
             }
 
-            $conteo->update(['estado' => 'aplicado', 'aplicado_en' => now()]);
+            $conteoLock->update(['estado' => 'aplicado', 'aplicado_en' => now()]);
 
             $auditoria->registrar('inventario', 'aplicar_conteo', 'Aplicación de conteo ' . $conteo->numero, [], ConteoInventario::class, $conteo->id);
         });

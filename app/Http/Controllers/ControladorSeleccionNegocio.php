@@ -74,11 +74,15 @@ class ControladorSeleccionNegocio extends Controller
             ->where('esta_activa', true)
             ->firstOrFail();
 
-        $request->session()->put('sucursal_id', $sucursal->id);
-
         $membresia = $this->membresiasDelUsuario()
             ->where('negocio_id', $negocioId)
             ->first();
+
+        if ($membresia?->rol === 'cajero' && $membresia->sucursal_id && (int) $membresia->sucursal_id !== (int) $sucursal->id) {
+            return back()->withErrors(['sucursal_id' => 'No puedes cambiar a esta sucursal. Tu sucursal asignada es: ' . ($membresia->sucursal?->nombre ?? 'N/A')]);
+        }
+
+        $request->session()->put('sucursal_id', $sucursal->id);
 
         return redirect()->route($this->destinoPorRol($membresia?->rol))->with('success', 'Sucursal cambiada a ' . $sucursal->nombre);
     }

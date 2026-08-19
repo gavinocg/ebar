@@ -12,6 +12,9 @@
             <div class="card-body">
                 <form action="{{ route('impresoras.store') }}" method="POST">
                     @csrf
+                    <input type="hidden" name="tipo_conexion" value="bluetooth">
+                    <input type="hidden" name="ancho_papel" value="58mm">
+
                     <div class="mb-3">
                         <label class="form-label">Nombre</label>
                         <input type="text" name="nombre" class="form-control" required placeholder="Ej: Impresora Cocina">
@@ -26,48 +29,22 @@
                             @endforeach
                         </select>
                     </div>
-                    
+
                     <div class="mb-3">
-                        <label class="form-label">Tipo de Impresora</label>
-                        <select name="tipo_conexion" class="form-select" id="connectionType" required onchange="toggleFields()">
-                            <option value="bluetooth">POS - Bluetooth</option>
-                            <option value="wifi">POS - WiFi</option>
-                            <option value="lan">POS - LAN</option>
-                            <option value="normal">Convencional - Inyección/Láser (A5)</option>
-                        </select>
-                        <small class="text-muted">POS: Impresoras térmicas de tickets | Normal: Impresoras de inyección o láser</small>
+                        <label class="form-label">Conexión</label>
+                        <div><span class="badge bg-primary"><i class="bi bi-bluetooth"></i> Bluetooth</span></div>
                     </div>
-                    
-                    <div id="networkFields">
-                        <div class="mb-3">
-                            <label class="form-label">Dirección</label>
-                            <input type="text" name="direccion" class="form-control" placeholder="MAC o IP">
-                            <small class="text-muted">Bluetooth: 00:11:22:33:44:55 | WiFi/LAN: 192.168.1.100</small>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Puerto</label>
-                            <input type="number" name="puerto" class="form-control" value="9100">
-                            <small class="text-muted">Estándar: 9100 para impresoras POS de red</small>
-                        </div>
-                    </div>
-                    
+
                     <div class="mb-3">
-                        <label class="form-label">Tamaño de Papel</label>
-                        <select name="ancho_papel" class="form-select" required>
-                            <option value="80mm">80mm (POS térmica)</option>
-                            <option value="58mm">58mm (POS térmica)</option>
-                            <option value="a5">A5 (148mm x 210mm)</option>
-                            <option value="a4">A4 (210mm x 297mm)</option>
-                            <option value="letter">Carta (216mm x 279mm)</option>
-                        </select>
+                        <label class="form-label">Papel</label>
+                        <div><span class="badge bg-secondary">Térmica 58 mm</span></div>
                     </div>
-                    
+
                     <div class="mb-3 form-check">
                         <input type="checkbox" name="es_predeterminada" class="form-check-input" value="1">
                         <label class="form-check-label">Impresora principal</label>
                     </div>
-                    
+
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="bi bi-plus-circle"></i> Agregar Impresora
                     </button>
@@ -88,40 +65,35 @@
                             <thead>
                                 <tr>
                                     <th>Nombre</th>
-                                    <th>Tipo</th>
-                                    <th>Dirección</th>
-                                    <th>Puerto</th>
+                                    <th>Sucursal</th>
+                                    <th>Conexión</th>
                                     <th>Papel</th>
                                     <th>Estado</th>
+                                    <th>Predeterminada</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($printers as $printer)
                                     <tr>
+                                        <td>{{ $printer->nombre }}</td>
+                                        <td>{{ $printer->sucursal?->nombre ?? 'Todas' }}</td>
                                         <td>
-                                            {{ $printer->nombre }}
-                                            @if($printer->es_predeterminada)
-                                                <span class="badge bg-success">Principal</span>
-                                            @endif
+                                            <span class="badge bg-primary"><i class="bi bi-bluetooth"></i> Bluetooth</span>
                                         </td>
-                                        <td>
-                                            @if($printer->tipo_conexion == 'bluetooth')
-                                                <i class="bi bi-bluetooth text-primary"></i> Bluetooth
-                                            @elseif($printer->tipo_conexion == 'wifi')
-                                                <i class="bi bi-wifi text-success"></i> WiFi
-                                            @else
-                                                <i class="bi bi-ethernet text-info"></i> LAN
-                                            @endif
-                                        </td>
-                                        <td><code>{{ $printer->direccion }}</code></td>
-                                        <td>{{ $printer->puerto }}</td>
-                                        <td>{{ $printer->ancho_papel }}</td>
+                                        <td><code>58mm</code></td>
                                         <td>
                                             @if($printer->esta_activa)
                                                 <span class="badge bg-success">Activa</span>
                                             @else
                                                 <span class="badge bg-secondary">Inactiva</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @if($printer->es_predeterminada)
+                                                <span class="badge bg-success">Principal</span>
+                                            @else
+                                                <span class="text-muted">—</span>
                                             @endif
                                         </td>
                                         <td>
@@ -147,6 +119,8 @@
                                                 <form action="{{ route('impresoras.update', $printer) }}" method="POST">
                                                     @csrf
                                                     @method('PUT')
+                                                    <input type="hidden" name="tipo_conexion" value="bluetooth">
+                                                    <input type="hidden" name="ancho_papel" value="58mm">
                                                     <div class="modal-header">
                                                         <h5 class="modal-title">Editar Impresora</h5>
                                                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -156,7 +130,7 @@
                                                             <label class="form-label">Nombre</label>
                                                             <input type="text" name="nombre" class="form-control" value="{{ $printer->nombre }}" required>
                                                         </div>
-                                                        
+
                                                         <div class="mb-3">
                                                             <label class="form-label">Sucursal</label>
                                                             <select name="sucursal_id" class="form-select">
@@ -168,35 +142,15 @@
                                                         </div>
 
                                                         <div class="mb-3">
-                                                            <label class="form-label">Tipo de Conexión</label>
-                                                            <select name="tipo_conexion" class="form-select" required>
-                                                                <option value="bluetooth" {{ $printer->tipo_conexion == 'bluetooth' ? 'selected' : '' }}>Bluetooth</option>
-                                                                <option value="wifi" {{ $printer->tipo_conexion == 'wifi' ? 'selected' : '' }}>WiFi</option>
-                                                                <option value="lan" {{ $printer->tipo_conexion == 'lan' ? 'selected' : '' }}>LAN</option>
-                                                            </select>
+                                                            <label class="form-label">Conexión</label>
+                                                            <div><span class="badge bg-primary"><i class="bi bi-bluetooth"></i> Bluetooth</span></div>
                                                         </div>
-                                                        
+
                                                         <div class="mb-3">
-                                                            <label class="form-label">Dirección</label>
-                                                            <input type="text" name="direccion" class="form-control" value="{{ $printer->direccion }}" required>
+                                                            <label class="form-label">Papel</label>
+                                                            <div><span class="badge bg-secondary">Térmica 58 mm</span></div>
                                                         </div>
-                                                        
-                                                        <div class="mb-3">
-                                                            <label class="form-label">Puerto</label>
-                                                            <input type="number" name="puerto" class="form-control" value="{{ $printer->puerto }}" required>
-                                                        </div>
-                                                        
-                                                        <div class="mb-3">
-                                                            <label class="form-label">Tamaño de Papel</label>
-                                                            <select name="ancho_papel" class="form-select" required>
-                                                                <option value="80mm" {{ $printer->ancho_papel == '80mm' ? 'selected' : '' }}>80mm (POS térmica)</option>
-                                                                <option value="58mm" {{ $printer->ancho_papel == '58mm' ? 'selected' : '' }}>58mm (POS térmica)</option>
-                                                                <option value="a5" {{ $printer->ancho_papel == 'a5' ? 'selected' : '' }}>A5 (148mm x 210mm)</option>
-                                                                <option value="a4" {{ $printer->ancho_papel == 'a4' ? 'selected' : '' }}>A4 (210mm x 297mm)</option>
-                                                                <option value="letter" {{ $printer->ancho_papel == 'letter' ? 'selected' : '' }}>Carta (216mm x 279mm)</option>
-                                                            </select>
-                                                        </div>
-                                                        
+
                                                         <div class="mb-3 form-check">
                                                             <input type="checkbox" name="es_predeterminada" class="form-check-input" value="1" {{ $printer->es_predeterminada ? 'checked' : '' }}>
                                                             <label class="form-check-label">Impresora principal</label>
@@ -224,112 +178,6 @@
 
 @push('scripts')
 <script>
-function toggleFields() {
-    const type = document.getElementById('connectionType').value;
-    const networkFields = document.getElementById('networkFields');
-    
-    if (type === 'normal') {
-        networkFields.style.display = 'none';
-    } else {
-        networkFields.style.display = 'block';
-    }
-}
-
-if (document.getElementById('connectionType')) {
-    toggleFields();
-}
-
-document.querySelectorAll('.test-printer-btn').forEach(btn => {
-    btn.addEventListener('click', async function() {
-        const printerId = this.dataset.printerId;
-        const originalHtml = this.innerHTML;
-        
-        this.disabled = true;
-        this.innerHTML = '<i class="bi bi-hourglass-split"></i> Probando...';
-        
-        try {
-            if (this.dataset.connectionType === 'bluetooth') {
-                await conectarImpresoraBluetooth();
-            }
-
-            const response = await fetch(`{{ url('/impresoras') }}/${printerId}/probar`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`El servidor respondió ${response.status}`);
-            }
-
-            const data = await response.json();
-            
-            if (data.success) {
-                if (data.type === 'thermal') {
-                    await printTestTicket(data.ticket, data.printer);
-                } else if (data.type === 'normal') {
-                    printTestTicketHtml(data.ticket_html);
-                }
-                alert('Ticket de prueba enviado correctamente');
-            } else {
-                alert('Error: ' + (data.message || 'Error desconocido'));
-            }
-        } catch (error) {
-            alert('Error al probar la impresora: ' + error.message);
-        } finally {
-            this.disabled = false;
-            this.innerHTML = originalHtml;
-        }
-    });
-});
-
-async function printTestTicket(ticketBase64, printerData) {
-    const commands = atob(ticketBase64);
-
-    if (printerData.tipo === 'bluetooth') {
-        await printViaBluetooth(commands, printerData.direccion);
-    } else if (printerData.tipo === 'wifi' || printerData.tipo === 'lan') {
-        await printViaNetwork(commands, printerData.direccion, printerData.puerto);
-    } else {
-        throw new Error('La impresora predeterminada no tiene una conexión compatible.');
-    }
-}
-
-function printTestTicketHtml(htmlContent) {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-        throw new Error('El navegador bloqueó la ventana de impresión. Permite ventanas emergentes para este sitio.');
-    }
-
-    printWindow.document.open();
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-    setTimeout(() => {
-        printWindow.focus();
-        printWindow.print();
-        setTimeout(() => printWindow.close(), 1000);
-    }, 500);
-}
-
-async function printViaBluetooth(commands, macAddress) {
-    if (!bluetoothCharacteristic) {
-        throw new Error('Conecta la impresora Bluetooth antes de probarla.');
-    }
-    
-    const data = Uint8Array.from(commands, character => character.charCodeAt(0));
-    
-    const chunkSize = 20;
-    for (let i = 0; i < data.length; i += chunkSize) {
-        const chunk = data.slice(i, i + chunkSize);
-        await bluetoothCharacteristic.writeValue(chunk);
-        await new Promise(resolve => setTimeout(resolve, 10));
-    }
-}
-
 let bluetoothDevice = null;
 let bluetoothCharacteristic = null;
 const bluetoothServiceUuid = '000018f0-0000-1000-8000-00805f9b34fb';
@@ -349,12 +197,80 @@ async function conectarImpresoraBluetooth() {
     bluetoothCharacteristic = await service.getCharacteristic(bluetoothCharacteristicUuid);
 }
 
-async function printViaNetwork(commands, ip, port) {
-    await fetch(`http://${ip}:${port}`, {
-        method: 'POST',
-        body: commands,
-        mode: 'no-cors'
+document.querySelectorAll('.test-printer-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const printerId = this.dataset.printerId;
+        const originalHtml = this.innerHTML;
+
+        this.disabled = true;
+        this.innerHTML = '<i class="bi bi-hourglass-split"></i> Probando...';
+
+        try {
+            if (this.dataset.connectionType === 'bluetooth') {
+                await conectarImpresoraBluetooth();
+            }
+
+            const response = await fetch(`{{ url('/impresoras') }}/${printerId}/probar`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`El servidor respondió ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                if (data.type === 'thermal') {
+                    try {
+                        await printTestTicket(data.ticket, data.datos);
+                    } catch (printError) {
+                        console.warn(printError);
+                        showPrintFallback(data.ticket);
+                    }
+                }
+                alert('Ticket de prueba enviado correctamente');
+            } else {
+                alert('Error: ' + (data.message || 'Error desconocido'));
+            }
+        } catch (error) {
+            alert('Error al probar la impresora: ' + error.message);
+        } finally {
+            this.disabled = false;
+            this.innerHTML = originalHtml;
+        }
     });
+});
+
+async function printTestTicket(ticketBase64, connectionData) {
+    const commands = atob(ticketBase64);
+
+    if (connectionData && connectionData.tipo === 'bluetooth') {
+        await printViaBluetooth(commands);
+    } else {
+        throw new Error('La impresora predeterminada no tiene una conexión compatible.');
+    }
+}
+
+async function printViaBluetooth(commands) {
+    if (!bluetoothCharacteristic) {
+        throw new Error('Conecta la impresora Bluetooth antes de probarla.');
+    }
+
+    const data = Uint8Array.from(commands, character => character.charCodeAt(0));
+
+    const chunkSize = 20;
+    for (let i = 0; i < data.length; i += chunkSize) {
+        const chunk = data.slice(i, i + chunkSize);
+        await bluetoothCharacteristic.writeValue(chunk);
+        await new Promise(resolve => setTimeout(resolve, 10));
+    }
 }
 
 function showPrintFallback(ticketBase64) {
@@ -364,7 +280,7 @@ function showPrintFallback(ticketBase64) {
         <head>
             <title>Ticket de Prueba</title>
             <style>
-                body { font-family: monospace; width: 80mm; margin: 0 auto; padding: 5mm; }
+                body { font-family: monospace; width: 58mm; margin: 0 auto; padding: 5mm; }
                 pre { white-space: pre-wrap; word-wrap: break-word; }
             </style>
         </head>
@@ -373,7 +289,20 @@ function showPrintFallback(ticketBase64) {
         </body>
         </html>
     `;
-    printTestTicketHtml(htmlContent);
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        throw new Error('El navegador bloqueó la ventana de impresión. Permite ventanas emergentes para este sitio.');
+    }
+
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+        setTimeout(() => printWindow.close(), 1000);
+    }, 500);
 }
 </script>
 @endpush

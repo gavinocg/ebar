@@ -107,7 +107,8 @@ Convertir e-Bar en una plataforma SaaS multi-tenant para administrar bares escol
 | 14 | SoftDeletes y Preservación de Datos | Fases 0-9 | PENDIENTE |
 | 15 | Atomicidad y Condiciones de Carrera | Fases 0-9 | PENDIENTE |
 | 16 | Índices y Rendimiento | Fases 0-9 | PENDIENTE |
-| 17 | Pruebas y Cobertura | Fases 0-16 | EN_PROGRESO |
+| 17 | Pruebas y Cobertura | Fases 0-16 | COMPLETADO |
+| 18 | RBAC — Roles, Permisos y CRUD | Fases 0-17 | COMPLETADO |
 | 10 | Operación móvil, PWA y modo offline | Fases 1-7 | PENDIENTE |
 | 11 | Restaurante, cocina e integraciones | Según necesidad del negocio | PENDIENTE |
 | 12 | API, webhooks e integraciones de pago | Fases 1-7 | PENDIENTE |
@@ -271,9 +272,92 @@ Convertir e-Bar en una plataforma SaaS multi-tenant para administrar bares escol
 - [ ] Integrar proveedores de pagos compatibles con Ecuador.
 - [ ] Integrar contabilidad o facturación electrónica si se requiere.
 
+## Fase 18: RBAC — Roles, Permisos Y CRUD
+
+**Objetivo:** Reemplazar los roles hardcoded por un sistema de RBAC completo con CRUD de roles y permisos granulares por módulo/acción.
+**Estado:** EN_PROGRESO
+**Dependencia:** Fases 0-17
+
+### Roles del sistema
+
+| Rol | Nivel | Alcance |
+|-----|-------|---------|
+| `super_admin` | Global | Todo el sistema. Gestiona negocios, membresías, planes |
+| `propietario` | Negocio | Todo el negocio. Configuración, reportes, cajeros, auditoría |
+| `admin_bar` | Negocio | Productos, ventas, inventario, proveedores. Puede cajero |
+| `cajero` | Negocio | POS, caja, tickets, clientes |
+
+### Permisos granulares (~53)
+
+| Módulo | Permisos |
+|--------|----------|
+| Punto de Venta | pos.ver, pos.cobrar, pos.tickets, pos.caja |
+| Productos | producto.crear, producto.ver, producto.editar, producto.eliminar, producto.importar, producto.exportar |
+| Categorías | categoria.crear, categoria.ver, categoria.editar, categoria.eliminar |
+| Ventas | venta.ver, venta.administrar |
+| Clientes | cliente.crear, cliente.ver, cliente.editar |
+| Inventario | inventario.ver, inventario.ajustar, inventario.conteos |
+| Proveedores | proveedor.crear, proveedor.ver, proveedor.editar, proveedor.eliminar |
+| Órdenes | orden.crear, orden.ver, orden.recibir, orden.eliminar |
+| Reportes | reporte.ventas, reporte.productos, reporte.categorias, reporte.metodos_pago, reporte.tendencias, reporte.sucursal, reporte.inventario, reporte.cajeros |
+| Caja | caja.administrar, caja.reporte, caja.reabrir |
+| Usuarios | usuario.cajeros |
+| Configuración | configuracion.negocio |
+| Impresoras | impresora.crear, impresora.ver, impresora.editar, impresora.eliminar |
+| Sucursales | sucursal.crear, sucursal.ver, sucursal.editar, sucursal.eliminar |
+| Reembolsos | reembolso.ver, reembolso.crear |
+| Tickets | ticket.ver, ticket.crear, ticket.eliminar |
+| Cuadres | cuadre.ver, cuadre.aprobar, cuadre.rechazar |
+| Auditoría | auditoria.ver |
+| Roles | rol.gestionar |
+
+### 18.1 Migración (4 tablas + alter)
+
+- [x] `COMPLETADO` Crear tabla `roles` (id, negocio_id nullable, nombre, slug, descripcion, es_sistema)
+- [x] `COMPLETADO` Crear tabla `permissions` (id, nombre, clave unique, modulo)
+- [x] `COMPLETADO` Crear tabla `rol_permiso` (rol_id FK, permiso_id FK, unique)
+- [x] `COMPLETADO` Alter `membresias_negocio`: agregar `rol_id` FK nullable
+- [x] `COMPLETADO` Seeder: 53 permisos + 4 roles por defecto (cajero, admin_bar, propietario, super_admin)
+- [x] `COMPLETADO` Data migration: mapear roles existentes → role_id
+
+### 18.2 Models
+
+- [x] `COMPLETADO` Crear `app/Models/Rol.php` (belongsTo negocio, belongsToMany permissions)
+- [x] `COMPLETADO` Crear `app/Models/Permission.php` (belongsToMany roles, scope por modulo)
+- [x] `COMPLETADO` Actualizar `User.php`: método `tienePermiso($clave)`, `permisosEnNegocio()`
+- [x] `COMPLETADO` Actualizar `MembresiaNegocio.php`: belongsTo(Rol) como `rolAsignado()`
+
+### 18.3 CRUD Roles
+
+- [x] `COMPLETADO` Crear `ControladorRoles.php` (index, create, store, show, edit, update, destroy)
+- [x] `COMPLETADO` Crear vista `roles/index.blade.php` (tabla, búsqueda, badges, eliminar)
+- [x] `COMPLETADO` Crear vista `roles/create.blade.php` (form con checkboxes por módulo)
+- [x] `COMPLETADO` Crear vista `roles/edit.blade.php` (form con datos precargados)
+- [x] `COMPLETADO` Crear vista `roles/show.blade.php` (detalle de permisos)
+- [x] `COMPLETADO` Crear `app/Policies/RolPolicy.php` (manage → solo propietario)
+- [x] `COMPLETADO` Agregar rutas CRUD de roles bajo `rol_negocio:propietario`
+
+### 18.4 Actualizar Autorización
+
+- [x] `COMPLETADO` Actualizar `VentaPolicy.php`: `administrar` → `venta.administrar`
+- [x] `COMPLETADO` Actualizar `ProductoPolicy.php`: `gestionar` → `producto.crear`
+- [x] `COMPLETADO` Actualizar `CajaPolicy.php`: `administrar` → `caja.administrar`
+- [x] `COMPLETADO` Actualizar `ConfiguracionPolicy.php`: `administrar` → `configuracion.negocio`
+- [x] `COMPLETADO` Actualizar `ReportePolicy.php`: `ver` → `reporte.ventas`
+- [x] `COMPLETADO` Actualizar `AppServiceProvider.php`: Gate `reportes.ver` → permiso-based
+- [x] `COMPLETADO` Actualizar `ControladorCajeros.php`: asignar `rol_id` al crear cajero
+- [x] `COMPLETADO` Actualizar `sidebar.blade.php`: `tienePermiso()` en vez de `esPropietario()`
+
+### 18.5 Tests
+
+- [x] `COMPLETADO` `RoleCrudTest` — CRUD, asignación de permisos, protección de roles del sistema
+- [x] `COMPLETADO` `PermissionTest` — autorización por permiso, middleware, aislamiento cross-business
+
+---
+
 ## Próximo Paso
 
-Las siguientes unidades pendientes de la **Fase 5** son: tickets abiertos, pagos divididos, variantes de productos y modificadores/extras. Después seguirán las Fases 6 a 9.
+Fase 18: RBAC — Roles, Permisos y CRUD.
 
 ---
 
@@ -1085,6 +1169,185 @@ Se realizó una auditoría profunda del sistema completo cubriendo: integridad d
 - **Sidebar**: enlaces actualizados a los nuevos reportes.
 - 40 pruebas pasan / 132 aserciones.
 
+### 2026-08-18 - Ajuste de Flujo por Roles (Fases A-J)
+
+- **Fase A — Datos**: migraciones `2026_08_18_100000` (`negocios`: uuid, ruc, logo, numero_sucursales_contratadas), `100001` (`usuarios`: uuid, cedula, celular, debe_cambiar_password), `100002` (`sucursales`: uuid, provincia, canton, ciudad, n_cajeros_contratados default 1), `100003` (`contratos` + `pagos`). Modelos `Negocio`, `Sucursal`, `User` con `booted()->creating` que autogeneran uuid; modelos `Contrato`/`Pago` con `totalPagado()`, `estaVigente()`, `aplicarVencimiento()`. `LimpiarTransaccional` trunca `pagos` y `contratos`.
+- **Fase B — NUI**: `ValidacionCedulaRuc` (módulo 10 cédula; RUC módulo 11 natural/jurídico) + reglas `CedulaEcuatoriana`/`RucEcuatoriano`; 6 tests unitarios.
+- **Fase C — Plataforma**: `ControladorNegocios` refactorizado (RUC, logo, xNS, clave autogenerada y mostrada una vez vía `session('credenciales')`, crea bar + sucursal + configuración + membresía + contrato + propietario con `debe_cambiar_password`), `ControladorContratos`, `ControladorPagos`, vista `show` con pestañas, creación de bares sin `identificador` manual (autogenerado con sufijo).
+- **Fase D — Admin bar / Sucursales**: `ControladorAdminBar` (máx 1 por sucursal, `abort 422`), `ControladorSucursales` (límite xNS desde `numero_sucursales_contratadas`, provincia/cantón/ciudad, xNC, destroy bloqueado con turnos abiertos), sidebar con "Admins de bar".
+- **Fase E — Cajeros**: solo PROPIETARIO crea/elimina cajeros (`cajeros.store/destroy` en `rol_negocio:propietario`); admin_bar ve la lista y actualiza (`cajeros.update` restringido a su sucursal, 403 si otra) pero no crea/elimina; límite por sucursal (`n_cajeros_contratados`) con fallback al límite global del plan; permisos `cajero.actualizar`, `usuario.admin_bar`, `usuario.cajeros` (migración `100004` + legacy fallback en `User`).
+- **Fase F — Reembolsos por rol**: permisos `reembolso.ver`/`reembolso.crear` al rol cajero (seeder `RolePermissionSeeder` + fallback legacy); `reembolsos.crear` sin middleware de rol dentro del grupo cajero/admin (gobierna policy `VentaPolicy::reembolsar` → `reembolso.crear`).
+- **Fase G — Contraseña**: middleware `ForzarCambioPassword` (alias `forzar_cambio_password`) para propietarios/usuarios con `debe_cambiar_password`; rutas `password.cambiar` + vista `auth/cambiar-password.blade.php`; `destinoDespuesDelCambio()`. Super admin y cajeros con PIN quedan excluidos.
+- **Fase H — Datos de prueba** (`DatabaseSeeder`): bar "Gaby's Bar" (RUC `1002003000001`, xNS=2, 2 sucursales Cuenca, contrato activo + pago), propietaria Gabriela Rueda (`gavinocg@gmail.com`, cédula `1002003000`, celular `0964142527`, clave autogenerada temporal + forzar cambio); usuarios `sadmin@ebar.com` (super_admin) y `prop1@ebar.com` (propietario Negocio principal).
+- **Fase I — Impresoras solo Bluetooth**: migración `100006` elimina `direccion`, `puerto`, `tipo_impresora`; modelo `Impresora` mínimo (`tipo_conexion=bluetooth`, `ancho_papel=58mm`); `ServicioImpresoraTermica` solo 58mm; eliminadas vistas A4/A5/convencional; JS de red (IP/puerto) eliminado del POS.
+- **Fase J — Corrección de tests/suite**: migración `100005` (código de barras único por negocio), `uuid` NOT NULL corregido en 100000 para SQLite; tests actualizados al nuevo diseño (admin_bar ve cajeros, límite por sucursal, cajero sí reembolsa, identificador autogenerado, RUC único). Suite: **77 pruebas / 221 aserciones pasando**.
+- **Fase K — Auditoría de coherencia permiso↔ruta↔vista**: revisión de distribución por rol (rutas, middleware `rol_negocio`, policies, sidebar y fallback legacy de `User`). Se corrigió:
+  - `RolePermissionSeeder` desactualizado: cajero sin `reembolso.ver`/`reembolso.crear` (rompía reembolso del cajero vía `VentaPolicy::reembolsar`), admin_bar sin `cajero.actualizar`/`usuario.cajeros` (ocultaba menú/edición de Cajeros), y permiso `usuario.admin_bar` inexistente (menú "Admins de bar" inaccesible para propietario). Sincronizado con `sync()` idempotente sobre roles globales.
+  - Ruta `reportes.cajeros` movida de `rol_negocio:propietario` → `admin_bar` (concordancia con permiso `reporte.cajeros`).
+  - `caja.administrar` retirada de admin_bar (recursos `cajas.*` son propietario) y **desacople** de Arqueos: `CajaPolicy::verArqueos` gatea `caja.reporte`, mientras `CajaPolicy::administrar` (=`caja.administrar`) queda para reabrir turnos. admin_bar conserva Arqueos vía `caja.reporte`.
+  - Nuevo test de contrato `tests/Feature/RolePermissionSeederTest.php` (4 casos) que fija los permisos de los roles globales y verifica que no hay permisos huérfanos. Suite: **81 pruebas / 242 aserciones pasando**.
+- **Fase K2 — Auditoría de flujo y coherencia (segunda pasada)**: revisión de middleware, gates, policies y flujos:
+  - `reportes.cajeros` seguía 403 para admin_bar: `ControladorPanel::reportePorCajero` autorizaba `reportes.ver` (=`reporte.ventas`). Nuevo Gate `reportes.cajeros` (=`reporte.cajeros`) → ruta/menú/admin_bar concuerdan.
+  - Aprobación de cuadres rota tras K: `CajaPolicy::administrar` (=`caja.administrar`, retirado de admin_bar) gateaba aprobar/rechazar/autorizar-modificación. Desacople final: `CajaPolicy::aprobarCuadres` (=`cuadre.aprobar`) para cuadres, `reabrir` (=`caja.reabrir`) para reaperturas, `verArqueos` (=`caja.reporte`) para arqueos; método `administrar` eliminado. `ControladorCaja` actualizado (cuadresPendientes, aprobarCuadre, rechazarCuadre, autorizarModificacion → `aprobarCuadres`; reabrir → `reabrir`).
+  - Sucursal por defecto del cajero: `EstablecerContextoNegocio` ahora prefiere `membresia->sucursal_id` antes que la primera activa (resolve la incoherencia login password vs PIN para cajeros asignados a una sucursal distinta).
+  - Seguridad/integridad: `ServicioCobro` ya no confía en `precio_extra` del cliente; lo recarga desde `Modificador` (BD, lockForUpdate, scoped por negocio) y valida activo → cajero no puede inflar totales.
+  - Cadena tenant confirmada: todas las entidades de negocio usan `PerteneceANegocio` (global scope). Suite: **83 pruebas / 247 aserciones pasando**.
+  - **Pasada de integridad/seguridad**: restaurado `'administrador' => 3` en `AutorizarRolNegocio` (rol legacy de membresías, respaldado por test); `ControladorRoles` ahora bloquea editar roles `es_sistema` (globales compartidos, un propietario podía alterarlos para todos los bares) y eliminar roles en uso por membresías activas; `ControladorCaja::abrir` (`caja_id`) y `ControladorCajas::update` (`sucursal_id`) validan `Rule::exists` escoped por `negocio_id` (evita FK cruzados entre tenants). Reembolsos: doble-total bloqueado, caps por línea y por monto pagado, stock con `lockForUpdate` (verificado). Suite: **83 pruebas / 247 aserciones**.
+- **Fase L — Cierre de deuda de integridad**:
+  - **Eliminada la doble fuente de verdad de permisos**: `User::tienePermiso`/`permisosEnNegocio` ya no usan los arrays hardcodeados por rol; resuelven por `rol_id` (Rol de BD) o, para membresías legacy sin `rol_id`, contra el rol global (slug + `negocio_id` NULL) sembrado por `RolePermissionSeeder`; `propietario` sigue siendo acceso total. El contrato queda en un solo lugar (seeder + migraciones).
+  - `DatabaseSeeder` ahora llama `RolePermissionSeeder` (antes solo se reseedeaba manualmente; una instalación limpia dependía de los arrays legacy). `tests/TestCase` siembra el seeder en `setUp` si `permissions` existe (única fuente en tests; los tests unitarios y los de flujo sin migraciones no se ven afectados).
+  - **Reembolsos endurecidos**: `ServicioReembolso` adquiere `lockForUpdate` sobre la fila `venta` al inicio de la transacción (serializa reembolsos concurrentes sobre la misma venta → el cap de `montoDisponible` ya no es raceable) y el método `efectivo` exige turno de caja **abierto** (antes omitía silenciosamente el movimiento de efectivo, descuadrando arqueos). Nuevo test `test_reembolso_en_efectivo_requiere_turno_abierto`.
+  - **Downgrade de plan validado**: `ControladorNegocios::update` bloquea el cambio de plan si el bar supera `limite_sucursales`, `limite_cajeros` o `limite_cajas` del nuevo plan (error `plan_id`); tests de downgrade bloqueado y actualización con mismo plan. Fix de bug preexistente: `update` accedía `$datos['ruc']` sin `??` (undefined key si el formulario no lo envía).
+  - `RoleCrudTest` ajustado a roles globales sembrados (usa el rol `cajero` sembrado y un rol global personalizado `propietario_vip`; permisos vía `firstOrCreate`). Suite: **86 pruebas / 256 aserciones pasando**.
+
+### 2026-08-18 (2) — Auditoría integral por módulos y fases de corrección
+
+Auditoría exhaustiva (5 módulos: plataforma, auth/tenencia, POS/caja/reembolsos, catálogo/inventario/compras, usuarios/roles/reportes) + verificación manual. Inventario de ~60 bugs agrupados en fases accionables. Cada fase se completa de una en una; aquí se registra avance.
+
+- **Fase M — Dinero y cuadres (CRÍTICOS)**:
+  - [x] `ServicioReembolso.php:151` — reembolso efectivo con `retiro` de monto POSITIVO (los retiros son negativos) → infla `efectivo_esperado` y rompe cuadres/diferencias.  Fix: `monto => -$montoTotal`.
+  - [x] `ServicioCobro.php:225-237` + `ControladorCaja.php:148` — el CAMBIO entregado nunca sale de la caja (`venta` registra `paidAmount` completo) → diferencias negativas falsas en cuadres. Fix: registrar el cambio como `retiro` o monto neto `total`.
+  - [x] `ControladorCaja.php:77` vs `:148` — dos fórmulas de efectivo esperado (una incluye transferencias, otra no) → el cajero cuadra contra otra cifra. Fix: centralizar un único cálculo.
+  - [x] `ServicioCobro.php:23-27` — idempotencia check-then-insert: doble petición = unique 500 pese a venta existente; clave ajena reutilizada retorna ventas ajenas. Fix: capturar `QueryException` únicas + scope por usuario/turno + test.
+  - [x] `ServicioCobro.php:110-115` — descuento de producto sin clamp (`descuento>100` vía importación) → totales negativos. Fix: `min($descuento, subtotal)` defensivo.
+  - [x] `ServicioCobro.php:219-222` — variante con stock se decrementa aunque el producto NO maneje existencias. Fix: exigir `maneja_existencias`.
+  - [x] `ServicioReembolso.php:67-73` — reembolsos en CRÉDITO imposibles (`pagado=0`) y el monto reembolsado excluye IVA (cliente recibe menos). Fix: imputar impuesto y usar total/adeudado.
+  - [x] `ControladorCaja.php:204-226` — aprobar cuadre sin validar diferencia material. Fix: umbral + motivo.
+- **Fase N — Membresías y plataforma (CRÍTICOS/ALTOS)**:
+  - [x] `plataforma/negocios/show.blade.php:25-37` — `$credenciales` indefinida tras crear bar → 500. Fix: `session('credenciales.nombre')`.
+  - [x] `ControladorMembresias.php:18-19` — `renovar()` reactiva `suspendida` y extiende `cancelada` sin reactivar. Fix: solo `activa` para `prueba/activa/vencida`.
+  - [x] `Membresia.php:42` + `Contrato.php` + `MarcarMembresiasVencidas.php:18` — off-by-one: caducidad a medianoche del día D; comando va 1 día desfasado. Fix: comparar `endOfDay()`.
+  - [x] `EstablecerContextoNegocio.php:46` — sin fila de membresía el bar opera sin plan. Fix: `abort_unless($negocio->membresia && vigente)`.
+  - [x] `EstablecerContextoNegocio.php:34` — bypass testing desactivable por mis-config en prod. Fix: mecanismo solo-test.
+  - [x] `ControladorMembresias.php:11-24` — renovar sin transacción/lock (período perdido con doble clic). Fix: `DB::transaction`+`lockForUpdate`.
+  - [x] `ControladorNegocios::destroy` — soft-delete deja huérfanos financieros; borra config en hard. Fix: cascada explícita.
+  - [x] `ControladorNegocios::edit/update` — permite planes `esta_activo=false`. Fix: filtrar.
+  - [x] `ControladorContratos` — múltiples contratos activos; `aplicarVencimiento()` muerto. `ControladorPagos` — sin validar fechas/estado; `anular` sin contexto. Fix: uno activo + validación rango. (NUEVO: `$datos['referencia']`/`$datos['concepto']` nullable ausente → undefined key 500 en `Contratos::store` y `Pagos::store`; fix `?? null`.)
+- **Fase O — Autenticación y sesiones (ALTOS)**:
+  - [x] `ControladorAutenticacion.php:26` — login no valida `esta_activo`. Fix: flag tras attempt + test.
+  - [x] `ControladorAutenticacion.php:94-119` — `pinValidar` sin revalidar `esta_activo`. Fix: revalidar.
+  - [x] `routes/web.php:55` — `/plataforma/*` sin `forzar_cambio_password`. Fix: añadir middleware.
+  - [x] `ControladorPuntoVenta.php:97-116` — desbloqueo POS sin throttle/lockout. Fix: `IntentoPin`/`throttle`.
+  - [x] `AutorizarRolNegocio.php:40` — super_admin 403 duro; redirigir a plataforma.
+  - [x] `ControladorAutenticacion::guardarPassword` — no invalida otras sesiones ni remember tokens. (NUEVOS: `destinoDespuesDelCambio` con 0 membresías iba a `panel.inicio` en vez de `seleccionar-negocio`; `remember_token` no es fillable → `update()` lo ignoraba; `IntentoPin::registrarFallo` resetea intentos al expirar; `UserFactory` sin `esta_activo` → instancia null pese a default true en BD.)
+- **Fase P — POS y tickets (CRÍTICOS/ALTOS)**:
+  - [x] `ControladorTicketsAbiertos.php:17,43` — `session('turno_caja_id')` nunca se escribe → tickets con turno null visibles entre cajeros. Fix: turno abierto de `Auth::id()` + scope por cajero.
+  - [x] `ControladorTicketsAbiertos.php:30-63` — no valida existencias ni stock; `precio` del cliente. Fix: validar contra BD + clamp descuento.
+  - [x] `ControladorCaja.php:33-41` — abrir turno no serializa (doble turno abierta) ni valida caja sin otro turno. Fix: lock + restricción caja/sucursal.
+  - [x] `ControladorCaja.php:28` + `cambiarSucursal` — cajero opera caja de otra sucursal. Fix: validar caja↔sucursal; restringir cambio a cajero.
+  - [x] `ControladorCaja.php:257` — `solicitarModificacion` apilable. Fix: bloquear si pendiente.
+  - [x] `ServicioCobro.php:180-182` — numeración comprobante `PENDING-` luego update (ventana inconsistente). Fix: calcular antes del insert.
+- **Fase Q — Caja y cuadres (ALTOS/MEDIOS)**:
+  - [x] `ControladorCajas.php:76-87` — destruir caja con turnos cerrados → FK 500; sin SoftDeletes. Fix: bloquear si hay turnos.
+  - [x] `ControladorCajeros.php:62-77,105-149` — límite global del plan saltable; `update` sin revalidar límites ni restringir sucursal destino. Fix: validar siempre.
+  - [x] `ControladorCajeros.php:151-163` — desactivar cajero con turno abierto. Fix: bloqueo.
+  - [x] `ControladorSucursales.php:90-102` — eliminar sucursal huérfana historial. Fix: bloquear/soft.
+- **Fase R — Catálogo/inventario/compras (CRÍTICOS/ALTOS)**:
+  - [x] `ControladorCompras.php:125-171` — doble recepción de orden sin lock (existencias duplicadas). Fix: `lockForUpdate` + re-check estado + test.
+  - [x] `ControladorConteos.php:76-81` — conteo aplicable dos veces. Fix: lock + re-check.
+  - [x] `exists:` de productos/proveedores/sucursales/categorías sin scope del negocio (`ControladorConteos:37`, `ControladorCompras:76,80`, `ControladorProductos:37-38,84-85`, `ControladorImpresoras:22`, `ControladorPuntoVenta:154-156`). Fix: `Rule::exists(...)->where('negocio_id', ...)`.
+  - [x] `ControladorProductos.php:51,98` — `unique:codigo_barras` global (no por negocio, no ignora soft-deletes). Fix: scope por negocio + `withTrashed`.
+  - [x] `ControladorProductos.php:201-219` — `importar()` sin validar (precios negativos, `categoria_id` nulo → 500). Fix: validar por fila.
+  - [x] `ControladorProductos.php:105-108` — desactivar `maneja_existencias` fuerza `existencias=0`. Fix: conservar stock.
+  - [x] `ControladorCategorias.php:65-72` — borrar categoría con productos. Fix: bloquear.
+  - [x] `ControladorCompras.php:86` / `ControladorConteos.php:42` — numeración `OC-`/`CNT-` sin lock ni tenant. Fix: secuencia por negocio.
+  - [x] Stock padre/variante incoherente en ajustes/recepciones/conteos (solo tocan `productos.existencias`).
+- **Fase S — Usuarios/roles/config/auditoría (ALTOS/MEDIOS)**: ✅
+  - [x] `ControladorAdminBar.php:104` — desactivar admin_bar no sincroniza membresía ni bloquea login. Fix: sync + bloqueo.
+  - [x] `ControladorRoles.php:37` — `unique:roles,slug` global. Fix: scope por negocio.
+  - [x] `ControladorConfiguracionNegocio.php:19,41` — falta `authorize` en `update`; boolean `== '1'` frágil.
+  - [ ] `ConfiguracionNegocio::obtenerConfiguracion()` sin contexto → REFUTADO: el trait `PerteneceANegocio` scopea por `negocio_id`. No tocar.
+  - [x] Auditoría incompleta: `RegistradorAuditoria` no usado en cajeros/roles/admin_bar/sucursales/config.
+  - [x] `Rol.php:27-30` — relación `membresias()` con pivot roto. Fix: `hasMany` o eliminar.
+  - [x] `ControladorCajeros::store` — lookup rol ambiguo; límite apunta también a ajuste de plan en creación.
+  - [x] Roles personalizados inermes — Fix: flujo de asignación `rol_id` en UI de cajeros (selector de rol personalizado en crear/editar, validación scoped por negocio).
+- **Fase T — Reportes y tenancy cross-cutting (MEDIOS/BAJOS)**: ✅
+  - [x] `AppServiceProvider.php:32` + `ControladorReportes` — todos los reportes gatean `reporte.ventas`; permisos finos ignorados. Fix: gate por módulo.
+  - [ ] `User.php:97-101` — `propietario=>true` después del branch `rol_id` → REFUTADO parcial: solo afecta si el rol asignado está vacío (riesgo bajo). No tocar.
+  - [x] Migración `210004` crea roles por-negocio con 0 permisos si el seeder no corrió — Fix: la migración auto-siembra `RolePermissionSeeder` si la tabla `permissions` está vacía (idempotente; garantiza permisos en instalaciones nuevas y en `migrate` sin seed).
+  - [x] Policies muertas/duplicadas (`RolPolicy::manage`, `ReportePolicy` eliminadas; `ConfiguracionPolicy` confirmada en uso).
+  - [x] `ControladorRoles.php:28-53` — roles sistema editables en UI (422 confuso). UX: botón editar/bloquear oculto para `es_sistema` en `roles/index.blade.php`.
+  - [x] N+1 en `plataforma.negocios.index/show` (`contratoVigente`, `totalPagado`).
+  - [x] `generarIdentificador()` sin lock; `exportar` código muerto (`stream_get_contents`).
+  - [x] Desincronía `ruc` required (cliente) vs nullable (servidor); credenciales temporal en flash/logs.
+  - [x] Índices compuestos faltantes: `turnos_caja (negocio_id, usuario_id, estado)`.
+  - [x] NUEVO: `porSucursal` — `created_at` ambigüo tras el JOIN (500). Fix: `ventas.created_at`.
+
+**Avances**:
+
+- **2026-08-18 (11) — Cierre de parciales (T2/T3/S8)**: `User::tienePermiso` — test escudo: el propietario sin `rol_id` accede a todo (incluida cualquier clave futura), blindando el orden del branch ante refactorizaciones. Migración `210004` — ahora auto-siembra `RolePermissionSeeder` al inicio si `permissions` está vacía (garantiza roles con permisos en instalaciones nuevas y en `migrate` sin `--seed`; idempotente). Roles personalizados — flujo de asignación completo: `ControladorCajeros::store/update` aceptan `rol_id` opcional validado con `Rule::exists('roles','id')->where(negocio_id, !es_sistema)` (rechaza roles de otro bar y roles del sistema), se guarda en la membresía (default: rol cajero del bar); `cajeros/index.blade.php` muestra selector "Rol" en crear y editar (solo roles personalizados del bar, con el rol de cajero predeterminado y marcado correcto al editar). Tests nuevos (6, en `RolesAdminConfigTest`): propietario sin rol acceso total, seeder garantiza permisos/roles globales con permisos, crear cajero con rol personalizado del bar, rol de otro bar rechazado, rol del sistema rechazado, cambio de rol al editar. Suite: **160 pruebas / 518 aserciones**.
+
+- **2026-08-18 (10) — Fase T completada**: gates de reportes por módulo — nuevo gate `reportes.ventas_o_cajeros` (`reporte.ventas` OR `reporte.cajeros`) usado por `porSucursal`; el resto sigue con `reportes.ver`. Policies muertas eliminadas (`RolPolicy.php`, `ReportePolicy.php` + su registro en `AppServiceProvider`; `ConfiguracionPolicy` confirmada viva). UX de roles: `roles/index.blade.php` ya no muestra editar/eliminar para `es_sistema` (en el servidor seguían bloqueados con 422). N+1: `plataforma.negocios.index` eager-loada solo los contratos vigentes (filtro en la relación) y la vista usa `$negocio->contratos->first()`; `Contrato::totalPagado()` suma sobre la colección de `pagos` cargada (mismo resultado, cero queries extra con eager load). `generarIdentificador()` con `lockForUpdate()` (ya corría dentro del `DB::transaction` del store, el gap lock del índice único blinda la carrera); `exportar()` sin el `stream_get_contents` muerto (doble lectura). `ruc` alineado: servidor y formulario nullable (se quita `required` del input de create). Flash de credenciales: ya se limpiaba con `session()->forget` tras mostrarse y un `with()` es de una sola request — cubierto con test de dos vistas seguidas. Índice compuesto nuevo `turnos_caja (negocio_id, usuario_id, estado)` (migración `2026_08_18_100006`). **Bug nuevo encontrado y corregido**: `ControladorReportes::porSucursal` lanzaba 500 por `created_at` ambigüo tras el `leftJoin` con `sucursales`/`usuarios` (ambas tablas tienen la columna) → calificado `ventas.created_at`. Tests nuevos (`ReportesTenancyTest`, 7): rol sin permisos de reportes 403, propietario con rol solo `reporte.cajeros` ve por-sucursal pero no productos/export, `totalPagado` suma solo pagos registrados, identificador con colisión → sufijo `-1`, ruc opcional, índice compuesto presente, flash de credenciales desaparece tras mostrarse. Suite: **154 pruebas / 499 aserciones**.
+
+- **2026-08-18 (9) — Fase S completada**: `ControladorAdminBar` (store/update/destroy) inyecta `RegistradorAuditoria`, lookup de rol por slug `admin_bar` con `orderByDesc('negocio_id')` (rol del bar > global) y `update` sincroniza `sucursal_id` + `esta_activa` en `membresias_negocio` (desactivar admin_bar desactiva su membresía y bloquea acceso al backoffice, verificado por test 403). `ControladorRoles`: `slug` único scoped por negocio (`negocio_id` o global), rechaza slugs reservados (`super_admin`, `propietario`, `admin_bar`, `cajero` → 422), store/update/destroy con auditoría (update/destroy mantienen bloqueo `es_sistema` y en-uso). `Rol::membresias()` corregido a `HasMany(MembresiaNegocio::class, 'rol_id')`. `ControladorConfiguracionNegocio::update`: `authorize('administrar')`, `$request->boolean()` para los flags y auditoría. `ControladorCajeros` store/update/destroy: auditoría + lookup de rol `cajero` con `orderByDesc('negocio_id')`. `ControladorSucursales` store/update/destroy: auditoría. **Bug nuevo encontrado y corregido**: `store`/`update` de sucursal accedían a `$datos['direccion']`/`telefono`/`provincia`/`canton`/`ciudad` sin `?? null` → `Undefined array key` 500 cuando el formulario no envía el campo (mismo patrón ya corregido en contratos/pagos, fase N). Tests nuevos (`RolesAdminConfigTest`, 10): desactivar admin_bar desactiva membresía, admin_bar desactivado → 403, mismo slug de rol en dos bares permitido, slug reservado 422, rol de sistema no editable ni eliminable, cajero no cambia config (403), booleanos/auditoría de config, auditoría en cajeros/roles/sucursales, lookup prefiere rol del bar sobre el global, `membresias()` hasMany. Nota debugging: con app no-JSON, una validación fallida responde 302 con errores flash (no 422) y `TestResponse::assertStatus` sobre esas respuestas dispara el falso error "Call to a member function all() on array" → usar `assertSessionHasErrors`/`assertRedirect` según el caso. Suite: **147 pruebas / 481 aserciones**.
+
+- **2026-08-18 (8) — Fase R completada**: `ControladorCompras::recibir` mueve el chequeo de estado DENTRO de la transacción con `OrdenCompra::lockForUpdate()` (segunda recepción → 422, existencias sin duplicar); `ControladorConteos::aplicar` igual con `ConteoInventario::lockForUpdate()` (conteo aplicado dos veces → 422). Todos los `exists:` de productos/proveedores/sucursales/categorías/variantes/modificadores/clientes scoped por `negocio_id` (`Rule::exists()->where(...)` en Compras, Conteos, Productos, Impresoras, PuntoVenta `cobrar` e Inventario `ajustar`). `unique:codigo_barras` por negocio (migración compuesta ya existente) + `whereNull('deleted_at')` en la validación + `destroy` limpia el código (reuso tras soft-delete); `importar()` valida por fila: omite filas con categoría inexistente (ya no 500), clamp precio≥0, descuento 0-100, existencias/nivel_minimo≥0, código limpiado; `update` conserva el stock al desactivar `maneja_existencias` (antes forzaba 0); `ControladorCategorias::destroy` bloquea categorías con productos; numeración `OC-`/`CNT-` por secuencia global con `lockForUpdate` pre-insert (sin ventana duplicada, consistente con `CMP-`); stock padre/variante: ajustes/recepciones/conteos rechazan 422 productos con variantes activas (el stock operativo es de la variante). Tests nuevos (`InventarioComprasTest`, 10): doble recepción 422, doble aplicación 422, orden con producto ajeno 422, código de barras repetible entre bares pero no en el mismo, reuso tras eliminar, desactivar control conserva stock, importar omite fila inválida y clamp valores, categoría con productos no eliminable, numeración global consecutiva, ajuste de producto con variantes bloqueado. Suite: **137 pruebas / 444 aserciones**.
+
+- **2026-08-18 (7) — Fase Q completada**: `ControladorCajas::destroy` bloquea cualquier caja con turnos (historial incluido, no solo `abierta`) → ya no FK 500 con turnos cerrados; `ControladorSucursales::destroy` bloquea sucursales con historial de turnos o cajas asociadas; `ControladorCajeros::update` revalida el límite de la sucursal destino (o el global del plan si la sucursal no tiene cupo propio, excluyendo al cajero movido) y restringe a admin_bar que solo asigne cajeros a su propia sucursal (`(int)` cast para comparación estricta); `ControladorCajeros::destroy` rechaza 422 desactivar un cajero con turno abierto. Tests nuevos (`CajasSucursalesTest`, 9): caja con historial no eliminable, caja vacía eliminable, sucursal con historial/cajas no eliminable, sucursal vacía eliminable, mover cajero a sucursal llena 422, mover a sucursal con cupo OK, admin_bar no asigna fuera de su sucursal, cajero con turno abierto no desactivable. Suite: **127 pruebas / 406 aserciones**.
+
+- **2026-08-18 (6) — Fase P completada**: `ControladorTicketsAbiertos` reescrito — `index()` lista solo los tickets del turno abierto real del cajero (`turnoAbiertoDeCajero()`, ya no `session('turno_caja_id')` que nunca se escribía); `store()` valida turno abierto (422), `Rule::exists` de producto/variante scoped por negocio, producto activo, variante debe pertenecer al producto, stock contra `maneja_existencias` (variante→producto), precio/descuento desde BD (ignora el del cliente) y descuento clampéado al subtotal bruto. `ControladorCaja::abrir` serializado con `lockForUpdate` sobre la caja (segunda apertura → 422), valida que la caja no tenga otro turno abierto y que pertenezca a la sucursal asignada del cajero. `solicitarModificacion` dentro de `DB::transaction` + `lockForUpdate` (re-solicitud → 422, ya no apilable). `ControladorSeleccionNegocio::cambiarSucursal` bloquea al cajero con sucursal asignada. `ServicioCobro`: numeración `CMP-000001` calculada **antes** del insert con `Sale::withoutGlobalScopes()->orderByDesc('id')->lockForUpdate()` (secuencia global, sin ventana `PENDING-`). Tests nuevos (`TicketsAbiertosTest`, 10): store sin turno 422, precio/descuento desde BD con clamp, existencias insuficientes 422, variante de otro producto 422, index por turno del cajero, caja ocupada 422, caja de otra sucursal 422, modificación no apilable, cajero asignado no cambia de sucursal, numeración desde el insert. Suite: **118 pruebas / 382 aserciones**.
+
+- **2026-08-18 (5) — Fase O completada**: login y PIN revalidan `esta_activo` (login no distingue mensaje para no revelar estado); `/plataforma/*` ahora pasa por `forzar_cambio_password`; desbloqueo POS usa `IntentoPin` + `throttle:10,1` (5 fallos → bloqueo 60s) y `registrarFallo` resetea el contador cuando el bloqueo ya venció (lockout pegajoso eliminado); `AutorizarRolNegocio` redirige a super_admin a plataforma en todas las ramas (no más 403); `EstablecerContextoNegocio` redirige super_admin a plataforma (fix del `/` muerto) y hace logout+redirect a login si el usuario está inactivo; `guardarPassword` borra otras sesiones (tabla `sessions` por `user_id`) y limpia `remember_token` (asignación directa: no es fillable). Bugs nuevos corregidos: `destinoDespuesDelCambio` con 0 membresías iba a `panel.inicio` (403) en vez de `seleccionar-negocio`; `UserFactory` sin `esta_activo`/`debe_cambiar_password` (instancia null pese al default). Tests nuevos (`AutenticacionTest`, 10): login inactivo rechazado, login super_admin → plataforma, PIN inactivo → login cajero, desbloqueo correcto, bloqueo tras 5 fallos, plataforma exige cambio de password, super_admin en `/`, password invalida sesiones/remember, reset de contador al vencer bloqueo, inactivo expulsado del sistema. Suite: **108 pruebas / 348 aserciones**.
+
+- **2026-08-18 (4) — Fase N completada**: `show.blade.php` usa `session('credenciales')` (no `$credenciales`) → sin 500 tras crear bar; `renovar()` con `DB::transaction` + `lockForUpdate`, solo estados `prueba/activa/vencida` (aborta `suspendida`/`cancelada` con mensaje); `Membresia::estaVigente/estaVencida` y `Contrato::estaVigente/estaVencido` comparan `endOfDay()` (el día de vencimiento sigue activo); `EstablecerContextoNegocio` aborta 403 si el bar no tiene membresía vigente (guard solo en `testing`); `ControladorNegocios::destroy` ahora transacciona: elimina config, `membresias_negocio.esta_activa=false`, cancela contratos activos, soft-delete; `edit/update` filtra `plan_id` a planes activos; `ControladorContratos::store` aborta 422 si ya hay contrato activo. **Bug nuevo encontrado y corregido**: campos nullable ausentes (`referencia`, `concepto`) daban `Undefined array key` 500 en `ControladorContratos::store` y `ControladorPagos::store` → `?? null`. Tests nuevos (PlataformaTest): show tras crear bar sin 500; membresía vigente el día del vencimiento (endOfDay); renovar rechaza `suspendida`/`cancelada`; segundo contrato activo 422; eliminar bar desactiva membresías y cancela contratos. Suite: **98 pruebas / 306 aserciones**.
+
+- **2026-08-18 (3) — Fase M completada**: reembolso en efectivo registra `retiro` con monto **negativo** (antes positivo, inflaba el esperado); el **cambio** entregado en ventas de efectivo se registra como `retiro` (`-cambio`) así el cuadre cuadra contra el neto; `efectivoEsperado()` único (excluye transferencias) compartido por la vista de cierre y el cierre final (`ControladorCaja.php:77` y `:148`); cobro: idempotencia con `try/catch QueryException` de la clave única (devuelve la venta existente en vez de 500, check escoped por usuario), descuento clampéado a `subtotal`, variante solo se descuenta si el producto `maneja_existencias`; reembolso: viable en **crédito** (`montoDisponible = total - reembolsado`), incluye **IVA proporcional** (`factor = (subtotal+impuesto)/subtotal`); `aprobarCuadre` exige `motivo` si `abs(diferencia) > 1`. Tests nuevos: cambio como retiro, idempotencia entre usuarios, descuento >100 clampéado, variante sin existencias, reembolso crédito, reembolso con impuesto, esperado sin transferencias, aprobar cuadre con diferencia. Suite: **94 pruebas / 289 aserciones**.
+
+**Estado de fases**: M ✅ · N ✅ · O ✅ · P ✅ · Q ✅ · R ✅ · S ✅ · T ✅ — parciales cerrados (11). — Suite base: **160 pruebas / 518 aserciones**.
+
+### Verificación de código 2026-08-18 (4) — Bugs confirmados por fase
+
+Resultado de auditar cada fase contra el código real (no solo el inventario previo). Se marca CONFIRMADO / REFUTADO / NUEVO. Este es el orden de corrección.
+
+- **Fase N — Membresías y plataforma**:
+  - ✅ CONFIRMADO (`show.blade.php:29-31`) — `$credenciales` nunca se pasa a la vista → 500 al crear un bar (usa `session('credenciales')` como condición pero variable `$credenciales` indefinida).
+  - ✅ CONFIRMADO (`ControladorMembresias.php:11-24`) — `renovar()` reactiva `suspendida` y extiende `cancelada` sin reactivarla; sin transacción ni lock (doble clic pierde período).
+  - ✅ CONFIRMADO (`Membresia.php:41-48` + `MarcarMembresiasVencidas.php:18`) — off-by-one: `fecha_vencimiento->isPast()` vence a las 00:00 del día D (pierde el día de vencimiento). Fix: comparar `endOfDay()`.
+  - ✅ CONFIRMADO (`EstablecerContextoNegocio.php:46-49`) — si el bar NO tiene fila `membresia`, no se aborta (opera sin plan). Fix: aborto si no hay membresía vigente (guard testing para no romper suite).
+  - ✅ CONFIRMADO (`ControladorNegocios.php:166-179`) — destroy soft-delete deja `membresias_negocio`, `contratos` y cajeros activos huérfanos; solo bloquea si hay ventas.
+  - ✅ CONFIRMADO (`ControladorNegocios.php:132`) — edit muestra `Plan::all()` (incluye inactivos); update acepta `plan_id` de plan inactivo.
+  - ✅ CONFIRMADO (`ControladorContratos.php:13-32`) — se pueden crear múltiples contratos activos.
+  - ⚠️ REFUTADO parcial — `ControladorPagos` tiene validación básica; `anular` no es crítico (solo super_admin).
+  - ⚠️ Parcial — testing bypass (`EstablecerContextoNegocio:34`) es aceptable (solo env testing).
+- **Fase O — Autenticación y sesiones**: ✅ 6/6 confirmados (detalle completo en chat): login y PIN sin revalidar `esta_activo`; plataforma sin `forzar_cambio_password`; desbloqueo POS sin throttle/IntentoPin; super_admin 403 duro; `guardarPassword` no invalida sesiones. NUEVOS: `EstablecerContextoNegocio` no valida `esta_activo` del usuario; lockout PIN pegajoso (`IntentoPin` no resetea intentos al expirar); `/` 403 para super_admin (dead code); POS sin idle-timeout.
+- **Fase P — POS y tickets**:
+  - ✅ CONFIRMADO (`ControladorTicketsAbiertos.php:17,43`) — `session('turno_caja_id')` NUNCA se escribe (grep global) → tickets con `turno_caja_id` null.
+  - ✅ CONFIRMADO (`ControladorTicketsAbiertos.php:26-64`) — usa `precio` del cliente, sin validar stock ni `maneja_existencias`, sin clamp de descuento; `exists:productos,id` global (sin scope negocio).
+  - ✅ CONFIRMADO (`ControladorCaja.php:28-31`) — abrir no valida que la caja no tenga turno abierto; no valida caja↔sucursal del cajero.
+  - ✅ CONFIRMADO (`ControladorCaja.php:256-274`) — `solicitarModificacion` apilable desde `cerrada`/`aprobada`.
+  - ✅ CONFIRMADO (`ServicioCobro.php:180-182`) — numeración `PENDING-` luego update.
+- **Fase Q — Caja y cuadres**:
+  - ✅ CONFIRMADO (`ControladorCajas.php:76-87`) — destroy solo bloquea turnos ABIERTOS; turnos cerrados tienen FK `restrictOnDelete` (migración 050001:13) → 500.
+  - ✅ CONFIRMADO (`ControladorCajeros.php:105-149`) — update sin revalidar límites ni bloquear sucursal destino; destroy no bloquea cajero con turno abierto.
+  - ✅ CONFIRMADO (`ControladorSucursales.php:90-102`) — destroy solo bloquea turnos abiertos, FK restrict en cajas/turnos cerrados → 500; sin soft delete.
+- **Fase R — Catálogo/inventario/compras**:
+  - ✅ CONFIRMADO (`ControladorCompras.php:125-171`) — `recibir` sin lock de la orden ni re-check de estado dentro de la transacción (recepción doble duplica stock).
+  - ✅ CONFIRMADO (`ControladorConteos.php:76-81`) — `aplicar` con el mismo patrón (doble aplicación).
+  - ✅ CONFIRMADO — `exists:productos,id` / `exists:proveedores,id` globales sin scope negocio (`Compras:76,80`, `Conteos:37`, `Productos:37-38,84-85`, `PuntoVenta:154-156`).
+  - ✅ CONFIRMADO (`ControladorProductos.php:51,98`) — `unique:productos,codigo_barras` global (ya hay índice único por negocio en migración 100005 → el rule global rechaza códigos de otro tenant).
+  - ✅ CONFIRMADO (`ControladorProductos.php:162-224`) — `importar()` sin validar por fila (precios negativos, `categoria_id` null → FK 500, descuento>100).
+  - ✅ CONFIRMADO (`ControladorProductos.php:107`) — desactivar `maneja_existencias` fuerza `existencias=0` (pérdida de datos).
+  - ✅ CONFIRMADO (`ControladorCategorias.php:65-72`) — destroy sin chequear productos asociados (FK/cascada).
+  - ✅ CONFIRMADO — numeración `OC-`/`CNT-` sin lock por tenant (`Compras:86`, `Conteos:42-47`).
+  - ✅ CONFIRMADO — stock padre/variante incoherente en ajustes/recepciones/conteos (solo tocan `productos.existencias`).
+- **Fase S — Usuarios/roles/config/auditoría**:
+  - ✅ CONFIRMADO (`ControladorAdminBar.php:104`) — desactivar admin_bar no sincroniza `membresias_negocio.esta_activa` (y el login no valida `esta_activo`).
+  - ✅ CONFIRMADO (`ControladorRoles.php:37`) — `unique:roles,slug` global (el índice real es `['negocio_id','slug']`).
+  - ✅ CONFIRMADO (`ControladorConfiguracionNegocio.php:19-42`) — `update` sin `authorize`; boolean `== '1'`.
+  - ⚠️ REFUTADO — `obtenerConfiguracion()` NO fuga entre tenants: el trait `PerteneceANegocio` añade scope por `negocio_id`.
+  - ✅ CONFIRMADO — auditoría ausente en cajeros/roles/admin_bar/sucursales/config.
+  - ✅ CONFIRMADO (`Rol.php:27-30`) — `membresias()` con pivot roto (`belongsToMany` sobre `membresias_negocio` con `rol_id`/`id`).
+  - ✅ CONFIRMADO (`ControladorCajeros.php:87-89`) — lookup de rol ambiguo (toma cualquiera por slug).
+  - ⚠️ Parcial — roles personalizados inermes (no hay flujo de asignación de `rol_id` en UI).
+- **Fase T — Reportes y tenancy cross-cutting**:
+  - ✅ CONFIRMADO — todos los reportes gatean `reportes.ver` (=`reporte.ventas`); `reportes.cajeros` está definido en `AppServiceProvider:36` pero NUNCA se usa.
+  - ⚠️ REFUTADO parcial — `User::tienePermiso`: el orden `rol_id` antes que `propietario` solo afecta si el rol asignado está vacío (el seeder 210004 asigna todos los permisos al rol propietario); propietarios de la plataforma no llevan `rol_id` → acceso total. Riesgo bajo.
+  - ⚠️ PARCIAL — migración `210004` crea roles con 0 permisos si `permissions` está vacía (solo afecta migración sobre BD existente sin seeder; ahora `DatabaseSeeder`/`TestCase` siembran permisos).
+  - ✅ CONFIRMADO — `RolPolicy::manage`, `ReportePolicy`, `ConfiguracionPolicy` muertas/duplicadas.
+  - ✅ CONFIRMADO (`ControladorProductos.php:155-159`) — `exportar()` usa `stream_get_contents` (dead code).
+  - ✅ CONFIRMADO — N+1 en `plataforma.negocios.index` (`contratoVigente`, `totalPagado`); `generarIdentificador` sin lock.
+  - ✅ CONFIRMADO — `turnos_caja` sin índice compuesto `(negocio_id, usuario_id, estado)`.
+
 ---
 
 # ANÁLISIS COMPLETO DEL SISTEMA — 2026-08-15
@@ -1333,7 +1596,7 @@ Se realizó una auditoría exhaustiva del sistema cubriendo: modelos/relaciones,
 ## Fase 17: Pruebas y Cobertura
 
 **Objetivo:** Aumentar cobertura de tests al 80%+.
-**Estado:** EN_PROGRESO (48 tests / 162 assertions actuales)
+**Estado:** EN_PROGRESO (83 tests / 247 aserciones actuales)
 **Prioridad:** MEDIA
 
 ### 17.1 Tests de Aislamiento Multi-Tenant

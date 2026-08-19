@@ -45,14 +45,7 @@
                 <button class="btn btn-outline-danger" type="submit"><i class="bi bi-lock"></i> Cerrar caja</button>
             </form>
         @elseif($cajaActiva)
-            <form method="POST" action="{{ route('caja.abrir') }}" class="d-flex gap-2 align-items-end">
-                @csrf
-                <div>
-                    <label class="form-label small mb-1" for="fondo_inicial">Fondo inicial</label>
-                    <input class="form-control" id="fondo_inicial" name="fondo_inicial" type="number" min="0" step="0.01" value="0.00" required>
-                </div>
-                <button class="btn btn-dark" type="submit"><i class="bi bi-unlock"></i> Abrir caja</button>
-            </form>
+            <a href="{{ route('punto_venta.inicio') }}" class="btn btn-dark"><i class="bi bi-unlock"></i> Abrir caja</a>
         @endif
     </div>
 </div>

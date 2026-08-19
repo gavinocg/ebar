@@ -4,10 +4,15 @@
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h3">Sucursales</h1>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#crearSucursal">
-        <i class="bi bi-plus-circle"></i> Nueva sucursal
-    </button>
+    <div>
+        <h1 class="h3">Sucursales</h1>
+        <p class="text-muted mb-0">{{ $sucursales->where('esta_activa', true)->count() }} de {{ $xns > 0 ? $xns : '∞' }} sucursales contratadas.</p>
+    </div>
+    @if ($xns <= 0 || $sucursales->where('esta_activa', true)->count() < $xns)
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#crearSucursal">
+            <i class="bi bi-plus-circle"></i> Nueva sucursal
+        </button>
+    @endif
 </div>
 
 <div class="table-responsive">
@@ -15,8 +20,10 @@
         <thead class="table-light">
             <tr>
                 <th>Nombre</th>
+                <th>Ubicación</th>
                 <th>Dirección</th>
                 <th>Teléfono</th>
+                <th>Cajeros</th>
                 <th>Estado</th>
                 <th class="text-end">Acciones</th>
             </tr>
@@ -25,8 +32,16 @@
             @forelse($sucursales as $sucursal)
                 <tr>
                     <td class="fw-semibold">{{ $sucursal->nombre }}</td>
+                    <td>
+                        @if ($sucursal->provincia || $sucursal->canton || $sucursal->ciudad)
+                            {{ collect([$sucursal->ciudad, $sucursal->canton, $sucursal->provincia])->filter()->implode(', ') }}
+                        @else
+                            <span class="text-muted">—</span>
+                        @endif
+                    </td>
                     <td>{{ $sucursal->direccion ?? '—' }}</td>
                     <td>{{ $sucursal->telefono ?? '—' }}</td>
+                    <td>{{ $sucursal->n_cajeros_contratados > 0 ? $sucursal->n_cajeros_contratados : '∞' }}</td>
                     <td>
                         @if ($sucursal->esta_activa)
                             <span class="badge bg-success">Activa</span>
@@ -35,7 +50,7 @@
                         @endif
                     </td>
                     <td class="text-end">
-                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editar{{ $sucursal->id }}">
+                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editar{{ $sucursal->id }}">
                             <i class="bi bi-pencil"></i>
                         </button>
                         <form method="POST" action="{{ route('sucursales.destroy', $sucursal) }}" class="d-inline" onsubmit="return confirm('¿Eliminar esta sucursal?')">
@@ -47,7 +62,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="5" class="text-center text-muted py-4">No hay sucursales registradas.</td>
+                    <td colspan="7" class="text-center text-muted py-4">No hay sucursales registradas.</td>
                 </tr>
             @endforelse
         </tbody>
@@ -72,9 +87,28 @@
                         <label class="form-label">Dirección</label>
                         <input type="text" name="direccion" class="form-control">
                     </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Provincia</label>
+                            <input type="text" name="provincia" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Cantón</label>
+                            <input type="text" name="canton" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Ciudad</label>
+                            <input type="text" name="ciudad" class="form-control">
+                        </div>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">Teléfono</label>
                         <input type="text" name="telefono" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Cajeros contratados (xNC)</label>
+                        <input type="number" name="n_cajeros_contratados" min="0" max="50" class="form-control" value="1">
+                        <div class="form-text">0 = ilimitado.</div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -106,9 +140,28 @@
                             <label class="form-label">Dirección</label>
                             <input type="text" name="direccion" class="form-control" value="{{ $sucursal->direccion }}">
                         </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Provincia</label>
+                                <input type="text" name="provincia" class="form-control" value="{{ $sucursal->provincia }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Cantón</label>
+                                <input type="text" name="canton" class="form-control" value="{{ $sucursal->canton }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Ciudad</label>
+                                <input type="text" name="ciudad" class="form-control" value="{{ $sucursal->ciudad }}">
+                            </div>
+                        </div>
                         <div class="mb-3">
                             <label class="form-label">Teléfono</label>
                             <input type="text" name="telefono" class="form-control" value="{{ $sucursal->telefono }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Cajeros contratados (xNC)</label>
+                            <input type="number" name="n_cajeros_contratados" min="0" max="50" class="form-control" value="{{ $sucursal->n_cajeros_contratados }}">
+                            <div class="form-text">0 = ilimitado.</div>
                         </div>
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" name="esta_activa" id="activa{{ $sucursal->id }}" value="1" @checked($sucursal->esta_activa)>

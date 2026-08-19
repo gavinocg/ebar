@@ -33,6 +33,8 @@ class LimpiarTransaccional extends Command
             'movimientos_inventario',
             'ventas',
             'turnos_caja',
+            'pagos',
+            'contratos',
             'productos',
             'categorias',
         ];

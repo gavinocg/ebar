@@ -27,37 +27,56 @@
                             <i class="bi bi-cart"></i> Punto de Venta
                         </a>
                     </li>
-                    @if (auth()->user()?->esAdminDelNegocioActual())
+                    @if (auth()->user()?->tienePermiso('pos.ver'))
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('punto_venta.inicio') }}">
+                            <i class="bi bi-cart"></i> Punto de Venta
+                        </a>
+                    </li>
+                    @endif
+                    @if (auth()->user()?->tienePermiso('producto.ver'))
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('productos.index') }}">
                             <i class="bi bi-box"></i> Productos
                         </a>
                     </li>
+                    @endif
+                    @if (auth()->user()?->tienePermiso('categoria.ver'))
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('categorias.index') }}">
                             <i class="bi bi-tags"></i> Categorías
                         </a>
                     </li>
+                    @endif
+                    @if (auth()->user()?->tienePermiso('venta.ver'))
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('ventas.index') }}">
                             <i class="bi bi-receipt"></i> Ventas
                         </a>
                     </li>
+                    @endif
+                    @if (auth()->user()?->tienePermiso('impresora.ver'))
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('impresoras.index') }}">
                             <i class="bi bi-printer"></i> Impresoras
                         </a>
                     </li>
+                    @endif
+                    @if (auth()->user()?->tienePermiso('configuracion.negocio'))
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('configuracion.negocio') }}">
                             <i class="bi bi-gear"></i> Configuración
                         </a>
                     </li>
+                    @endif
+                    @if (auth()->user()?->tienePermiso('sucursal.ver'))
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('sucursales.index') }}">
                             <i class="bi bi-diagram-3"></i> Sucursales
                         </a>
                     </li>
+                    @endif
+                    @if (auth()->user()?->tienePermiso('usuario.cajeros'))
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('cajeros.index') }}">
                             <i class="bi bi-people"></i> Cajeros

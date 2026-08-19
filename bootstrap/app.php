@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'negocio' => \App\Http\Middleware\EstablecerContextoNegocio::class,
             'super_admin' => \App\Http\Middleware\AutorizarSuperAdministrador::class,
             'rol_negocio' => \App\Http\Middleware\AutorizarRolNegocio::class,
+            'forzar_cambio_password' => \App\Http\Middleware\ForzarCambioPassword::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

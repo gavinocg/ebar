@@ -3,11 +3,12 @@
 namespace App\Policies;
 
 use App\Models\ConfiguracionNegocio;
+use App\Models\User;
 
 class ConfiguracionPolicy
 {
-    public function administrar(\App\Models\User $user, ?ConfiguracionNegocio $configuracion = null): bool
+    public function administrar(User $user, ?ConfiguracionNegocio $configuracion = null): bool
     {
-        return $user->esPropietario();
+        return $user->tienePermiso('configuracion.negocio');
     }
 }

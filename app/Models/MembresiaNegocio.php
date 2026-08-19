@@ -9,7 +9,7 @@ class MembresiaNegocio extends Model
 {
     protected $table = 'membresias_negocio';
 
-    protected $fillable = ['negocio_id', 'usuario_id', 'rol', 'sucursal_id', 'esta_activa', 'cuadre_activo', 'aprobacion_activa', 'limite_cajeros'];
+    protected $fillable = ['negocio_id', 'usuario_id', 'rol', 'rol_id', 'sucursal_id', 'esta_activa', 'cuadre_activo', 'aprobacion_activa', 'limite_cajeros'];
 
     protected $casts = ['esta_activa' => 'boolean', 'cuadre_activo' => 'boolean', 'aprobacion_activa' => 'boolean', 'limite_cajeros' => 'integer'];
 
@@ -26,5 +26,10 @@ class MembresiaNegocio extends Model
     public function sucursal(): BelongsTo
     {
         return $this->belongsTo(Sucursal::class, 'sucursal_id');
+    }
+
+    public function rolAsignado(): BelongsTo
+    {
+        return $this->belongsTo(Rol::class, 'rol_id');
     }
 }

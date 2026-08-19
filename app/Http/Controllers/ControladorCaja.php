@@ -22,7 +22,7 @@ class ControladorCaja extends Controller
     {
         $datos = $request->validate([
             'fondo_inicial' => 'required|numeric|min:0|max:9999999999.99',
-            'caja_id' => 'nullable|integer|exists:cajas,id',
+            'caja_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('cajas', 'id')->where('negocio_id', app(ContextoNegocio::class)->id())],
         ]);
 
         $caja = Caja::where('esta_activa', true)
@@ -30,10 +30,28 @@ class ControladorCaja extends Controller
             ->orderBy('id')
             ->firstOrFail();
 
+        $membresiaCajero = MembresiaNegocio::where('negocio_id', app(ContextoNegocio::class)->id())
+            ->where('usuario_id', Auth::id())
+            ->where('rol', 'cajero')
+            ->first();
+
+        if ($membresiaCajero?->sucursal_id && (int) $membresiaCajero->sucursal_id !== (int) $caja->sucursal_id) {
+            return back()->withErrors(['caja' => 'No puedes abrir turno en esta caja. Tu sucursal asignada es: ' . ($membresiaCajero->sucursal?->nombre ?? 'N/A')]);
+        }
+
         return DB::transaction(function () use ($datos, $caja) {
+            $cajaBloqueada = Caja::whereKey($caja->id)->lockForUpdate()->first();
+
+            $turnoEnCaja = TurnoCaja::where('caja_id', $cajaBloqueada->id)
+                ->where('estado', 'abierta')
+                ->first();
+
+            if ($turnoEnCaja) {
+                return back()->withErrors(['caja' => 'Esta caja ya tiene un turno abierto por otro cajero.']);
+            }
+
             $turnoExistente = TurnoCaja::where('usuario_id', Auth::id())
                 ->where('estado', 'abierta')
-                ->lockForUpdate()
                 ->first();
 
             if ($turnoExistente) {
@@ -41,8 +59,8 @@ class ControladorCaja extends Controller
             }
 
             $turno = TurnoCaja::create([
-                'sucursal_id' => $caja->sucursal_id,
-                'caja_id' => $caja->id,
+                'sucursal_id' => $cajaBloqueada->sucursal_id,
+                'caja_id' => $cajaBloqueada->id,
                 'usuario_id' => Auth::id(),
                 'fondo_inicial' => $datos['fondo_inicial'],
                 'abierto_en' => now(),
@@ -51,8 +69,8 @@ class ControladorCaja extends Controller
 
             MovimientoEfectivo::create([
                 'negocio_id' => $turno->negocio_id,
-                'sucursal_id' => $caja->sucursal_id,
-                'caja_id' => $caja->id,
+                'sucursal_id' => $cajaBloqueada->sucursal_id,
+                'caja_id' => $cajaBloqueada->id,
                 'turno_caja_id' => $turno->id,
                 'usuario_id' => Auth::id(),
                 'tipo' => 'fondo_inicial',
@@ -74,7 +92,7 @@ class ControladorCaja extends Controller
 
         $turno->load('movimientosEfectivo');
 
-        $esperado = round((float) $turno->movimientosEfectivo()->sum('monto'), 2);
+        $esperado = $this->efectivoEsperado($turno);
 
         $comprobantesNoEfectivo = $turno->ventas()
             ->whereIn('metodo_pago', ['credito', 'transferencia'])
@@ -145,7 +163,7 @@ class ControladorCaja extends Controller
                 $contado = null;
             }
 
-        $esperado = round((float) $turno->movimientosEfectivo()->where('tipo', '!=', 'transferencia')->sum('monto'), 2);
+            $esperado = $this->efectivoEsperado($turno);
 
             if ($esFinal) {
                 $estado = $aprobacionActiva ? 'pendiente_aprobacion' : 'aprobada';
@@ -188,7 +206,7 @@ class ControladorCaja extends Controller
 
     public function cuadresPendientes(): View
     {
-        $this->authorize('administrar', Caja::class);
+        $this->authorize('aprobarCuadres', Caja::class);
 
         $negocioId = app(ContextoNegocio::class)->id();
 
@@ -201,13 +219,18 @@ class ControladorCaja extends Controller
         return view('caja.cuadres-pendientes', ['pendientes' => $pendientes]);
     }
 
-    public function aprobarCuadre(TurnoCaja $turnoCaja, RegistradorAuditoria $auditoria): RedirectResponse
+    public function aprobarCuadre(TurnoCaja $turnoCaja, Request $request, RegistradorAuditoria $auditoria): RedirectResponse
     {
-        $this->authorize('administrar', Caja::class);
+        $this->authorize('aprobarCuadres', Caja::class);
         $negocioId = app(ContextoNegocio::class)->id();
 
         abort_unless($turnoCaja->negocio_id === $negocioId, 404);
         abort_unless($turnoCaja->estado === 'pendiente_aprobacion', 422, 'Este cuadre no está pendiente.');
+
+        $diferencia = (float) ($turnoCaja->diferencia ?? 0);
+        if (abs($diferencia) > 1) {
+            $request->validate(['motivo' => 'required|string|max:500']);
+        }
 
         $turnoCaja->update([
             'estado' => 'aprobada',
@@ -220,6 +243,7 @@ class ControladorCaja extends Controller
             'esperado' => $turnoCaja->efectivo_esperado,
             'contado' => $turnoCaja->efectivo_contado,
             'diferencia' => $turnoCaja->diferencia,
+            'motivo' => $request->input('motivo'),
         ], TurnoCaja::class, $turnoCaja->id);
 
         return back()->with('success', 'Cuadre aprobado correctamente.');
@@ -227,7 +251,7 @@ class ControladorCaja extends Controller
 
     public function rechazarCuadre(TurnoCaja $turnoCaja, Request $request, RegistradorAuditoria $auditoria): RedirectResponse
     {
-        $this->authorize('administrar', Caja::class);
+        $this->authorize('aprobarCuadres', Caja::class);
         $negocioId = app(ContextoNegocio::class)->id();
 
         $request->validate([
@@ -261,21 +285,25 @@ class ControladorCaja extends Controller
             'motivo' => 'required|string|max:500',
         ]);
 
-        abort_unless($turnoCaja->negocio_id === $negocioId, 404);
-        abort_unless(in_array($turnoCaja->estado, ['aprobada', 'cerrada'], true), 422, 'Este cuadre no puede modificarse.');
-        abort_unless($turnoCaja->usuario_id === Auth::id(), 403, 'Solo el cajero del turno puede solicitar modificación.');
+        return DB::transaction(function () use ($turnoCaja, $negocioId, $request) {
+            $turno = TurnoCaja::whereKey($turnoCaja->id)->lockForUpdate()->firstOrFail();
 
-        $turnoCaja->update([
-            'notas' => trim(($turnoCaja->notas ? $turnoCaja->notas . ' | ' : '') . 'Solicitud de modificación: ' . $request->input('motivo', '')),
-            'estado' => 'pendiente_modificacion',
-        ]);
+            abort_unless($turno->negocio_id === $negocioId, 404);
+            abort_unless(in_array($turno->estado, ['aprobada', 'cerrada'], true), 422, 'Este cuadre no puede modificarse.');
+            abort_unless($turno->usuario_id === Auth::id(), 403, 'Solo el cajero del turno puede solicitar modificación.');
 
-        return back()->with('success', 'Solicitud de modificación enviada al administrador.');
+            $turno->update([
+                'notas' => trim(($turno->notas ? $turno->notas . ' | ' : '') . 'Solicitud de modificación: ' . $request->input('motivo', '')),
+                'estado' => 'pendiente_modificacion',
+            ]);
+
+            return back()->with('success', 'Solicitud de modificación enviada al administrador.');
+        });
     }
 
     public function autorizarModificacion(TurnoCaja $turnoCaja, RegistradorAuditoria $auditoria): RedirectResponse
     {
-        $this->authorize('administrar', Caja::class);
+        $this->authorize('aprobarCuadres', Caja::class);
         $negocioId = app(ContextoNegocio::class)->id();
 
         abort_unless($turnoCaja->negocio_id === $negocioId, 404);
@@ -330,7 +358,7 @@ class ControladorCaja extends Controller
 
     public function reabrir(TurnoCaja $turnoCaja, RegistradorAuditoria $auditoria): RedirectResponse
     {
-        $this->authorize('administrar', Caja::class);
+        $this->authorize('reabrir', Caja::class);
         $negocioId = app(ContextoNegocio::class)->id();
 
         abort_unless($turnoCaja->negocio_id === $negocioId, 404);
@@ -358,7 +386,7 @@ class ControladorCaja extends Controller
 
     public function reporte(Request $request)
     {
-        $this->authorize('administrar', Caja::class);
+        $this->authorize('verArqueos', Caja::class);
 
         $negocioId = app(ContextoNegocio::class)->id();
 
@@ -391,7 +419,7 @@ class ControladorCaja extends Controller
 
     public function turnoDetalle(TurnoCaja $turnoCaja)
     {
-        $this->authorize('administrar', Caja::class);
+        $this->authorize('verArqueos', Caja::class);
 
         $negocioId = app(ContextoNegocio::class)->id();
         abort_unless($turnoCaja->negocio_id === $negocioId, 404);
@@ -422,5 +450,10 @@ class ControladorCaja extends Controller
             ->where('estado', 'abierta')
             ->latest('id')
             ->first();
+    }
+
+    private function efectivoEsperado(TurnoCaja $turno): float
+    {
+        return round((float) $turno->movimientosEfectivo()->where('tipo', '!=', 'transferencia')->sum('monto'), 2);
     }
 }

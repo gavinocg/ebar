@@ -3,11 +3,12 @@
 namespace App\Policies;
 
 use App\Models\Producto;
+use App\Models\User;
 
 class ProductoPolicy
 {
-    public function gestionar(\App\Models\User $user, ?Producto $producto = null): bool
+    public function gestionar(User $user, ?Producto $producto = null): bool
     {
-        return $user->esAdminDelNegocioActual();
+        return $user->tienePermiso('producto.crear');
     }
 }

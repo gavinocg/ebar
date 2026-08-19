@@ -116,7 +116,7 @@ class ControladorPanel extends Controller
 
     public function reportePorCajero(Request $request)
     {
-        $this->authorize('reportes.ver');
+        $this->authorize('reportes.cajeros');
         $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->toDateString());
         $endDate = $request->get('end_date', Carbon::now()->toDateString());
 
