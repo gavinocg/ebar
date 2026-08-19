@@ -183,8 +183,14 @@ Route::middleware(['auth', 'forzar_cambio_password', 'negocio'])->group(function
             ->middleware('rol_negocio:propietario');
         Route::get('/reportes/sucursal', [ControladorReportes::class, 'porSucursal'])->name('reportes.sucursal')
             ->middleware('rol_negocio:propietario');
+        Route::get('/reportes/impuestos', [ControladorReportes::class, 'impuestos'])->name('reportes.impuestos')
+            ->middleware('rol_negocio:propietario');
         Route::get('/reportes/exportar/ventas', [ControladorReportes::class, 'exportarVentasCsv'])->name('reportes.exportar_ventas')
             ->middleware('rol_negocio:propietario');
+        Route::get('/reportes/exportar/{tipo}/xlsx', [ControladorReportes::class, 'exportarXlsx'])->name('reportes.exportar_xlsx')
+            ->middleware('rol_negocio:propietario')->where('tipo', 'ventas|productos|categorias|metodos_pago|tendencias|sucursal|impuestos');
+        Route::get('/reportes/exportar/{tipo}/pdf', [ControladorReportes::class, 'exportarPdf'])->name('reportes.exportar_pdf')
+            ->middleware('rol_negocio:propietario')->where('tipo', 'ventas|productos|categorias|metodos_pago|tendencias|sucursal|impuestos');
 
         Route::get('/configuracion/negocio', [BusinessSettingController::class, 'index'])->name('configuracion.negocio')
             ->middleware('rol_negocio:propietario');

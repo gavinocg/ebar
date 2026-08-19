@@ -531,8 +531,8 @@ M ✅ · N ✅ · O ✅ · P ✅ · Q ✅ · R ✅ · S ✅ · T ✅ — parcial
 - [x] `COMPLETADO` Crear reportes por método de pago — `ControladorReportes::metodosPago`
 - [x] `COMPLETADO` Crear reportes por cajero, caja y sucursal — `ControladorReportes::porSucursal`
 - [x] `COMPLETADO` Exportar ventas a CSV — `ControladorReportes::exportarVentasCsv`
-- [ ] `PENDIENTE` Corregir y ampliar reporte de impuestos
-- [ ] `PENDIENTE` Exportar reportes a XLSX/PDF
+- [x] `COMPLETADO` Corregir y ampliar reporte de impuestos — `ControladorReportes::impuestos` (desglose IVA, base imponible, IVA cobrado vs calculado, por método/categoría)
+- [x] `COMPLETADO` Exportar reportes a XLSX/PDF — `ControladorReportes::exportarXlsx` / `exportarPdf` (todos los reportes: ventas, productos, categorías, métodos-pago, tendencias, sucursal, impuestos)
 
 ### Fase 7: Operación Móvil
 
