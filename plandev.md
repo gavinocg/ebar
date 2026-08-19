@@ -808,7 +808,7 @@ Se realizó una auditoría profunda del sistema completo cubriendo: integridad d
 ### 9.3 Pruebas Altas (P1)
 
 - [x] `COMPLETADO` `TaxTest` — impuesto habilitado, cálculo correcto, cambio de porcentaje
-- [ ] `PENDIENTE` `InventoryTest` — ajustes, stock negativo, historial
+- [x] `COMPLETADO` `InventoryTest` — ajustes entrada/negativo, stock negativo rechazado, producto sin existencias, aislamiento negocio, validaciones; historial lista y filtra por tipo/producto/sucursal (DB)
 - [ ] `PENDIENTE` `PurchaseOrdersTest` — crear, recibir, stock update
 - [x] `COMPLETADO` `CsvExportTest` — exportar productos/ventas, importar productos
 
@@ -1275,6 +1275,8 @@ Auditoría exhaustiva (5 módulos: plataforma, auth/tenencia, POS/caja/reembolso
 
 **Avances**:
 
+- **2026-08-18 (15) — `InventoryTest` (8 tests)**: ajustes de inventario (entrada suma, `ajuste_negativo` resta con cantidad negativa en movimiento), validación stock negativo (rechaza y no crea movimiento), producto sin `maneja_existencias` (error), aislamiento por negocio (producto ajeno 422), campos requeridos (cantidad≥1, tipo válido, motivo). Historial: 2 movimientos creados y verificados en BD; filtros por `tipo` y `producto_id` responden 200; filtro por `sucursal_id` resuelve correctamente. Suite: **189 pruebas / 658 aserciones**.
+
 - **2026-08-18 (14) — Tests de brechas (Tax/Credit/Csv)**: `TaxTest` (4): venta con IVA 15% calcula y snapshotea `impuesto_habilitado`/`porcentaje_impuesto`, impuesto desactivado no aplica, cambio de porcentaje (12.5%) afecta nuevas ventas, IVA se aplica sobre el subtotal con descuento (10% → base 9.00 → IVA 1.35 → total 10.35). `CreditSaleTest` (5): crédito sin cliente 422, crédito con cliente crea venta `pendiente` con `pagado/cambio 0` y snapshot (cliente_id, nombre_cliente, descripcion), crédito sin descripción 422, cliente de otro negocio 422 (exists scoped), crédito no afecta `efectivo_esperado` (0.0 al cerrar). `CsvExportTest` (4): exportar productos CSV con cabecera y datos (`streamedContent()` — `getContent()` devuelve vacío en streams), export aislado por tenant (producto del otro bar ausente), exportar ventas CSV con cabecera/ventas, filtro por rango de fechas (start/end). Notas de verificación: `Venta::first()` sin orden devuelve siempre la primera venta (al marcar `created_at` de "la ayer" se movía la equivocada → `latest('id')->first()`); `created_at` no es fillable (persistir con `timestamps = false` + asignación directa + save); `fputcsv` escapa con comillas los campos con espacios ("Metodo Pago"). `ServicioCobroTest` Unit NO se crea: su lógica ya está cubierta por integración (CheckoutTest, SplitPaymentTest, TaxTest, VarianteModificadorTest) — marcado como COMPLETADO vía integración en 9.4. Suite: **181 pruebas / 627 aserciones**.
 
 - **2026-08-18 (13) — Factories completadas**: creadas las 6 factories faltantes (`MovimientoInventarioFactory`, `ReembolsoFactory`, `ConteoInventarioFactory`, `ImpresoraFactory`, `ConfiguracionNegocioFactory`, `AuditoriaFactory`) siguiendo la convención del repo (definition con `fake()`, FKs de negocio auto-cargadas por `PerteneceANegocio`, FKs de dominio las provee el caller — igual que `TurnoCajaFactory`/`MovimientoEfectivoFactory`). Con esto las **21 factories del proyecto** están cubiertas. Test nuevo (`FactoriesSmokeTest`, 1): crea negocio + contexto, usuario, categoría, producto, caja, turno y venta mínima (post-`200000` `turno_caja_id` es NOT NULL) y verifica que cada factory nueva persiste un registro válido con sus FKs (producto_id, venta_id, usuario_id, negocio_id auto). `php -l` limpio en las 21. Suite: **168 pruebas / 568 aserciones**.
@@ -1299,7 +1301,7 @@ Auditoría exhaustiva (5 módulos: plataforma, auth/tenencia, POS/caja/reembolso
 
 - **2026-08-18 (3) — Fase M completada**: reembolso en efectivo registra `retiro` con monto **negativo** (antes positivo, inflaba el esperado); el **cambio** entregado en ventas de efectivo se registra como `retiro` (`-cambio`) así el cuadre cuadra contra el neto; `efectivoEsperado()` único (excluye transferencias) compartido por la vista de cierre y el cierre final (`ControladorCaja.php:77` y `:148`); cobro: idempotencia con `try/catch QueryException` de la clave única (devuelve la venta existente en vez de 500, check escoped por usuario), descuento clampéado a `subtotal`, variante solo se descuenta si el producto `maneja_existencias`; reembolso: viable en **crédito** (`montoDisponible = total - reembolsado`), incluye **IVA proporcional** (`factor = (subtotal+impuesto)/subtotal`); `aprobarCuadre` exige `motivo` si `abs(diferencia) > 1`. Tests nuevos: cambio como retiro, idempotencia entre usuarios, descuento >100 clampéado, variante sin existencias, reembolso crédito, reembolso con impuesto, esperado sin transferencias, aprobar cuadre con diferencia. Suite: **94 pruebas / 289 aserciones**.
 
-**Estado de fases**: M ✅ · N ✅ · O ✅ · P ✅ · Q ✅ · R ✅ · S ✅ · T ✅ — parciales cerrados (11) + SplitPayment (12) + Factories (13) + Tests de brechas (14). — Suite base: **181 pruebas / 627 aserciones**.
+**Estado de fases**: M ✅ · N ✅ · O ✅ · P ✅ · Q ✅ · R ✅ · S ✅ · T ✅ — parciales cerrados (11) + SplitPayment (12) + Factories (13) + Tests de brechas (14) + InventoryTest (15). — Suite base: **189 pruebas / 658 aserciones**.
 
 ### Verificación de código 2026-08-18 (4) — Bugs confirmados por fase
 
