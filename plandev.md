@@ -27,6 +27,16 @@ Convertir e-Bar en una plataforma SaaS multi-tenant para administrar bares escol
 - `PENDIENTE`: planificado, todavía no iniciado.
 - `BLOQUEADO`: requiere una decisión, servicio externo o dato pendiente.
 
+## Versionado
+
+| Versión | Fases | Alcance | Estado |
+|---|---|---|---|
+| **v1.00** | 0 – 18 | Núcleo SaaS multi-tenant: plataforma, cajeros, caja, inventario, ventas avanzadas, reportes, auditoría, variantes/modificadores, pruebas, aislamiento, integridad, seguridad, RBAC | `COMPLETADO` |
+| **v2.0.0** | 19 – 21 | Operación móvil/PWA/offline, restaurante/cocina/KDS, API/webhooks/integraciones de pago | `PENDIENTE` |
+
+- **v1.00** cierra con la Fase 18 (RBAC) y la Fase 6 completa (reportes + impuestos + XLSX/PDF). Suite: 221 pruebas / 778 aserciones.
+- **v2.0.0** inicia con la Fase 19 (Operación móvil, PWA y modo offline).
+
 ## Estado Actual
 
 ### Modelo De Negocio e-Bar
@@ -88,30 +98,30 @@ Convertir e-Bar en una plataforma SaaS multi-tenant para administrar bares escol
 
 ## Programación De Fases
  
-| Fase | Alcance | Dependencia | Estado |
-|---|---|---|---|
-| 0 | Corrección de errores críticos e integridad de datos | — | COMPLETADO |
-| 1 | Plataforma SaaS: super administrador, planes, bares y membresías | Fundación multi-tenant | COMPLETADO |
-| 2 | Cajeros, PIN, roles y permisos por bar | Fase 1 | COMPLETADO |
-| 3 | Caja, movimientos, cierres y arqueos avanzados | Fases 1 y 2 | COMPLETADO |
-| 4 | Inventario avanzado, compras y ajustes | Fase 1 | COMPLETADO |
-| 5 | Crédito, cuentas por cobrar, descuentos, devoluciones, tickets abiertos, pagos divididos, variantes, modificadores | Fases 2 y 3 | COMPLETADO |
-| 6 | Reportes, exportación CSV y analítica | Fases 2 a 5 | COMPLETADO |
-| 7 | Corrección de errores críticos, seguridad y integridad (Auditoría 2026-08-15) | Fases 0-6 | COMPLETADO |
-| 8 | Integración de variantes y modificadores al checkout | Fases 5 y 7 | COMPLETADO |
-| 9 | Cobertura de pruebas y fábricas | Fases 0-8 | COMPLETADO |
-| 10 | Aislamiento Multi-Tenant | Fases 0-9 | COMPLETADO |
-| 11 | Integridad Referencial y Migraciones | Fases 0-9 | COMPLETADO |
-| 12 | Corrección de Lógica de Negocio | Fases 0-9 | COMPLETADO |
-| 13 | Seguridad y Autenticación | Fases 0-9 | COMPLETADO |
-| 14 | SoftDeletes y Preservación de Datos | Fases 0-9 | COMPLETADO |
-| 15 | Atomicidad y Condiciones de Carrera | Fases 0-9 | COMPLETADO |
-| 16 | Índices y Rendimiento | Fases 0-9 | COMPLETADO |
-| 17 | Pruebas y Cobertura | Fases 0-16 | COMPLETADO |
-| 18 | RBAC — Roles, Permisos y CRUD | Fases 0-17 | COMPLETADO |
-| 19 | Operación móvil, PWA y modo offline | Fases 1-7 | PENDIENTE |
-| 20 | Restaurante, cocina e integraciones | Según necesidad del negocio | PENDIENTE |
-| 21 | API, webhooks e integraciones de pago | Fases 1-7 | PENDIENTE |
+| Fase | Versión | Alcance | Dependencia | Estado |
+|---|---|---|---|---|
+| 0 | v1.00 | Corrección de errores críticos e integridad de datos | — | COMPLETADO |
+| 1 | v1.00 | Plataforma SaaS: super administrador, planes, bares y membresías | Fundación multi-tenant | COMPLETADO |
+| 2 | v1.00 | Cajeros, PIN, roles y permisos por bar | Fase 1 | COMPLETADO |
+| 3 | v1.00 | Caja, movimientos, cierres y arqueos avanzados | Fases 1 y 2 | COMPLETADO |
+| 4 | v1.00 | Inventario avanzado, compras y ajustes | Fase 1 | COMPLETADO |
+| 5 | v1.00 | Crédito, cuentas por cobrar, descuentos, devoluciones, tickets abiertos, pagos divididos, variantes, modificadores | Fases 2 y 3 | COMPLETADO |
+| 6 | v1.00 | Reportes, exportación CSV y analítica | Fases 2 a 5 | COMPLETADO |
+| 7 | v1.00 | Corrección de errores críticos, seguridad y integridad (Auditoría 2026-08-15) | Fases 0-6 | COMPLETADO |
+| 8 | v1.00 | Integración de variantes y modificadores al checkout | Fases 5 y 7 | COMPLETADO |
+| 9 | v1.00 | Cobertura de pruebas y fábricas | Fases 0-8 | COMPLETADO |
+| 10 | v1.00 | Aislamiento Multi-Tenant | Fases 0-9 | COMPLETADO |
+| 11 | v1.00 | Integridad Referencial y Migraciones | Fases 0-9 | COMPLETADO |
+| 12 | v1.00 | Corrección de Lógica de Negocio | Fases 0-9 | COMPLETADO |
+| 13 | v1.00 | Seguridad y Autenticación | Fases 0-9 | COMPLETADO |
+| 14 | v1.00 | SoftDeletes y Preservación de Datos | Fases 0-9 | COMPLETADO |
+| 15 | v1.00 | Atomicidad y Condiciones de Carrera | Fases 0-9 | COMPLETADO |
+| 16 | v1.00 | Índices y Rendimiento | Fases 0-9 | COMPLETADO |
+| 17 | v1.00 | Pruebas y Cobertura | Fases 0-16 | COMPLETADO |
+| 18 | v1.00 | RBAC — Roles, Permisos y CRUD | Fases 0-17 | COMPLETADO |
+| 19 | v2.0.0 | Operación móvil, PWA y modo offline | Fases 1-7 | PENDIENTE |
+| 20 | v2.0.0 | Restaurante, cocina e integraciones | Según necesidad del negocio | PENDIENTE |
+| 21 | v2.0.0 | API, webhooks e integraciones de pago | Fases 1-7 | PENDIENTE |
 
 ## Criterios De Cierre Por Fase
 
@@ -357,13 +367,15 @@ Convertir e-Bar en una plataforma SaaS multi-tenant para administrar bares escol
 
 ## Próximo Paso
  
-Fase 19: Operación móvil, PWA y modo offline (PENDIENTE).
+**v2.0.0** — Fase 19: Operación móvil, PWA y modo offline (PENDIENTE).
  
 ---
  
 ## Estado de fases actualizado (2026-08-18)
  
-M ✅ · N ✅ · O ✅ · P ✅ · Q ✅ · R ✅ · S ✅ · T ✅ — parciales cerrados (11) + SplitPayment (12) + Factories (13) + Tests de brechas (14) + InventoryTest (15) + PurchaseOrdersTest (16) + ReportsTest (17) + CajaApprovalTest (18). — Suite base: **221 pruebas / 778 aserciones**.
+**v1.00 cerrado** (Fases 0-18): M ✅ · N ✅ · O ✅ · P ✅ · Q ✅ · R ✅ · S ✅ · T ✅ — parciales cerrados (11) + SplitPayment (12) + Factories (13) + Tests de brechas (14) + InventoryTest (15) + PurchaseOrdersTest (16) + ReportsTest (17) + CajaApprovalTest (18) + Fase 6 completa (impuestos + XLSX/PDF). — Suite base: **221 pruebas / 778 aserciones**.
+ 
+**v2.0.0 inicia** (Fases 19-21): Operación móvil/PWA/offline → Restaurante/KDS → API/webhooks/pagos.
  
 ---
  
