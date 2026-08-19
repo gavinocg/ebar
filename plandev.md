@@ -814,7 +814,7 @@ Se realizó una auditoría profunda del sistema completo cubriendo: integridad d
 
 ### 9.4 Pruebas Medias (P2)
 
-- [ ] `PENDIENTE` `ReportsTest` — todos los reportes Fase 6
+- [x] `COMPLETADO` `ReportsTest` — 10 tests: todos los endpoints de reportes (ventas, inventario, cajeros, productos, categorías, métodos-pago, tendencias, sucursal) accesibles con auth correcto, filtros de fecha/sucursal funcionan, aislamiento por negocio verificado, 403 sin permiso `reportes.ver` / `reportes.cajeros` / `reportes.ventas_o_cajeros`
 - [ ] `PENDIENTE` `CajaApprovalTest` — aprobar, rechazar, modificar cuadre
 - [x] `COMPLETADO` `MultiTenantIsolationTest` — Producto, Venta, TurnoCaja, Caja aislados
 - [x] `COMPLETADO` `ServicioCobroTest` — cubierto por integración: CheckoutTest + SplitPaymentTest + TaxTest + VarianteModificadorTest (cálculos, idempotencia, clamps, descuento+IVA)
@@ -1275,6 +1275,8 @@ Auditoría exhaustiva (5 módulos: plataforma, auth/tenencia, POS/caja/reembolso
 
 **Avances**:
 
+- **2026-08-18 (17) — `ReportsTest` (10 tests)**: endpoints de reportes `ventas`, `inventario`, `cajeros`, `productos`, `categorias`, `metodos_pago`, `tendencias`, `sucursal` — todos responden 200 con usuario autorizado (`reportes.ver` / `reportes.cajeros` / `reportes.ventas_o_cajeros`); filtros `start_date`/`end_date` y `sucursal_id` funcionan; aislamiento por negocio verificado (reportes solo muestran datos del negocio actual); usuarios sin permiso reciben 403. Suite: **209 pruebas / 712 aserciones**.
+
 - **2026-08-18 (16) — `PurchaseOrdersTest` (10 tests)**: crear orden con items y validaciones (proveedor requerido, items distinct, producto scoped al negocio), recibir orden → actualiza stock y crea movimiento inventario tipo `mercancias` con snapshot (anterior/posterior), no recibir dos veces (422), no recibir productos con variantes (422), producto sin `maneja_existencias` no genera movimiento, eliminar orden pendiente OK / recibida bloqueada, numeración `OC-XXXXX` global y consecutiva entre negocios. Suite: **199 pruebas / 690 aserciones**.
 
 - **2026-08-18 (15) — `InventoryTest` (8 tests)**: ajustes de inventario (entrada suma, `ajuste_negativo` resta con cantidad negativa en movimiento), validación stock negativo (rechaza y no crea movimiento), producto sin `maneja_existencias` (error), aislamiento por negocio (producto ajeno 422), campos requeridos (cantidad≥1, tipo válido, motivo). Historial: 2 movimientos creados y verificados en BD; filtros por `tipo` y `producto_id` responden 200; filtro por `sucursal_id` resuelve correctamente. Suite: **189 pruebas / 658 aserciones**.
@@ -1303,7 +1305,7 @@ Auditoría exhaustiva (5 módulos: plataforma, auth/tenencia, POS/caja/reembolso
 
 - **2026-08-18 (3) — Fase M completada**: reembolso en efectivo registra `retiro` con monto **negativo** (antes positivo, inflaba el esperado); el **cambio** entregado en ventas de efectivo se registra como `retiro` (`-cambio`) así el cuadre cuadra contra el neto; `efectivoEsperado()` único (excluye transferencias) compartido por la vista de cierre y el cierre final (`ControladorCaja.php:77` y `:148`); cobro: idempotencia con `try/catch QueryException` de la clave única (devuelve la venta existente en vez de 500, check escoped por usuario), descuento clampéado a `subtotal`, variante solo se descuenta si el producto `maneja_existencias`; reembolso: viable en **crédito** (`montoDisponible = total - reembolsado`), incluye **IVA proporcional** (`factor = (subtotal+impuesto)/subtotal`); `aprobarCuadre` exige `motivo` si `abs(diferencia) > 1`. Tests nuevos: cambio como retiro, idempotencia entre usuarios, descuento >100 clampéado, variante sin existencias, reembolso crédito, reembolso con impuesto, esperado sin transferencias, aprobar cuadre con diferencia. Suite: **94 pruebas / 289 aserciones**.
 
-**Estado de fases**: M ✅ · N ✅ · O ✅ · P ✅ · Q ✅ · R ✅ · S ✅ · T ✅ — parciales cerrados (11) + SplitPayment (12) + Factories (13) + Tests de brechas (14) + InventoryTest (15) + PurchaseOrdersTest (16). — Suite base: **199 pruebas / 690 aserciones**.
+**Estado de fases**: M ✅ · N ✅ · O ✅ · P ✅ · Q ✅ · R ✅ · S ✅ · T ✅ — parciales cerrados (11) + SplitPayment (12) + Factories (13) + Tests de brechas (14) + InventoryTest (15) + PurchaseOrdersTest (16) + ReportsTest (17). — Suite base: **209 pruebas / 712 aserciones**.
 
 ### Verificación de código 2026-08-18 (4) — Bugs confirmados por fase
 
