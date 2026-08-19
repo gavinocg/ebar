@@ -815,7 +815,7 @@ Se realizó una auditoría profunda del sistema completo cubriendo: integridad d
 ### 9.4 Pruebas Medias (P2)
 
 - [x] `COMPLETADO` `ReportsTest` — 10 tests: todos los endpoints de reportes (ventas, inventario, cajeros, productos, categorías, métodos-pago, tendencias, sucursal) accesibles con auth correcto, filtros de fecha/sucursal funcionan, aislamiento por negocio verificado, 403 sin permiso `reportes.ver` / `reportes.cajeros` / `reportes.ventas_o_cajeros`
-- [ ] `PENDIENTE` `CajaApprovalTest` — aprobar, rechazar, modificar cuadre
+- [x] `COMPLETADO` `CajaApprovalTest` — 12 tests: cierre final con cuadre/aprobación → pendiente_aprobación; cierre sin aprobación → aprobada directo; cierre temporal → cerrada; admin aprueba/rechaza (requiere motivo si diff > 1); cajero solicita modificación; admin autoriza modificación; admin reabre turno; cajero no aprueba (403); aislamiento negocio (404)
 - [x] `COMPLETADO` `MultiTenantIsolationTest` — Producto, Venta, TurnoCaja, Caja aislados
 - [x] `COMPLETADO` `ServicioCobroTest` — cubierto por integración: CheckoutTest + SplitPaymentTest + TaxTest + VarianteModificadorTest (cálculos, idempotencia, clamps, descuento+IVA)
 - [x] `COMPLETADO` `VariantTest` — cubierto por `VarianteModificadorTest` (precio/stock variante)
@@ -1275,6 +1275,8 @@ Auditoría exhaustiva (5 módulos: plataforma, auth/tenencia, POS/caja/reembolso
 
 **Avances**:
 
+- **2026-08-18 (18) — `CajaApprovalTest` (12 tests)**: cierre final con cuadre y aprobación activa → `pendiente_aprobacion`; cierre con cuadre sin aprobación → `aprobada` directo; cierre temporal sin cuadre → `cerrada`. Admin aprueba cuadre → `aprobada` + auditoría; rechaza con motivo obligatorio si `diff > 1` → `abierta` + limpia contado/diff. Cajero solicita modificación → `pendiente_modificacion`; admin autoriza modificación → `abierta`. Admin reabre turno `cerrada` → `abierta`. Permisos: cajero 403 al aprobar; aislamiento negocio 404. Suite: **221 pruebas / 778 aserciones**.
+
 - **2026-08-18 (17) — `ReportsTest` (10 tests)**: endpoints de reportes `ventas`, `inventario`, `cajeros`, `productos`, `categorias`, `metodos_pago`, `tendencias`, `sucursal` — todos responden 200 con usuario autorizado (`reportes.ver` / `reportes.cajeros` / `reportes.ventas_o_cajeros`); filtros `start_date`/`end_date` y `sucursal_id` funcionan; aislamiento por negocio verificado (reportes solo muestran datos del negocio actual); usuarios sin permiso reciben 403. Suite: **209 pruebas / 712 aserciones**.
 
 - **2026-08-18 (16) — `PurchaseOrdersTest` (10 tests)**: crear orden con items y validaciones (proveedor requerido, items distinct, producto scoped al negocio), recibir orden → actualiza stock y crea movimiento inventario tipo `mercancias` con snapshot (anterior/posterior), no recibir dos veces (422), no recibir productos con variantes (422), producto sin `maneja_existencias` no genera movimiento, eliminar orden pendiente OK / recibida bloqueada, numeración `OC-XXXXX` global y consecutiva entre negocios. Suite: **199 pruebas / 690 aserciones**.
@@ -1305,7 +1307,7 @@ Auditoría exhaustiva (5 módulos: plataforma, auth/tenencia, POS/caja/reembolso
 
 - **2026-08-18 (3) — Fase M completada**: reembolso en efectivo registra `retiro` con monto **negativo** (antes positivo, inflaba el esperado); el **cambio** entregado en ventas de efectivo se registra como `retiro` (`-cambio`) así el cuadre cuadra contra el neto; `efectivoEsperado()` único (excluye transferencias) compartido por la vista de cierre y el cierre final (`ControladorCaja.php:77` y `:148`); cobro: idempotencia con `try/catch QueryException` de la clave única (devuelve la venta existente en vez de 500, check escoped por usuario), descuento clampéado a `subtotal`, variante solo se descuenta si el producto `maneja_existencias`; reembolso: viable en **crédito** (`montoDisponible = total - reembolsado`), incluye **IVA proporcional** (`factor = (subtotal+impuesto)/subtotal`); `aprobarCuadre` exige `motivo` si `abs(diferencia) > 1`. Tests nuevos: cambio como retiro, idempotencia entre usuarios, descuento >100 clampéado, variante sin existencias, reembolso crédito, reembolso con impuesto, esperado sin transferencias, aprobar cuadre con diferencia. Suite: **94 pruebas / 289 aserciones**.
 
-**Estado de fases**: M ✅ · N ✅ · O ✅ · P ✅ · Q ✅ · R ✅ · S ✅ · T ✅ — parciales cerrados (11) + SplitPayment (12) + Factories (13) + Tests de brechas (14) + InventoryTest (15) + PurchaseOrdersTest (16) + ReportsTest (17). — Suite base: **209 pruebas / 712 aserciones**.
+**Estado de fases**: M ✅ · N ✅ · O ✅ · P ✅ · Q ✅ · R ✅ · S ✅ · T ✅ — parciales cerrados (11) + SplitPayment (12) + Factories (13) + Tests de brechas (14) + InventoryTest (15) + PurchaseOrdersTest (16) + ReportsTest (17) + CajaApprovalTest (18). — Suite base: **221 pruebas / 778 aserciones**.
 
 ### Verificación de código 2026-08-18 (4) — Bugs confirmados por fase
 
