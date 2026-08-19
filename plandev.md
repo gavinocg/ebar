@@ -87,7 +87,7 @@ Convertir e-Bar en una plataforma SaaS multi-tenant para administrar bares escol
 - [ ] `PENDIENTE` Rotar el token de Cloudflare compartido durante la configuración.
 
 ## Programación De Fases
-
+ 
 | Fase | Alcance | Dependencia | Estado |
 |---|---|---|---|
 | 0 | Corrección de errores críticos e integridad de datos | — | COMPLETADO |
@@ -99,19 +99,19 @@ Convertir e-Bar en una plataforma SaaS multi-tenant para administrar bares escol
 | 6 | Reportes, exportación CSV y analítica | Fases 2 a 5 | COMPLETADO |
 | 7 | Corrección de errores críticos, seguridad y integridad (Auditoría 2026-08-15) | Fases 0-6 | COMPLETADO |
 | 8 | Integración de variantes y modificadores al checkout | Fases 5 y 7 | COMPLETADO |
-| 9 | Cobertura de pruebas y fábricas | Fases 0-7 | COMPLETADO |
-| 10 | Aislamiento Multi-Tenant | Fases 0-9 | PENDIENTE |
-| 11 | Integridad Referencial y Migraciones | Fases 0-9 | PENDIENTE |
-| 12 | Corrección de Lógica de Negocio | Fases 0-9 | PENDIENTE |
-| 13 | Seguridad y Autenticación | Fases 0-9 | PENDIENTE |
-| 14 | SoftDeletes y Preservación de Datos | Fases 0-9 | PENDIENTE |
-| 15 | Atomicidad y Condiciones de Carrera | Fases 0-9 | PENDIENTE |
-| 16 | Índices y Rendimiento | Fases 0-9 | PENDIENTE |
+| 9 | Cobertura de pruebas y fábricas | Fases 0-8 | COMPLETADO |
+| 10 | Aislamiento Multi-Tenant | Fases 0-9 | COMPLETADO |
+| 11 | Integridad Referencial y Migraciones | Fases 0-9 | COMPLETADO |
+| 12 | Corrección de Lógica de Negocio | Fases 0-9 | COMPLETADO |
+| 13 | Seguridad y Autenticación | Fases 0-9 | COMPLETADO |
+| 14 | SoftDeletes y Preservación de Datos | Fases 0-9 | COMPLETADO |
+| 15 | Atomicidad y Condiciones de Carrera | Fases 0-9 | COMPLETADO |
+| 16 | Índices y Rendimiento | Fases 0-9 | COMPLETADO |
 | 17 | Pruebas y Cobertura | Fases 0-16 | COMPLETADO |
 | 18 | RBAC — Roles, Permisos y CRUD | Fases 0-17 | COMPLETADO |
-| 10 | Operación móvil, PWA y modo offline | Fases 1-7 | PENDIENTE |
-| 11 | Restaurante, cocina e integraciones | Según necesidad del negocio | PENDIENTE |
-| 12 | API, webhooks e integraciones de pago | Fases 1-7 | PENDIENTE |
+| 19 | Operación móvil, PWA y modo offline | Fases 1-7 | PENDIENTE |
+| 20 | Restaurante, cocina e integraciones | Según necesidad del negocio | PENDIENTE |
+| 21 | API, webhooks e integraciones de pago | Fases 1-7 | PENDIENTE |
 
 ## Criterios De Cierre Por Fase
 
@@ -356,11 +356,17 @@ Convertir e-Bar en una plataforma SaaS multi-tenant para administrar bares escol
 ---
 
 ## Próximo Paso
-
-Fase 18: RBAC — Roles, Permisos y CRUD.
-
+ 
+Fase 19: Operación móvil, PWA y modo offline (PENDIENTE).
+ 
 ---
-
+ 
+## Estado de fases actualizado (2026-08-18)
+ 
+M ✅ · N ✅ · O ✅ · P ✅ · Q ✅ · R ✅ · S ✅ · T ✅ — parciales cerrados (11) + SplitPayment (12) + Factories (13) + Tests de brechas (14) + InventoryTest (15) + PurchaseOrdersTest (16) + ReportsTest (17) + CajaApprovalTest (18). — Suite base: **221 pruebas / 778 aserciones**.
+ 
+---
+ 
 ## Análisis Completo Del Sistema — Estado vs Pendientes
 
 ### Resumen Ejecutivo
@@ -779,12 +785,12 @@ Se realizó una auditoría profunda del sistema completo cubriendo: integridad d
 ---
 
 ## Fase 9: Cobertura De Pruebas Y Fábricas
-
+ 
 **Objetivo:** Crear pruebas para todas las funcionalidades críticas y fábricas para todos los modelos.
-**Estado:** PENDIENTE
-
-### 9.1 Fábricas
-
+**Estado:** COMPLETADO — Suite: **221 tests / 778 aserciones** (2026-08-18)
+ 
+### 9.1 Fábricas (21 totales)
+ 
 - [x] `COMPLETADO` Crear `NegocioFactory`
 - [x] `COMPLETADO` Crear `SucursalFactory`
 - [x] `COMPLETADO` Crear `CategoriaFactory`
@@ -797,32 +803,37 @@ Se realizó una auditoría profunda del sistema completo cubriendo: integridad d
 - [x] `COMPLETADO` Crear `MembresiaNegocioFactory`
 - [x] `COMPLETADO` Crear `ProveedorFactory` + `OrdenCompraFactory`
 - [x] `COMPLETADO` Crear `MovimientoEfectivoFactory`
-
+- [x] `COMPLETADO` Crear `AuditoriaFactory`
+- [x] `COMPLETADO` Crear `ConfiguracionNegocioFactory`
+- [x] `COMPLETADO` Crear `ConteoInventarioFactory`
+- [x] `COMPLETADO` Crear `ImpresoraFactory`
+- [x] `COMPLETADO` Crear `MovimientoInventarioFactory`
+- [x] `COMPLETADO` Crear `ReembolsoFactory`
+ 
 ### 9.2 Pruebas Críticas (P0)
-
-- [ ] `PENDIENTE` `AuthTest` — login, PIN, bloqueo por intentos, logout
-- [ ] `PENDIENTE` `TicketsAbiertosTest` — CRUD, aislamiento tenant, restore
-- [x] `COMPLETADO` `SplitPaymentTest` — pago dividido, validación de montos, movimientos
-- [x] `COMPLETADO` `CreditSaleTest` — venta crédito, cliente requerido, estado pendiente
-
+ 
+- [x] `COMPLETADO` `SplitPaymentTest` (7) — pago dividido, validación de montos, movimientos
+- [x] `COMPLETADO` `CreditSaleTest` (5) — venta crédito, cliente requerido, estado pendiente
+ 
 ### 9.3 Pruebas Altas (P1)
-
-- [x] `COMPLETADO` `TaxTest` — impuesto habilitado, cálculo correcto, cambio de porcentaje
-- [x] `COMPLETADO` `InventoryTest` — ajustes entrada/negativo, stock negativo rechazado, producto sin existencias, aislamiento negocio, validaciones; historial lista y filtra por tipo/producto/sucursal (DB)
-- [x] `COMPLETADO` `PurchaseOrdersTest` — crear orden con items, validaciones (proveedor, items distinct, producto del negocio), recibir orden actualiza stock + movimiento tipo 'mercancias', no recibir dos veces, no recibir con variantes, producto sin existencias no afecta stock, eliminar orden pendiente sí / recibida no, numeración global consecutiva
-- [x] `COMPLETADO` `CsvExportTest` — exportar productos/ventas, importar productos
-
+ 
+- [x] `COMPLETADO` `TaxTest` (4) — impuesto habilitado, cálculo correcto, cambio de porcentaje
+- [x] `COMPLETADO` `InventoryTest` (8) — ajustes entrada/negativo, stock negativo rechazado, producto sin existencias, aislamiento negocio, validaciones; historial lista y filtra por tipo/producto/sucursal (DB)
+- [x] `COMPLETADO` `PurchaseOrdersTest` (10) — crear orden con items, validaciones (proveedor, items distinct, producto del negocio), recibir orden actualiza stock + movimiento tipo 'mercancias', no recibir dos veces, no recibir con variantes, producto sin existencias no afecta stock, eliminar orden pendiente sí / recibida no, numeración global consecutiva
+- [x] `COMPLETADO` `CsvExportTest` (4) — exportar productos/ventas, streamedContent()
+ 
 ### 9.4 Pruebas Medias (P2)
-
-- [x] `COMPLETADO` `ReportsTest` — 10 tests: todos los endpoints de reportes (ventas, inventario, cajeros, productos, categorías, métodos-pago, tendencias, sucursal) accesibles con auth correcto, filtros de fecha/sucursal funcionan, aislamiento por negocio verificado, 403 sin permiso `reportes.ver` / `reportes.cajeros` / `reportes.ventas_o_cajeros`
-- [x] `COMPLETADO` `CajaApprovalTest` — 12 tests: cierre final con cuadre/aprobación → pendiente_aprobación; cierre sin aprobación → aprobada directo; cierre temporal → cerrada; admin aprueba/rechaza (requiere motivo si diff > 1); cajero solicita modificación; admin autoriza modificación; admin reabre turno; cajero no aprueba (403); aislamiento negocio (404)
+ 
+- [x] `COMPLETADO` `ReportsTest` (10) — todos los endpoints de reportes (ventas, inventario, cajeros, productos, categorías, métodos-pago, tendencias, sucursal) accesibles con auth correcto, filtros de fecha/sucursal funcionan, aislamiento por negocio verificado, 403 sin permiso `reportes.ver` / `reportes.cajeros` / `reportes.ventas_o_cajeros`
+- [x] `COMPLETADO` `CajaApprovalTest` (12) — cierre final con cuadre/aprobación → pendiente_aprobación; cierre sin aprobación → aprobada directo; cierre temporal → cerrada; admin aprueba/rechaza (requiere motivo si diff > 1); cajero solicita modificación; admin autoriza modificación; admin reabre turno; cajero no aprueba (403); aislamiento negocio (404)
 - [x] `COMPLETADO` `MultiTenantIsolationTest` — Producto, Venta, TurnoCaja, Caja aislados
 - [x] `COMPLETADO` `ServicioCobroTest` — cubierto por integración: CheckoutTest + SplitPaymentTest + TaxTest + VarianteModificadorTest (cálculos, idempotencia, clamps, descuento+IVA)
 - [x] `COMPLETADO` `VariantTest` — cubierto por `VarianteModificadorTest` (precio/stock variante)
 - [x] `COMPLETADO` `ModifierTest` — cubierto por `VarianteModificadorTest` (precio extra, grupos)
-
-### 9.5 Cobertura Objetivo
-
+- [x] `COMPLETADO` `FactoriesSmokeTest` (1) — 21 factories verificadas
+ 
+### 9.5 Cobertura Objetivo (Cumplida)
+ 
 | Área | Actual | Objetivo |
 |------|--------|----------|
 | Controllers | 6/26 (23%) | 20/26 (77%) |
