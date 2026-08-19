@@ -33,6 +33,14 @@
     @else
         <div class="linea"><span>Estado</span><span>Crédito</span></div>
     @endif
+    @if($sale->metodo_pago === 'dividido')
+        @foreach($sale->pagos_divididos ?? [] as $pago)
+            <div class="linea">
+                <span>{{ $pago['metodo'] === 'transferencia' ? 'Transferencia' : 'Efectivo' }}</span>
+                <span>${{ number_format((float) $pago['monto'], 2) }}</span>
+            </div>
+        @endforeach
+    @endif
     @if($business->mensaje_comprobante)
         <p class="centro">{{ $business->mensaje_comprobante }}</p>
     @endif

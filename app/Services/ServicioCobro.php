@@ -143,11 +143,11 @@ class ServicioCobro
 
             if ($paymentMethod === 'dividido' && $pagosDivididos) {
                 $sumaPagos = array_sum(array_map(fn($p) => (float) $p['monto'], $pagosDivididos));
-                if (round($sumaPagos, 2) < round($total, 2)) {
-                    throw new \RuntimeException('La suma de los pagos divididos es insuficiente. Total: $' . number_format($total, 2) . ', Pagado: $' . number_format($sumaPagos, 2));
+                if (round($sumaPagos, 2) !== round($total, 2)) {
+                    throw new \RuntimeException('La suma de los pagos divididos debe ser exactamente igual al total. Total: $' . number_format($total, 2) . ', Suma: $' . number_format($sumaPagos, 2));
                 }
-                $paidAmount = round($sumaPagos, 2);
-                $cambio = round($paidAmount - $total, 2);
+                $paidAmount = round($total, 2);
+                $cambio = 0;
             }
 
             $descuentoTotal = $totalDescuentoProductos;

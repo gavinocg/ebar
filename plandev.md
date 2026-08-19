@@ -435,9 +435,9 @@ Fase 18: RBAC — Roles, Permisos y CRUD.
 
 | Funcionalidad | Estado |
 |---------------|--------|
-| Tickets abiertos | PENDIENTE — Sin ruta, controlador ni vista |
-| Pagos divididos | PENDIENTE — Sin ruta, controlador ni vista |
-| Variantes de productos | PENDIENTE — Sin migración, modelo ni vista |
+| Tickets abiertos | COMPLETADO — flujo de tickets + UI + tests |
+| Pagos divididos | COMPLETADO — validación suma exacta, movimientos por parte, UI POS, ticket, `SplitPaymentTest` (7) |
+| Variantes de productos | COMPLETADO — migración, modelo, checkout, tests |
 | Modificadores y extras | PENDIENTE — Sin migración, modelo ni vista |
 
 ### Funcionalidades Pendientes (Fases 6-9)
@@ -785,24 +785,24 @@ Se realizó una auditoría profunda del sistema completo cubriendo: integridad d
 
 ### 9.1 Fábricas
 
-- [ ] `PENDIENTE` Crear `NegocioFactory`
-- [ ] `PENDIENTE` Crear `SucursalFactory`
-- [ ] `PENDIENTE` Crear `CategoriaFactory`
-- [ ] `PENDIENTE` Crear `ProductoFactory`
-- [ ] `PENDIENTE` Crear `VentaFactory` + `DetalleVentaFactory`
-- [ ] `PENDIENTE` Crear `TurnoCajaFactory`
-- [ ] `PENDIENTE` Crear `CajaFactory`
-- [ ] `PENDIENTE` Crear `TicketAbiertoFactory`
-- [ ] `PENDIENTE` Crear `ClienteFactory`
-- [ ] `PENDIENTE` Crear `MembresiaNegocioFactory`
-- [ ] `PENDIENTE` Crear `ProveedorFactory` + `OrdenCompraFactory`
-- [ ] `PENDIENTE` Crear `MovimientoEfectivoFactory`
+- [x] `COMPLETADO` Crear `NegocioFactory`
+- [x] `COMPLETADO` Crear `SucursalFactory`
+- [x] `COMPLETADO` Crear `CategoriaFactory`
+- [x] `COMPLETADO` Crear `ProductoFactory`
+- [x] `COMPLETADO` Crear `VentaFactory` + `DetalleVentaFactory`
+- [x] `COMPLETADO` Crear `TurnoCajaFactory`
+- [x] `COMPLETADO` Crear `CajaFactory`
+- [x] `COMPLETADO` Crear `TicketAbiertoFactory`
+- [x] `COMPLETADO` Crear `ClienteFactory`
+- [x] `COMPLETADO` Crear `MembresiaNegocioFactory`
+- [x] `COMPLETADO` Crear `ProveedorFactory` + `OrdenCompraFactory`
+- [x] `COMPLETADO` Crear `MovimientoEfectivoFactory`
 
 ### 9.2 Pruebas Críticas (P0)
 
 - [ ] `PENDIENTE` `AuthTest` — login, PIN, bloqueo por intentos, logout
 - [ ] `PENDIENTE` `TicketsAbiertosTest` — CRUD, aislamiento tenant, restore
-- [ ] `PENDIENTE` `SplitPaymentTest` — pago dividido, validación de montos, movimientos
+- [x] `COMPLETADO` `SplitPaymentTest` — pago dividido, validación de montos, movimientos
 - [ ] `PENDIENTE` `CreditSaleTest` — venta crédito, cliente requerido, estado pendiente
 
 ### 9.3 Pruebas Altas (P1)
@@ -1275,6 +1275,10 @@ Auditoría exhaustiva (5 módulos: plataforma, auth/tenencia, POS/caja/reembolso
 
 **Avances**:
 
+- **2026-08-18 (13) — Factories completadas**: creadas las 6 factories faltantes (`MovimientoInventarioFactory`, `ReembolsoFactory`, `ConteoInventarioFactory`, `ImpresoraFactory`, `ConfiguracionNegocioFactory`, `AuditoriaFactory`) siguiendo la convención del repo (definition con `fake()`, FKs de negocio auto-cargadas por `PerteneceANegocio`, FKs de dominio las provee el caller — igual que `TurnoCajaFactory`/`MovimientoEfectivoFactory`). Con esto las **21 factories del proyecto** están cubiertas. Test nuevo (`FactoriesSmokeTest`, 1): crea negocio + contexto, usuario, categoría, producto, caja, turno y venta mínima (post-`200000` `turno_caja_id` es NOT NULL) y verifica que cada factory nueva persiste un registro válido con sus FKs (producto_id, venta_id, usuario_id, negocio_id auto). `php -l` limpio en las 21. Suite: **168 pruebas / 568 aserciones**.
+
+- **2026-08-18 (12) — Pagos divididos (SplitPayment)**: flujo completo de punta a punta. `ServicioCobro::crear` exige que la suma de los pagos parciales sea **exactamente igual** al total (`round(suma) !== round(total)` → 422; antes aceptaba sobrepago y registraba `cambio` sin movimiento de retiro — cambio fantasma inconsistente con el flujo de efectivo; ahora `pagado = total`, `cambio = 0` siempre). El controlador ya validaba `pagos_divididos` (`required_if:dividido`, `array|min:1`, `metodo in:efectivo,transferencia`, `monto min:0.01`) y el servicio ya creaba un `MovimientoEfectivo` por parte (venta/transferencia) + JSON `pagos_divididos` en la venta. Lo que faltaba: **UI del POS** — opción "Dividido" en el selector, bloque de pagos parciales en el modal de cobro (filas método+monto, agregar/quitar, suma parcial en vivo contra el total con aviso de error), y el JS ahora envía `pagos_divididos` en el payload y valida la suma exacta antes de enviar. **Bug nuevo corregido**: `processSale` enviaba `pagado: paid.toFixed(2)` con `paid` sin declarar (`ReferenceError` en cada cobro real desde el navegador; la suite HTTP no lo detectaba) → `(paidCents / 100).toFixed(2)`. Ticket térmico (`ticket-58`) imprime el desglose por parte; `ventas-hoy` muestra la etiqueta "Dividido" (la vista de cierre solo lista crédito/transferencia puras — el `whereIn` de `ControladorCaja::cerrarForm` no incluye dividido porque el esperado ya contabiliza la parte efectiva y la no-efectivo se concilia vía reportes). Tests nuevos (`SplitPaymentTest`, 7): venta exacta con partes + movimientos por parte + stock, suma insuficiente 422, sobrepago 422 sin cambio fantasma, método no permitido en una parte 422, sin partes 422, `efectivo_esperado` tras cierre incluye solo la parte efectiva (6.00), idempotencia no duplica venta ni movimientos. Verificación adicional: las 15 factories de la checklist 9.1 ya existen en `database/factories/` con `definition()` real (checklist estaba desactualizada → marcadas COMPLETADO). Suite: **167 pruebas / 556 aserciones**.
+
 - **2026-08-18 (11) — Cierre de parciales (T2/T3/S8)**: `User::tienePermiso` — test escudo: el propietario sin `rol_id` accede a todo (incluida cualquier clave futura), blindando el orden del branch ante refactorizaciones. Migración `210004` — ahora auto-siembra `RolePermissionSeeder` al inicio si `permissions` está vacía (garantiza roles con permisos en instalaciones nuevas y en `migrate` sin `--seed`; idempotente). Roles personalizados — flujo de asignación completo: `ControladorCajeros::store/update` aceptan `rol_id` opcional validado con `Rule::exists('roles','id')->where(negocio_id, !es_sistema)` (rechaza roles de otro bar y roles del sistema), se guarda en la membresía (default: rol cajero del bar); `cajeros/index.blade.php` muestra selector "Rol" en crear y editar (solo roles personalizados del bar, con el rol de cajero predeterminado y marcado correcto al editar). Tests nuevos (6, en `RolesAdminConfigTest`): propietario sin rol acceso total, seeder garantiza permisos/roles globales con permisos, crear cajero con rol personalizado del bar, rol de otro bar rechazado, rol del sistema rechazado, cambio de rol al editar. Suite: **160 pruebas / 518 aserciones**.
 
 - **2026-08-18 (10) — Fase T completada**: gates de reportes por módulo — nuevo gate `reportes.ventas_o_cajeros` (`reporte.ventas` OR `reporte.cajeros`) usado por `porSucursal`; el resto sigue con `reportes.ver`. Policies muertas eliminadas (`RolPolicy.php`, `ReportePolicy.php` + su registro en `AppServiceProvider`; `ConfiguracionPolicy` confirmada viva). UX de roles: `roles/index.blade.php` ya no muestra editar/eliminar para `es_sistema` (en el servidor seguían bloqueados con 422). N+1: `plataforma.negocios.index` eager-loada solo los contratos vigentes (filtro en la relación) y la vista usa `$negocio->contratos->first()`; `Contrato::totalPagado()` suma sobre la colección de `pagos` cargada (mismo resultado, cero queries extra con eager load). `generarIdentificador()` con `lockForUpdate()` (ya corría dentro del `DB::transaction` del store, el gap lock del índice único blinda la carrera); `exportar()` sin el `stream_get_contents` muerto (doble lectura). `ruc` alineado: servidor y formulario nullable (se quita `required` del input de create). Flash de credenciales: ya se limpiaba con `session()->forget` tras mostrarse y un `with()` es de una sola request — cubierto con test de dos vistas seguidas. Índice compuesto nuevo `turnos_caja (negocio_id, usuario_id, estado)` (migración `2026_08_18_100006`). **Bug nuevo encontrado y corregido**: `ControladorReportes::porSucursal` lanzaba 500 por `created_at` ambigüo tras el `leftJoin` con `sucursales`/`usuarios` (ambas tablas tienen la columna) → calificado `ventas.created_at`. Tests nuevos (`ReportesTenancyTest`, 7): rol sin permisos de reportes 403, propietario con rol solo `reporte.cajeros` ve por-sucursal pero no productos/export, `totalPagado` suma solo pagos registrados, identificador con colisión → sufijo `-1`, ruc opcional, índice compuesto presente, flash de credenciales desaparece tras mostrarse. Suite: **154 pruebas / 499 aserciones**.
@@ -1293,7 +1297,7 @@ Auditoría exhaustiva (5 módulos: plataforma, auth/tenencia, POS/caja/reembolso
 
 - **2026-08-18 (3) — Fase M completada**: reembolso en efectivo registra `retiro` con monto **negativo** (antes positivo, inflaba el esperado); el **cambio** entregado en ventas de efectivo se registra como `retiro` (`-cambio`) así el cuadre cuadra contra el neto; `efectivoEsperado()` único (excluye transferencias) compartido por la vista de cierre y el cierre final (`ControladorCaja.php:77` y `:148`); cobro: idempotencia con `try/catch QueryException` de la clave única (devuelve la venta existente en vez de 500, check escoped por usuario), descuento clampéado a `subtotal`, variante solo se descuenta si el producto `maneja_existencias`; reembolso: viable en **crédito** (`montoDisponible = total - reembolsado`), incluye **IVA proporcional** (`factor = (subtotal+impuesto)/subtotal`); `aprobarCuadre` exige `motivo` si `abs(diferencia) > 1`. Tests nuevos: cambio como retiro, idempotencia entre usuarios, descuento >100 clampéado, variante sin existencias, reembolso crédito, reembolso con impuesto, esperado sin transferencias, aprobar cuadre con diferencia. Suite: **94 pruebas / 289 aserciones**.
 
-**Estado de fases**: M ✅ · N ✅ · O ✅ · P ✅ · Q ✅ · R ✅ · S ✅ · T ✅ — parciales cerrados (11). — Suite base: **160 pruebas / 518 aserciones**.
+**Estado de fases**: M ✅ · N ✅ · O ✅ · P ✅ · Q ✅ · R ✅ · S ✅ · T ✅ — parciales cerrados (11) + SplitPayment (12) + Factories (13). — Suite base: **168 pruebas / 568 aserciones**.
 
 ### Verificación de código 2026-08-18 (4) — Bugs confirmados por fase
 
@@ -1621,7 +1625,7 @@ Se realizó una auditoría exhaustiva del sistema cubriendo: modelos/relaciones,
 
 ### 17.5 Fábricas Pendientes
 
-- [ ] `PENDIENTE` Crear factories: TicketAbierto, Cliente, MembresiaNegocio, MovimientoEfectivo, MovimientoInventario, Reembolso, Proveedor, OrdenCompra, ConteoInventario, Impresora, ConfiguracionNegocio, Auditoria.
+- [x] `COMPLETADO` Crear factories: MovimientoInventario, Reembolso, ConteoInventario, Impresora, ConfiguracionNegocio, Auditoria (avance 13 — ya existían TicketAbierto, Cliente, MembresiaNegocio, MovimientoEfectivo, Proveedor, OrdenCompra; ahora las 21 factories del proyecto están cubiertas y verificadas con `FactoriesSmokeTest`).
 
 ---
 

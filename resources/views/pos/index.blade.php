@@ -115,6 +115,7 @@
                     <option value="efectivo">Efectivo</option>
                     <option value="credito">Crédito</option>
                     <option value="transferencia">Transferencia</option>
+                    <option value="dividido">Dividido</option>
                 </select>
             </div>
             
@@ -179,6 +180,19 @@
                     <input type="text" id="entidadFinanciera" class="form-control" maxlength="100" placeholder="Banco o cooperativa">
                     <label class="form-label mt-3" for="numeroComprobantePago">Número de comprobante</label>
                     <input type="text" id="numeroComprobantePago" class="form-control" maxlength="100">
+                </div>
+
+                <div id="divididoFields" class="border rounded p-3 mb-3" hidden>
+                    <label class="form-label">Pagos parciales</label>
+                    <div id="pagosDivididosLista"></div>
+                    <button type="button" class="btn btn-sm btn-outline-success w-100" onclick="agregarPagoDividido()">
+                        <i class="bi bi-plus-lg"></i> Agregar pago
+                    </button>
+                    <div class="d-flex justify-content-between mt-3">
+                        <span class="text-muted">Suma parcial:</span>
+                        <span id="pagosDivididosSuma" class="fw-bold">$0.00</span>
+                    </div>
+                    <small id="pagosDivididosEstado" class="text-danger fw-bold" style="display:none">La suma debe ser exactamente igual al total</small>
                 </div>
                 
                 <div class="d-flex gap-2 mb-3 flex-wrap">
@@ -572,7 +586,10 @@ function actualizarCambio() {
         return;
     }
     document.getElementById('changeLabel').textContent = 'Cambio:';
-    const paidCents = Math.round((parseFloat(document.getElementById('paidAmount').value) || 0) * 100);
+    let paidCents = Math.round((parseFloat(document.getElementById('paidAmount').value) || 0) * 100);
+    if (document.getElementById('paymentMethod').value === 'dividido') {
+        paidCents = sumaPagosDivididosCents();
+    }
     const changeCents = paidCents - currentTotalCents;
     document.getElementById('changeAmount').textContent = '$' + (Math.max(0, changeCents) / 100).toFixed(2);
 }
@@ -598,11 +615,60 @@ function actualizarCamposPago() {
     const metodo = document.getElementById('paymentMethod').value;
     const esCredito = metodo === 'credito';
     const esTransferencia = metodo === 'transferencia';
+    const esDividido = metodo === 'dividido';
     document.getElementById('creditoFields').hidden = !esCredito;
     document.getElementById('transferenciaFields').hidden = !esTransferencia;
-    document.getElementById('paidAmount').disabled = esCredito;
-    document.getElementById('paidAmount').value = esCredito ? '0.00' : (currentTotalCents / 100).toFixed(2);
-    document.querySelectorAll('.quick-amount').forEach(button => button.disabled = esCredito);
+    document.getElementById('divididoFields').hidden = !esDividido;
+    document.getElementById('paidAmount').disabled = esCredito || esDividido;
+    if (esDividido) {
+        document.getElementById('paidAmount').value = '0.00';
+    } else if (!esCredito) {
+        document.getElementById('paidAmount').value = (currentTotalCents / 100).toFixed(2);
+    }
+    document.querySelectorAll('.quick-amount').forEach(button => button.disabled = esCredito || esDividido);
+    if (esDividido && document.querySelectorAll('#pagosDivididosLista .pago-row').length === 0) {
+        agregarPagoDividido();
+    }
+    actualizarCambio();
+}
+
+function sumaPagosDivididosCents() {
+    let suma = 0;
+    document.querySelectorAll('#pagosDivididosLista .pago-row').forEach(row => {
+        suma += Math.round((parseFloat(row.querySelector('.pago-monto').value) || 0) * 100);
+    });
+    return suma;
+}
+
+function agregarPagoDividido() {
+    const lista = document.getElementById('pagosDivididosLista');
+    const fila = document.createElement('div');
+    fila.className = 'pago-row d-flex gap-2 mb-2';
+    fila.innerHTML = `
+        <select class="form-select pago-metodo" style="flex:0 0 45%">
+            <option value="efectivo">Efectivo</option>
+            <option value="transferencia">Transferencia</option>
+        </select>
+        <input type="number" class="form-control pago-monto" step="0.01" min="0.01" placeholder="Monto">
+        <button type="button" class="btn btn-outline-danger pago-quitar" title="Quitar"><i class="bi bi-trash"></i></button>
+    `;
+    const restanteCents = currentTotalCents - sumaPagosDivididosCents();
+    fila.querySelector('.pago-monto').value = (Math.max(0, restanteCents) / 100).toFixed(2);
+    fila.querySelector('.pago-quitar').addEventListener('click', () => {
+        fila.remove();
+        actualizarSumaDivididos();
+    });
+    fila.querySelector('.pago-monto').addEventListener('input', actualizarSumaDivididos);
+    fila.querySelector('.pago-metodo').addEventListener('change', actualizarSumaDivididos);
+    lista.appendChild(fila);
+    actualizarSumaDivididos();
+}
+
+function actualizarSumaDivididos() {
+    const sumaCents = sumaPagosDivididosCents();
+    document.getElementById('pagosDivididosSuma').textContent = '$' + (sumaCents / 100).toFixed(2);
+    const exacto = sumaCents === currentTotalCents && sumaCents > 0;
+    document.getElementById('pagosDivididosEstado').style.display = exacto ? 'none' : '';
     actualizarCambio();
 }
 
@@ -704,7 +770,21 @@ async function processSale() {
     const metodoPago = document.getElementById('paymentMethod').value;
     const paidCents = Math.round((parseFloat(document.getElementById('paidAmount').value) || 0) * 100);
     
-    if (metodoPago !== 'credito' && paidCents < currentTotalCents) {
+    let pagosDivididos = null;
+    if (metodoPago === 'dividido') {
+        pagosDivididos = Array.from(document.querySelectorAll('#pagosDivididosLista .pago-row')).map(row => ({
+            metodo: row.querySelector('.pago-metodo').value,
+            monto: row.querySelector('.pago-monto').value,
+        }));
+        if (pagosDivididos.length === 0 || pagosDivididos.some(p => parseFloat(p.monto) <= 0)) {
+            alert('Cada pago parcial debe tener un monto mayor a cero.');
+            return;
+        }
+        if (sumaPagosDivididosCents() !== currentTotalCents) {
+            alert('La suma de los pagos divididos debe ser exactamente igual al total.');
+            return;
+        }
+    } else if (metodoPago !== 'credito' && paidCents < currentTotalCents) {
         alert('El monto recibido es insuficiente');
         return;
     }
@@ -731,13 +811,14 @@ async function processSale() {
                     modificadores: item.modificadores || [],
                 })),
                 metodo_pago: document.getElementById('paymentMethod').value,
-                pagado: paid.toFixed(2),
+                pagado: (paidCents / 100).toFixed(2),
                 notas: '',
                 clave_idempotencia: idempotencyKey,
                 cliente_id: document.getElementById('clienteId').value || '',
                 descripcion_cliente: document.getElementById('descripcionCliente').value || '',
                 entidad_financiera: document.getElementById('entidadFinanciera').value || '',
-                numero_comprobante_pago: document.getElementById('numeroComprobantePago').value || ''
+                numero_comprobante_pago: document.getElementById('numeroComprobantePago').value || '',
+                pagos_divididos: pagosDivididos
             })
         });
         

@@ -18,6 +18,8 @@
                             <span class="badge bg-success">Efectivo</span>
                         @elseif($venta->metodo_pago === 'credito')
                             <span class="badge bg-warning text-dark">Crédito</span>
+                        @elseif($venta->metodo_pago === 'dividido')
+                            <span class="badge bg-primary">Dividido</span>
                         @else
                             <span class="badge bg-info">Transferencia</span>
                         @endif
