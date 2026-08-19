@@ -803,23 +803,23 @@ Se realizó una auditoría profunda del sistema completo cubriendo: integridad d
 - [ ] `PENDIENTE` `AuthTest` — login, PIN, bloqueo por intentos, logout
 - [ ] `PENDIENTE` `TicketsAbiertosTest` — CRUD, aislamiento tenant, restore
 - [x] `COMPLETADO` `SplitPaymentTest` — pago dividido, validación de montos, movimientos
-- [ ] `PENDIENTE` `CreditSaleTest` — venta crédito, cliente requerido, estado pendiente
+- [x] `COMPLETADO` `CreditSaleTest` — venta crédito, cliente requerido, estado pendiente
 
 ### 9.3 Pruebas Altas (P1)
 
-- [ ] `PENDIENTE` `TaxTest` — impuesto habilitado, cálculo correcto, cambio de porcentaje
+- [x] `COMPLETADO` `TaxTest` — impuesto habilitado, cálculo correcto, cambio de porcentaje
 - [ ] `PENDIENTE` `InventoryTest` — ajustes, stock negativo, historial
 - [ ] `PENDIENTE` `PurchaseOrdersTest` — crear, recibir, stock update
-- [ ] `PENDIENTE` `CsvExportTest` — exportar productos/ventas, importar productos
+- [x] `COMPLETADO` `CsvExportTest` — exportar productos/ventas, importar productos
 
 ### 9.4 Pruebas Medias (P2)
 
 - [ ] `PENDIENTE` `ReportsTest` — todos los reportes Fase 6
 - [ ] `PENDIENTE` `CajaApprovalTest` — aprobar, rechazar, modificar cuadre
-- [ ] `PENDIENTE` `MultiTenantIsolationTest` — Producto, Venta, TurnoCaja, Caja aislados
-- [ ] `PENDIENTE` `ServicioCobroTest` — cálculos unitarios, idempotencia
-- [ ] `PENDIENTE` `VariantTest` — precio variante, stock variante
-- [ ] `PENDIENTE` `ModifierTest` — precio extra, validación min/max
+- [x] `COMPLETADO` `MultiTenantIsolationTest` — Producto, Venta, TurnoCaja, Caja aislados
+- [x] `COMPLETADO` `ServicioCobroTest` — cubierto por integración: CheckoutTest + SplitPaymentTest + TaxTest + VarianteModificadorTest (cálculos, idempotencia, clamps, descuento+IVA)
+- [x] `COMPLETADO` `VariantTest` — cubierto por `VarianteModificadorTest` (precio/stock variante)
+- [x] `COMPLETADO` `ModifierTest` — cubierto por `VarianteModificadorTest` (precio extra, grupos)
 
 ### 9.5 Cobertura Objetivo
 
@@ -1275,6 +1275,8 @@ Auditoría exhaustiva (5 módulos: plataforma, auth/tenencia, POS/caja/reembolso
 
 **Avances**:
 
+- **2026-08-18 (14) — Tests de brechas (Tax/Credit/Csv)**: `TaxTest` (4): venta con IVA 15% calcula y snapshotea `impuesto_habilitado`/`porcentaje_impuesto`, impuesto desactivado no aplica, cambio de porcentaje (12.5%) afecta nuevas ventas, IVA se aplica sobre el subtotal con descuento (10% → base 9.00 → IVA 1.35 → total 10.35). `CreditSaleTest` (5): crédito sin cliente 422, crédito con cliente crea venta `pendiente` con `pagado/cambio 0` y snapshot (cliente_id, nombre_cliente, descripcion), crédito sin descripción 422, cliente de otro negocio 422 (exists scoped), crédito no afecta `efectivo_esperado` (0.0 al cerrar). `CsvExportTest` (4): exportar productos CSV con cabecera y datos (`streamedContent()` — `getContent()` devuelve vacío en streams), export aislado por tenant (producto del otro bar ausente), exportar ventas CSV con cabecera/ventas, filtro por rango de fechas (start/end). Notas de verificación: `Venta::first()` sin orden devuelve siempre la primera venta (al marcar `created_at` de "la ayer" se movía la equivocada → `latest('id')->first()`); `created_at` no es fillable (persistir con `timestamps = false` + asignación directa + save); `fputcsv` escapa con comillas los campos con espacios ("Metodo Pago"). `ServicioCobroTest` Unit NO se crea: su lógica ya está cubierta por integración (CheckoutTest, SplitPaymentTest, TaxTest, VarianteModificadorTest) — marcado como COMPLETADO vía integración en 9.4. Suite: **181 pruebas / 627 aserciones**.
+
 - **2026-08-18 (13) — Factories completadas**: creadas las 6 factories faltantes (`MovimientoInventarioFactory`, `ReembolsoFactory`, `ConteoInventarioFactory`, `ImpresoraFactory`, `ConfiguracionNegocioFactory`, `AuditoriaFactory`) siguiendo la convención del repo (definition con `fake()`, FKs de negocio auto-cargadas por `PerteneceANegocio`, FKs de dominio las provee el caller — igual que `TurnoCajaFactory`/`MovimientoEfectivoFactory`). Con esto las **21 factories del proyecto** están cubiertas. Test nuevo (`FactoriesSmokeTest`, 1): crea negocio + contexto, usuario, categoría, producto, caja, turno y venta mínima (post-`200000` `turno_caja_id` es NOT NULL) y verifica que cada factory nueva persiste un registro válido con sus FKs (producto_id, venta_id, usuario_id, negocio_id auto). `php -l` limpio en las 21. Suite: **168 pruebas / 568 aserciones**.
 
 - **2026-08-18 (12) — Pagos divididos (SplitPayment)**: flujo completo de punta a punta. `ServicioCobro::crear` exige que la suma de los pagos parciales sea **exactamente igual** al total (`round(suma) !== round(total)` → 422; antes aceptaba sobrepago y registraba `cambio` sin movimiento de retiro — cambio fantasma inconsistente con el flujo de efectivo; ahora `pagado = total`, `cambio = 0` siempre). El controlador ya validaba `pagos_divididos` (`required_if:dividido`, `array|min:1`, `metodo in:efectivo,transferencia`, `monto min:0.01`) y el servicio ya creaba un `MovimientoEfectivo` por parte (venta/transferencia) + JSON `pagos_divididos` en la venta. Lo que faltaba: **UI del POS** — opción "Dividido" en el selector, bloque de pagos parciales en el modal de cobro (filas método+monto, agregar/quitar, suma parcial en vivo contra el total con aviso de error), y el JS ahora envía `pagos_divididos` en el payload y valida la suma exacta antes de enviar. **Bug nuevo corregido**: `processSale` enviaba `pagado: paid.toFixed(2)` con `paid` sin declarar (`ReferenceError` en cada cobro real desde el navegador; la suite HTTP no lo detectaba) → `(paidCents / 100).toFixed(2)`. Ticket térmico (`ticket-58`) imprime el desglose por parte; `ventas-hoy` muestra la etiqueta "Dividido" (la vista de cierre solo lista crédito/transferencia puras — el `whereIn` de `ControladorCaja::cerrarForm` no incluye dividido porque el esperado ya contabiliza la parte efectiva y la no-efectivo se concilia vía reportes). Tests nuevos (`SplitPaymentTest`, 7): venta exacta con partes + movimientos por parte + stock, suma insuficiente 422, sobrepago 422 sin cambio fantasma, método no permitido en una parte 422, sin partes 422, `efectivo_esperado` tras cierre incluye solo la parte efectiva (6.00), idempotencia no duplica venta ni movimientos. Verificación adicional: las 15 factories de la checklist 9.1 ya existen en `database/factories/` con `definition()` real (checklist estaba desactualizada → marcadas COMPLETADO). Suite: **167 pruebas / 556 aserciones**.
@@ -1297,7 +1299,7 @@ Auditoría exhaustiva (5 módulos: plataforma, auth/tenencia, POS/caja/reembolso
 
 - **2026-08-18 (3) — Fase M completada**: reembolso en efectivo registra `retiro` con monto **negativo** (antes positivo, inflaba el esperado); el **cambio** entregado en ventas de efectivo se registra como `retiro` (`-cambio`) así el cuadre cuadra contra el neto; `efectivoEsperado()` único (excluye transferencias) compartido por la vista de cierre y el cierre final (`ControladorCaja.php:77` y `:148`); cobro: idempotencia con `try/catch QueryException` de la clave única (devuelve la venta existente en vez de 500, check escoped por usuario), descuento clampéado a `subtotal`, variante solo se descuenta si el producto `maneja_existencias`; reembolso: viable en **crédito** (`montoDisponible = total - reembolsado`), incluye **IVA proporcional** (`factor = (subtotal+impuesto)/subtotal`); `aprobarCuadre` exige `motivo` si `abs(diferencia) > 1`. Tests nuevos: cambio como retiro, idempotencia entre usuarios, descuento >100 clampéado, variante sin existencias, reembolso crédito, reembolso con impuesto, esperado sin transferencias, aprobar cuadre con diferencia. Suite: **94 pruebas / 289 aserciones**.
 
-**Estado de fases**: M ✅ · N ✅ · O ✅ · P ✅ · Q ✅ · R ✅ · S ✅ · T ✅ — parciales cerrados (11) + SplitPayment (12) + Factories (13). — Suite base: **168 pruebas / 568 aserciones**.
+**Estado de fases**: M ✅ · N ✅ · O ✅ · P ✅ · Q ✅ · R ✅ · S ✅ · T ✅ — parciales cerrados (11) + SplitPayment (12) + Factories (13) + Tests de brechas (14). — Suite base: **181 pruebas / 627 aserciones**.
 
 ### Verificación de código 2026-08-18 (4) — Bugs confirmados por fase
 
