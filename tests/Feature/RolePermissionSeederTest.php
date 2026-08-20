@@ -54,7 +54,8 @@ class RolePermissionSeederTest extends TestCase
         $this->assertTrue($rol->tienePermiso('configuracion.negocio'));
         $this->assertTrue($rol->tienePermiso('usuario.admin_bar'));
         $this->assertTrue($rol->tienePermiso('usuario.cajeros'));
-        $this->assertTrue($rol->tienePermiso('caja.administrar'));
+        $this->assertTrue($rol->tienePermiso('caja.reporte'));
+        $this->assertFalse($rol->tienePermiso('caja.administrar'));
         $this->assertTrue($rol->tienePermiso('impresora.ver'));
         $this->assertTrue($rol->tienePermiso('auditoria.ver'));
         $this->assertTrue($rol->tienePermiso('rol.gestionar'));

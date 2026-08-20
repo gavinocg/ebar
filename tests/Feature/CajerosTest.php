@@ -2,15 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Models\Membresia;
+use App\Models\Contrato;
 use App\Models\MembresiaNegocio;
 use App\Models\Negocio;
-use App\Models\Plan;
 use App\Models\Sucursal;
 use App\Models\User;
 use App\Models\Venta;
-use App\Models\TurnoCaja;
-use App\Models\Caja;
+use App\Models\TurnoCajero;
 use App\Services\ContextoNegocio;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -22,17 +20,20 @@ class CajerosTest extends TestCase
 
     private function barConPlan(int $limiteCajeros = 2): Negocio
     {
-        $plan = Plan::create(['nombre' => 'Básico', 'duracion_dias' => 30, 'limite_cajeros' => $limiteCajeros, 'limite_cajas' => 1, 'limite_sucursales' => 1]);
         $negocio = Negocio::create(['nombre' => 'Bar', 'identificador' => 'bar-' . str()->random(6), 'esta_activo' => true]);
         app(ContextoNegocio::class)->establecer($negocio->id);
-        Sucursal::create(['nombre' => 'Principal']);
 
-        Membresia::create([
+        $sucursal = Sucursal::create(['nombre' => 'Principal']);
+        Contrato::create([
             'negocio_id' => $negocio->id,
-            'plan_id' => $plan->id,
-            'estado' => 'activa',
-            'fecha_inicio' => now(),
-            'fecha_vencimiento' => now()->addDays(30),
+            'fecha_inicio' => now()->subDay(),
+            'fecha_fin' => now()->addMonths(6),
+            'forma_contratacion' => 'mensual',
+            'numero_sucursales_contratadas' => 1,
+            'sucursales_ilimitadas' => false,
+            'numero_cajeros_contratados' => $limiteCajeros,
+            'cajeros_ilimitados' => false,
+            'estado' => 'activo',
         ]);
 
         return $negocio;
@@ -232,10 +233,8 @@ class CajerosTest extends TestCase
         $negocio = $this->barConPlan();
         $admin = $this->propietario($negocio);
         $cajero = $this->cajero($negocio);
-        $caja = Caja::create(['nombre' => 'Caja 1', 'esta_activa' => true, 'negocio_id' => $negocio->id]);
 
-        $turno = TurnoCaja::create([
-            'caja_id' => $caja->id,
+        $turno = TurnoCajero::create([
             'usuario_id' => $cajero->id,
             'fondo_inicial' => 100,
             'abierto_en' => now()->subHour(),
@@ -263,10 +262,8 @@ class CajerosTest extends TestCase
         $negocio = $this->barConPlan();
         $admin = $this->adminBar($negocio);
         $cajero = $this->cajero($negocio);
-        $caja = Caja::create(['nombre' => 'Caja 1', 'esta_activa' => true, 'negocio_id' => $negocio->id]);
 
-        $turno = TurnoCaja::create([
-            'caja_id' => $caja->id,
+        $turno = TurnoCajero::create([
             'usuario_id' => $cajero->id,
             'fondo_inicial' => 100,
             'abierto_en' => now()->subHour(),
@@ -286,10 +283,8 @@ class CajerosTest extends TestCase
         $negocio = $this->barConPlan();
         $this->adminBar($negocio);
         $cajero = $this->cajero($negocio);
-        $caja = Caja::create(['nombre' => 'Caja 1', 'esta_activa' => true, 'negocio_id' => $negocio->id]);
 
-        $turno = TurnoCaja::create([
-            'caja_id' => $caja->id,
+        $turno = TurnoCajero::create([
             'usuario_id' => $cajero->id,
             'fondo_inicial' => 100,
             'abierto_en' => now()->subHour(),
@@ -309,10 +304,8 @@ class CajerosTest extends TestCase
         $negocio = $this->barConPlan();
         $admin = $this->adminBar($negocio);
         $cajero = $this->cajero($negocio);
-        $caja = Caja::create(['nombre' => 'Caja 1', 'esta_activa' => true, 'negocio_id' => $negocio->id]);
 
-        TurnoCaja::create([
-            'caja_id' => $caja->id,
+        TurnoCajero::create([
             'usuario_id' => $cajero->id,
             'fondo_inicial' => 100,
             'abierto_en' => now()->subHour(),
@@ -327,7 +320,7 @@ class CajerosTest extends TestCase
         app(ContextoNegocio::class)->establecer($negocio->id);
         $this->actingAs($admin);
 
-        $this->get(route('caja.reporte'))->assertOk()->assertSee('Arqueos de caja');
+        $this->get(route('caja.reporte'))->assertOk()->assertSee('Arqueos');
     }
 
     public function test_admin_bar_aprueba_un_cuadre_pendiente(): void
@@ -335,10 +328,8 @@ class CajerosTest extends TestCase
         $negocio = $this->barConPlan();
         $admin = $this->adminBar($negocio);
         $cajero = $this->cajero($negocio);
-        $caja = Caja::create(['nombre' => 'Caja 1', 'esta_activa' => true, 'negocio_id' => $negocio->id]);
 
-        $turno = TurnoCaja::create([
-            'caja_id' => $caja->id,
+        $turno = TurnoCajero::create([
             'usuario_id' => $cajero->id,
             'fondo_inicial' => 100,
             'abierto_en' => now()->subHour(),

@@ -67,8 +67,7 @@ class RolePermissionSeeder extends Seeder
             ['nombre' => 'Reportes: Inventario',         'clave' => 'reporte.inventario',    'modulo' => 'Reportes'],
             ['nombre' => 'Reportes: Cajeros',            'clave' => 'reporte.cajeros',       'modulo' => 'Reportes'],
 
-            // Caja
-            ['nombre' => 'Caja: Administrar',            'clave' => 'caja.administrar',   'modulo' => 'Caja'],
+            // Caja / Turnos
             ['nombre' => 'Caja: Reporte',                'clave' => 'caja.reporte',       'modulo' => 'Caja'],
             ['nombre' => 'Caja: Reabrir',                'clave' => 'caja.reabrir',       'modulo' => 'Caja'],
 

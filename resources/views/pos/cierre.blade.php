@@ -10,11 +10,11 @@
 </style>
 @endpush
 
-@section('title', 'Cierre de caja')
+@section('title', 'Cierre de turno')
 
 @section('content')
 <div class="container" style="max-width: 560px;">
-    <h5 class="mb-3"><i class="bi bi-cash-stack"></i> Cierre de caja</h5>
+    <h5 class="mb-3"><i class="bi bi-cash-stack"></i> Cierre de turno</h5>
     <p class="text-muted small">{{ auth()->user()->nombre }} — Cuadre del turno activo.</p>
 
     @if($errors->any())

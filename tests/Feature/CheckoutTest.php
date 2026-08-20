@@ -5,8 +5,7 @@ namespace Tests\Feature;
 use App\Models\ConfiguracionNegocio as BusinessSetting;
 use App\Models\Categoria as Category;
 use App\Models\Producto as Product;
-use App\Models\Caja;
-use App\Models\TurnoCaja;
+use App\Models\TurnoCajero;
 use App\Models\Negocio;
 use App\Services\ContextoNegocio;
 use App\Models\Impresora;
@@ -168,19 +167,21 @@ class CheckoutTest extends TestCase
         $this->assertDatabaseHas('movimientos_efectivo', [
             'tipo' => 'venta',
             'monto' => 25,
-            'turno_caja_id' => $this->turnoActual($usuario)->id,
+            'turno_cajero_id' => $this->turnoActual($usuario)->id,
         ]);
     }
 
     public function test_caja_se_puede_abrir_y_cerrar_con_arqueo(): void
     {
         $usuario = $this->cajero();
+        $sucursal = \App\Models\Sucursal::create(['nombre' => 'Principal', 'esta_activa' => true]);
+        \App\Models\MembresiaNegocio::where('usuario_id', $usuario->id)->update(['sucursal_id' => $sucursal->id]);
         $this->actingAs($usuario);
-        Caja::create(['nombre' => 'Caja de pruebas', 'esta_activa' => true]);
+        $negocioId = app(\App\Services\ContextoNegocio::class)->id();
 
         $this->post(route('caja.abrir'), ['fondo_inicial' => '100.00'])
             ->assertRedirect();
-        $this->assertDatabaseHas('turnos_caja', [
+        $this->assertDatabaseHas('turnos_cajero', [
             'usuario_id' => $usuario->id,
             'estado' => 'abierta',
             'fondo_inicial' => 100,
@@ -197,7 +198,7 @@ class CheckoutTest extends TestCase
             'billetes' => [100 => 1, 20 => 1, 5 => 1, 50 => 0, 10 => 0, 1 => 0],
             'monedas' => [1 => 0, 0.50 => 0, 0.25 => 0, 0.10 => 0, 0.05 => 0, 0.01 => 0],
         ])->assertRedirect();
-        $this->assertDatabaseHas('turnos_caja', [
+        $this->assertDatabaseHas('turnos_cajero', [
             'usuario_id' => $usuario->id,
             'estado' => 'pendiente_aprobacion',
             'efectivo_esperado' => 125,
@@ -500,7 +501,7 @@ class CheckoutTest extends TestCase
         ])->assertOk();
 
         $venta = Venta::first();
-        TurnoCaja::where('usuario_id', $cajero->id)->update(['estado' => 'cerrada', 'cerrado_en' => now()]);
+        TurnoCajero::where('usuario_id', $cajero->id)->update(['estado' => 'cerrada', 'cerrado_en' => now()]);
 
         $this->post(route('reembolsos.crear', $venta), [
             'tipo' => 'total',
@@ -770,7 +771,7 @@ class CheckoutTest extends TestCase
             'monedas' => [1 => 0, 0.50 => 0, 0.25 => 0, 0.10 => 0, 0.05 => 0, 0.01 => 0],
         ])->assertRedirect();
 
-        $turno = TurnoCaja::where('usuario_id', $usuario->id)->first();
+        $turno = TurnoCajero::where('usuario_id', $usuario->id)->first();
         $this->assertSame(20.0, (float) $turno->fresh()->efectivo_esperado);
     }
 
@@ -779,10 +780,9 @@ class CheckoutTest extends TestCase
         $admin = $this->adminBar();
         $this->actingAs($admin);
 
-        $turno = TurnoCaja::create([
+        $turno = TurnoCajero::create([
             'negocio_id' => Negocio::first()->id,
             'usuario_id' => $admin->id,
-            'caja_id' => Caja::create(['nombre' => 'Caja 1', 'esta_activa' => true])->id,
             'fondo_inicial' => 0,
             'abierto_en' => now(),
             'cerrado_en' => now(),
@@ -832,12 +832,10 @@ class CheckoutTest extends TestCase
         return $usuario;
     }
 
-    private function abrirTurno(User $usuario): TurnoCaja
+    private function abrirTurno(User $usuario): TurnoCajero
     {
-        $caja = Caja::create(['nombre' => 'Caja de pruebas', 'esta_activa' => true]);
 
-        return TurnoCaja::create([
-            'caja_id' => $caja->id,
+        return TurnoCajero::create([
             'usuario_id' => $usuario->id,
             'fondo_inicial' => 100,
             'abierto_en' => now(),
@@ -845,9 +843,9 @@ class CheckoutTest extends TestCase
         ]);
     }
 
-    private function turnoActual(User $usuario): TurnoCaja
+    private function turnoActual(User $usuario): TurnoCajero
     {
-        return TurnoCaja::where('usuario_id', $usuario->id)->where('estado', 'abierta')->latest('id')->firstOrFail();
+        return TurnoCajero::where('usuario_id', $usuario->id)->where('estado', 'abierta')->latest('id')->firstOrFail();
     }
 
     private function adminBar(): User

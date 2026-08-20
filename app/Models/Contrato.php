@@ -16,6 +16,11 @@ class Contrato extends Model
         'fecha_fin',
         'fecha_renovacion',
         'forma_contratacion',
+        'valor',
+        'numero_sucursales_contratadas',
+        'sucursales_ilimitadas',
+        'numero_cajeros_contratados',
+        'cajeros_ilimitados',
         'estado',
         'referencia',
     ];
@@ -24,11 +29,16 @@ class Contrato extends Model
         'fecha_inicio' => 'date',
         'fecha_fin' => 'date',
         'fecha_renovacion' => 'date',
+        'valor' => 'decimal:2',
+        'numero_sucursales_contratadas' => 'integer',
+        'sucursales_ilimitadas' => 'boolean',
+        'numero_cajeros_contratados' => 'integer',
+        'cajeros_ilimitados' => 'boolean',
     ];
 
     public const FORMAS = ['mensual', 'trimestral', 'semestral', 'anual', 'otro'];
 
-    public const ESTADOS = ['activo', 'vencido', 'suspendido', 'cancelado'];
+    public const ESTADOS = ['pendiente', 'activo', 'vencido', 'suspendido', 'cancelado'];
 
     public function negocio(): BelongsTo
     {
@@ -48,6 +58,7 @@ class Contrato extends Model
     public function estaVigente(): bool
     {
         return $this->estado === 'activo'
+            && !$this->fecha_inicio->copy()->startOfDay()->isFuture()
             && !$this->fecha_fin->copy()->endOfDay()->isPast();
     }
 

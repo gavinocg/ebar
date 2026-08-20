@@ -2,12 +2,12 @@
 
 namespace Database\Factories;
 
-use App\Models\TurnoCaja;
+use App\Models\TurnoCajero;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-class TurnoCajaFactory extends Factory
+class TurnoCajeroFactory extends Factory
 {
-    protected $model = TurnoCaja::class;
+    protected $model = TurnoCajero::class;
 
     public function definition(): array
     {

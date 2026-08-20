@@ -18,7 +18,7 @@ class Venta extends Model
         'sucursal_id',
         'numero_comprobante',
         'clave_idempotencia',
-        'turno_caja_id',
+        'turno_cajero_id',
         'usuario_id',
         'cliente_id',
         'nombre_cliente',
@@ -63,9 +63,9 @@ class Venta extends Model
         return $this->hasMany(Reembolso::class, 'venta_id');
     }
 
-    public function turnoCaja(): BelongsTo
+    public function turnoCajero(): BelongsTo
     {
-        return $this->belongsTo(TurnoCaja::class, 'turno_caja_id');
+        return $this->belongsTo(TurnoCajero::class, 'turno_cajero_id');
     }
 
     public function usuario(): BelongsTo

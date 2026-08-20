@@ -1,10 +1,10 @@
 @extends('layouts.sidebar')
 
-@section('title', 'Arqueos de caja')
+@section('title', 'Arqueos')
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4>Arqueos de caja</h4>
+    <h4>Arqueos</h4>
 </div>
 
 <div class="card mb-3">
@@ -17,17 +17,6 @@
                     @foreach ($usuarios as $usuario)
                         <option value="{{ $usuario->id }}" @selected((string) $usuarioSeleccionado === (string) $usuario->id)>
                             {{ $usuario->nombre }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Caja</label>
-                <select name="caja_id" class="form-select">
-                    <option value="">Todas</option>
-                    @foreach ($cajas as $caja)
-                        <option value="{{ $caja->id }}" @selected((string) $cajaSeleccionada === (string) $caja->id)>
-                            {{ $caja->nombre }}
                         </option>
                     @endforeach
                 </select>
@@ -63,7 +52,6 @@
                     <thead>
                         <tr>
                             <th>Cajero</th>
-                            <th>Caja</th>
                             <th>Sucursal</th>
                             <th>Apertura</th>
                             <th>Cierre</th>
@@ -78,8 +66,7 @@
                         @foreach($turnos as $turno)
                             <tr>
                                 <td class="fw-semibold">{{ $turno->usuario?->nombre }}</td>
-                                <td>{{ $turno->caja?->nombre }}</td>
-                                <td>{{ $turno->caja?->sucursal?->nombre ?? '—' }}</td>
+                                <td>{{ $turno->sucursal?->nombre ?? '—' }}</td>
                                 <td>{{ $turno->abierto_en->format('d/m/Y H:i') }}</td>
                                 <td>{{ $turno->cerrado_en?->format('d/m/Y H:i') ?? '—' }}</td>
                                 <td class="text-end">${{ number_format((float) $turno->efectivo_esperado, 2) }}</td>

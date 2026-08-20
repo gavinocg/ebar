@@ -3,11 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\Categoria;
-use App\Models\Membresia;
 use App\Models\MembresiaNegocio;
 use App\Models\MovimientoInventario;
 use App\Models\Negocio;
-use App\Models\Plan;
 use App\Models\Producto;
 use App\Models\Sucursal;
 use App\Models\User;
@@ -28,17 +26,9 @@ class InventoryTest extends TestCase
 
     private function bar(): Negocio
     {
-        $plan = Plan::create(['nombre' => 'Básico', 'duracion_dias' => 30, 'limite_cajeros' => 5, 'limite_cajas' => 5, 'limite_sucursales' => 5]);
         $negocio = Negocio::create(['nombre' => 'Bar I', 'identificador' => 'bar-i-' . str()->random(6), 'esta_activo' => true]);
         app(ContextoNegocio::class)->establecer($negocio->id);
 
-        Membresia::create([
-            'negocio_id' => $negocio->id,
-            'plan_id' => $plan->id,
-            'estado' => 'activa',
-            'fecha_inicio' => now(),
-            'fecha_vencimiento' => now()->addDays(30),
-        ]);
 
         return $negocio;
     }

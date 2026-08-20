@@ -2,10 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Caja;
 use App\Models\Categoria;
 use App\Models\Contrato;
-use App\Models\Membresia;
 use App\Models\MembresiaNegocio;
 use App\Models\Negocio;
 use App\Models\Pago;
@@ -22,33 +20,22 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(RolePermissionSeeder::class);
 
-        $planBasico = \App\Models\Plan::query()->updateOrCreate(
-            ['nombre' => 'Básico'],
-            ['descripcion' => 'Plan inicial para bares pequeños.', 'precio_mensual' => 10.00, 'limite_cajeros' => 2, 'limite_cajas' => 1, 'limite_sucursales' => 1],
-        );
-
-        $planPro = \App\Models\Plan::query()->updateOrCreate(
-            ['nombre' => 'Pro'],
-            ['descripcion' => 'Ideal para bares en crecimiento.', 'precio_mensual' => 25.00, 'limite_cajeros' => 5, 'limite_cajas' => 3, 'limite_sucursales' => 2],
-        );
-
         // --- Universo de prueba -------------------------------------------------
-        $negocioPrincipal = $this->crearNegocioPrincipal($planPro);
+        $negocioPrincipal = $this->crearNegocioPrincipal();
         app(ContextoNegocio::class)->establecer($negocioPrincipal->id);
 
         $this->crearCatalogoDePrueba();
-        Caja::create(['nombre' => 'Caja principal', 'esta_activa' => true]);
 
         $this->crearUsuariosDePrueba();
 
         $claveGabriela = Str::password(14);
-        $this->crearBarYPropietarioDePrueba($planPro, $claveGabriela);
+        $this->crearBarYPropietarioDePrueba($claveGabriela);
 
         $this->command?->info("Gaby's Bar creado. Propietario Gabriela Rueda: gavinocg@gmail.com / clave temporal: {$claveGabriela}");
         $this->command?->info('Usuarios de prueba: sadmin@ebar.com / prop1@ebar.com (claves seed documentadas en esta salida).');
     }
 
-    private function crearNegocioPrincipal(\App\Models\Plan $plan): Negocio
+    private function crearNegocioPrincipal(): Negocio
     {
         $negocio = Negocio::firstOrCreate(
             ['identificador' => 'negocio-principal'],
@@ -58,23 +45,27 @@ class DatabaseSeeder extends Seeder
                 'esta_activo' => true,
                 'zona_horaria' => 'America/Guayaquil',
                 'moneda' => 'USD',
-                'numero_sucursales_contratadas' => 2,
             ]
         );
 
+        app(ContextoNegocio::class)->establecer($negocio->id);
+
         $sucursal = Sucursal::firstOrCreate(
             ['negocio_id' => $negocio->id, 'nombre' => 'Sucursal principal'],
-            ['esta_activa' => true, 'n_cajeros_contratados' => 3],
-        );
-
-        Membresia::firstOrCreate(
-            ['negocio_id' => $negocio->id],
-            ['plan_id' => $plan->id, 'estado' => 'activa', 'fecha_inicio' => now(), 'fecha_vencimiento' => now()->addYear()],
+            ['esta_activa' => true],
         );
 
         Contrato::firstOrCreate(
             ['negocio_id' => $negocio->id, 'estado' => 'activo'],
-            ['fecha_inicio' => now(), 'fecha_fin' => now()->addYear(), 'forma_contratacion' => 'anual'],
+            [
+                'fecha_inicio' => now(),
+                'fecha_fin' => now()->addYear(),
+                'forma_contratacion' => 'anual',
+                'numero_sucursales_contratadas' => 2,
+                'sucursales_ilimitadas' => false,
+                'numero_cajeros_contratados' => 3,
+                'cajeros_ilimitados' => false,
+            ],
         );
 
         session(['negocio_id' => $negocio->id]);
@@ -149,7 +140,7 @@ class DatabaseSeeder extends Seeder
         $this->command?->info('Claves seed (desarrollo): sadmin@ebar.com / sadmin123456 | prop1@ebar.com / prop123456');
     }
 
-    private function crearBarYPropietarioDePrueba(\App\Models\Plan $plan, string $claveGabriela): void
+    private function crearBarYPropietarioDePrueba(string $claveGabriela): void
     {
         $gabys = Negocio::firstOrCreate(
             ['identificador' => 'gabys-bar'],
@@ -159,7 +150,6 @@ class DatabaseSeeder extends Seeder
                 'esta_activo' => true,
                 'zona_horaria' => 'America/Guayaquil',
                 'moneda' => 'USD',
-                'numero_sucursales_contratadas' => 2,
             ]
         );
 
@@ -172,7 +162,6 @@ class DatabaseSeeder extends Seeder
                 'provincia' => 'Azuay',
                 'canton' => 'Cuenca',
                 'ciudad' => 'Cuenca',
-                'n_cajeros_contratados' => 2,
                 'esta_activa' => true,
             ]);
 
@@ -184,7 +173,6 @@ class DatabaseSeeder extends Seeder
                 'provincia' => 'Azuay',
                 'canton' => 'Cuenca',
                 'ciudad' => 'Cuenca',
-                'n_cajeros_contratados' => 1,
                 'esta_activa' => true,
             ]);
 
@@ -196,14 +184,17 @@ class DatabaseSeeder extends Seeder
                 ['nombre_negocio' => $gabys->nombre],
             );
 
-            Membresia::firstOrCreate(
-                ['negocio_id' => $gabys->id],
-                ['plan_id' => $plan->id, 'estado' => 'activa', 'fecha_inicio' => now(), 'fecha_vencimiento' => now()->addYear()],
-            );
-
             $contrato = Contrato::firstOrCreate(
                 ['negocio_id' => $gabys->id, 'estado' => 'activo'],
-                ['fecha_inicio' => now(), 'fecha_fin' => now()->addYear(), 'forma_contratacion' => 'anual'],
+                [
+                    'fecha_inicio' => now(),
+                    'fecha_fin' => now()->addYear(),
+                    'forma_contratacion' => 'anual',
+                    'numero_sucursales_contratadas' => 2,
+                    'sucursales_ilimitadas' => false,
+                    'numero_cajeros_contratados' => 5,
+                    'cajeros_ilimitados' => false,
+                ],
             );
 
             Pago::create([

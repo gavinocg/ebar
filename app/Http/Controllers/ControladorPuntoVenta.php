@@ -8,7 +8,7 @@ use App\Models\Impresora as Printer;
 use App\Models\ConfiguracionNegocio as BusinessSetting;
 use App\Models\MembresiaNegocio;
 use App\Models\Sucursal;
-use App\Models\TurnoCaja;
+use App\Models\TurnoCajero;
 use App\Models\Venta as Sale;
 use App\Services\ContextoNegocio;
 use Illuminate\Support\Facades\Auth;
@@ -29,7 +29,7 @@ class ControladorPuntoVenta extends Controller
 
         $usuario = auth()->user();
 
-        $turnoAbierto = TurnoCaja::where('usuario_id', $usuario->id)
+        $turnoAbierto = TurnoCajero::where('usuario_id', $usuario->id)
             ->where('estado', 'abierta')
             ->exists();
 

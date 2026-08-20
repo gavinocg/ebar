@@ -2,14 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Models\Caja;
 use App\Models\Categoria as Category;
 use App\Models\Cliente;
 use App\Models\ConfiguracionNegocio;
 use App\Models\MovimientoEfectivo;
 use App\Models\Negocio;
 use App\Models\Producto as Product;
-use App\Models\TurnoCaja;
+use App\Models\TurnoCajero;
 use App\Models\User;
 use App\Models\Venta;
 use App\Services\ContextoNegocio;
@@ -143,7 +142,7 @@ class CreditSaleTest extends TestCase
             'monedas' => [1 => 0, 0.50 => 0, 0.25 => 0, 0.10 => 0, 0.05 => 0, 0.01 => 0],
         ])->assertRedirect();
 
-        $turno = TurnoCaja::where('usuario_id', $usuario->id)->first();
+        $turno = TurnoCajero::where('usuario_id', $usuario->id)->first();
         $this->assertSame(0.0, (float) $turno->fresh()->efectivo_esperado);
     }
 
@@ -188,12 +187,10 @@ class CreditSaleTest extends TestCase
         return $usuario;
     }
 
-    private function abrirTurno(User $usuario): TurnoCaja
+    private function abrirTurno(User $usuario): TurnoCajero
     {
-        $caja = Caja::create(['nombre' => 'Caja de pruebas', 'esta_activa' => true]);
 
-        return TurnoCaja::create([
-            'caja_id' => $caja->id,
+        return TurnoCajero::create([
             'usuario_id' => $usuario->id,
             'fondo_inicial' => 100,
             'abierto_en' => now(),

@@ -124,7 +124,7 @@ return new class extends Migration
             });
         }
 
-        foreach (['clientes', 'conteos_inventario', 'movimientos_inventario', 'categorias', 'movimientos_efectivo'] as $tabla) {
+        foreach (['clientes', 'conteos_inventario', 'movimientos_inventario', 'categorias', 'movimientos_efectivo', 'configuraciones_negocio'] as $tabla) {
             if (Schema::hasColumn($tabla, 'sucursal_id')) {
                 Schema::table($tabla, function (Blueprint $table) {
                     $table->dropConstrainedForeignId('sucursal_id');

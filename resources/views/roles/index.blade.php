@@ -21,6 +21,7 @@
                         <th>Descripción</th>
                         <th class="text-center">Permisos</th>
                         <th class="text-center">Tipo</th>
+                        <th class="text-center">Estado</th>
                         <th class="text-end">Acciones</th>
                     </tr>
                 </thead>
@@ -38,6 +39,13 @@
                                 <span class="badge bg-warning text-dark">Sistema</span>
                             @else
                                 <span class="badge bg-secondary">Personalizado</span>
+                            @endif
+                        </td>
+                        <td class="text-center">
+                            @if($rol->esta_activo)
+                                <span class="badge bg-success">Activo</span>
+                            @else
+                                <span class="badge bg-secondary">Inactivo</span>
                             @endif
                         </td>
                         <td class="text-end">
@@ -61,7 +69,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-4">No hay roles registrados.</td>
+                        <td colspan="7" class="text-center text-muted py-4">No hay roles registrados.</td>
                     </tr>
                     @endforelse
                 </tbody>

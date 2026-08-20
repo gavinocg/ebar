@@ -14,9 +14,9 @@ class Negocio extends Model
 
     protected $table = 'negocios';
 
-    protected $fillable = ['nombre', 'identificador', 'ruc', 'logo', 'esta_activo', 'zona_horaria', 'moneda', 'numero_sucursales_contratadas'];
+    protected $fillable = ['nombre', 'identificador', 'ruc', 'logo', 'esta_activo', 'zona_horaria', 'moneda'];
 
-    protected $casts = ['esta_activo' => 'boolean', 'numero_sucursales_contratadas' => 'integer'];
+    protected $casts = ['esta_activo' => 'boolean'];
 
     protected static function booted(): void
     {
@@ -41,6 +41,7 @@ class Negocio extends Model
     {
         return $this->contratos()
             ->where('estado', 'activo')
+            ->whereDate('fecha_inicio', '<=', now()->toDateString())
             ->whereDate('fecha_fin', '>=', now()->toDateString())
             ->orderByDesc('fecha_fin')
             ->first();
@@ -51,12 +52,7 @@ class Negocio extends Model
         return $this->hasMany(Sucursal::class, 'negocio_id');
     }
 
-    public function membresia(): HasOne
-    {
-        return $this->hasOne(Membresia::class, 'negocio_id');
-    }
-
-    public function membresias(): HasMany
+    public function membresiasNegocio(): HasMany
     {
         return $this->hasMany(MembresiaNegocio::class, 'negocio_id');
     }
@@ -81,14 +77,9 @@ class Negocio extends Model
         return $this->hasMany(Cliente::class, 'negocio_id');
     }
 
-    public function cajas(): HasMany
+    public function turnosCajero(): HasMany
     {
-        return $this->hasMany(Caja::class, 'negocio_id');
-    }
-
-    public function turnosCaja(): HasMany
-    {
-        return $this->hasMany(TurnoCaja::class, 'negocio_id');
+        return $this->hasMany(TurnoCajero::class, 'negocio_id');
     }
 
     public function impresoras(): HasMany

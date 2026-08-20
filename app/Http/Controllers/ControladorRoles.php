@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Permission;
 use App\Models\Rol;
 use App\Services\ContextoNegocio;
+use App\Services\GuardiaEliminacion;
 use App\Services\RegistradorAuditoria;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -102,11 +103,13 @@ class ControladorRoles extends Controller
             'descripcion' => 'nullable|string|max:255',
             'permisos' => 'required|array|min:1',
             'permisos.*' => 'integer|exists:permissions,id',
+            'esta_activo' => 'nullable|boolean',
         ]);
 
         $rol->update([
             'nombre' => $datos['nombre'],
             'descripcion' => $datos['descripcion'] ?? null,
+            'esta_activo' => $request->boolean('esta_activo'),
         ]);
 
         $rol->permisos()->sync($datos['permisos']);
@@ -125,8 +128,15 @@ class ControladorRoles extends Controller
 
         abort_if($rol->es_sistema, 422, 'No se puede eliminar un rol del sistema.');
 
-        $enUso = \App\Models\MembresiaNegocio::where('rol_id', $rol->id)->where('esta_activa', true)->exists();
-        abort_if($enUso, 422, 'Este rol está asignado a usuarios activos; no se puede eliminar.');
+        $dependencias = GuardiaEliminacion::rolConDependencias($rol->id);
+
+        if ($dependencias) {
+            return back()->with('no_eliminable', [
+                'entidad' => 'rol',
+                'dependencias' => array_values(array_unique($dependencias)),
+                'url' => route('roles.desactivar', $rol),
+            ]);
+        }
 
         $auditoria->registrar('roles', 'eliminar', "Rol \"{$rol->nombre}\" eliminado", [
             'rol_id' => $rol->id,
@@ -136,6 +146,18 @@ class ControladorRoles extends Controller
         $rol->delete();
 
         return redirect()->route('roles.index')->with('success', 'Rol eliminado.');
+    }
+
+    public function desactivar(Rol $rol): RedirectResponse
+    {
+        $this->validarRolDelNegocio($rol);
+
+        abort_if($rol->es_sistema, 422, 'No se puede desactivar un rol del sistema.');
+
+        $rol->esta_activo = false;
+        $rol->save();
+
+        return redirect()->route('roles.index')->with('success', 'Rol desactivado por estar asignado a usuarios activos.');
     }
 
     private function validarRolDelNegocio(Rol $rol): void

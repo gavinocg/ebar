@@ -8,6 +8,7 @@ use App\Models\OrdenCompra;
 use App\Models\Producto;
 use App\Models\Proveedor;
 use App\Services\ContextoNegocio;
+use App\Services\GuardiaEliminacion;
 use App\Services\RegistradorAuditoria;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -57,9 +58,27 @@ class ControladorCompras extends Controller
 
     public function destroyProveedor(Proveedor $proveedor): RedirectResponse
     {
+        $dependencias = GuardiaEliminacion::proveedorConDependencias($proveedor->id);
+
+        if ($dependencias) {
+            return back()->with('no_eliminable', [
+                'entidad' => 'proveedor',
+                'dependencias' => array_values(array_unique($dependencias)),
+                'url' => route('proveedores.desactivar', $proveedor),
+            ]);
+        }
+
         $proveedor->delete();
 
         return back()->with('success', 'Proveedor eliminado.');
+    }
+
+    public function desactivarProveedor(Proveedor $proveedor): RedirectResponse
+    {
+        $proveedor->esta_activo = false;
+        $proveedor->save();
+
+        return redirect()->route('proveedores.index')->with('success', 'Proveedor desactivado por tener órdenes de compra registradas.');
     }
 
     public function ordenes(): View

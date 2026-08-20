@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Sucursal;
 use App\Models\Negocio;
 use App\Services\ContextoNegocio;
+use App\Services\GuardiaEliminacion;
 use App\Services\RegistradorAuditoria;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,7 +25,7 @@ class ControladorSucursales extends Controller
     public function store(Request $request, RegistradorAuditoria $auditoria): RedirectResponse
     {
         $negocioId = app(ContextoNegocio::class)->id();
-        $negocio = Negocio::with('membresia.plan')->findOrFail($negocioId);
+        $negocio = Negocio::findOrFail($negocioId);
         $limite = $this->sucursalesContratadas();
 
         $activas = Sucursal::where('negocio_id', $negocioId)->where('esta_activa', true)->count();
@@ -40,7 +41,7 @@ class ControladorSucursales extends Controller
             'provincia' => 'nullable|string|max:100',
             'canton' => 'nullable|string|max:100',
             'ciudad' => 'nullable|string|max:100',
-            'n_cajeros_contratados' => 'nullable|integer|min:0|max:50',
+            'esta_activa' => 'nullable|boolean',
         ]);
 
         $sucursal = Sucursal::create([
@@ -51,7 +52,6 @@ class ControladorSucursales extends Controller
             'provincia' => $datos['provincia'] ?? null,
             'canton' => $datos['canton'] ?? null,
             'ciudad' => $datos['ciudad'] ?? null,
-            'n_cajeros_contratados' => $datos['n_cajeros_contratados'] ?? 1,
             'esta_activa' => true,
         ]);
 
@@ -74,7 +74,6 @@ class ControladorSucursales extends Controller
             'provincia' => 'nullable|string|max:100',
             'canton' => 'nullable|string|max:100',
             'ciudad' => 'nullable|string|max:100',
-            'n_cajeros_contratados' => 'nullable|integer|min:0|max:50',
             'esta_activa' => 'nullable|boolean',
         ]);
 
@@ -85,7 +84,6 @@ class ControladorSucursales extends Controller
             'provincia' => $datos['provincia'] ?? null,
             'canton' => $datos['canton'] ?? null,
             'ciudad' => $datos['ciudad'] ?? null,
-            'n_cajeros_contratados' => $datos['n_cajeros_contratados'] ?? $sucursal->n_cajeros_contratados,
             'esta_activa' => $request->boolean('esta_activa'),
         ]);
 
@@ -101,12 +99,14 @@ class ControladorSucursales extends Controller
         $negocioId = app(ContextoNegocio::class)->id();
         abort_unless($sucursal->negocio_id === $negocioId, 404);
 
-        if ($sucursal->turnosCaja()->exists()) {
-            return back()->withErrors(['nombre' => 'No se puede eliminar una sucursal con historial de turnos.']);
-        }
+        $dependencias = GuardiaEliminacion::sucursalConDependencias($sucursal->id);
 
-        if ($sucursal->cajas()->exists()) {
-            return back()->withErrors(['nombre' => 'No se puede eliminar una sucursal con cajas asociadas.']);
+        if ($dependencias) {
+            return back()->with('no_eliminable', [
+                'entidad' => 'sucursal',
+                'dependencias' => array_values(array_unique($dependencias)),
+                'url' => route('sucursales.desactivar', $sucursal),
+            ]);
         }
 
         $auditoria->registrar('sucursales', 'eliminar', 'Sucursal eliminada', [
@@ -118,11 +118,36 @@ class ControladorSucursales extends Controller
         return redirect()->route('sucursales.index')->with('success', 'Sucursal eliminada.');
     }
 
+    public function desactivar(Sucursal $sucursal, RegistradorAuditoria $auditoria): RedirectResponse
+    {
+        $negocioId = app(ContextoNegocio::class)->id();
+        abort_unless($sucursal->negocio_id === $negocioId, 404);
+
+        $sucursal->esta_activa = false;
+        $sucursal->save();
+
+        $auditoria->registrar('sucursales', 'desactivar', 'Sucursal desactivada', [
+            'id' => $sucursal->id,
+        ], Sucursal::class, $sucursal->id);
+
+        return redirect()->route('sucursales.index')->with('success', 'Sucursal desactivada.');
+    }
+
     private function sucursalesContratadas(): int
     {
         $negocioId = app(ContextoNegocio::class)->id();
         $negocio = Negocio::find($negocioId);
 
-        return $negocio ? (int) $negocio->numero_sucursales_contratadas : 0;
+        if (!$negocio) {
+            return 0;
+        }
+
+        $contrato = $negocio->contratoVigente();
+
+        if (!$contrato) {
+            return 0;
+        }
+
+        return $contrato->sucursales_ilimitadas ? 0 : (int) $contrato->numero_sucursales_contratadas;
     }
 }

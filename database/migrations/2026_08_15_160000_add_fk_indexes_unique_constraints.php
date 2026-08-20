@@ -19,33 +19,33 @@ return new class extends Migration
 
         Schema::table('tickets_abiertos', function (Blueprint $table) use ($driver) {
             if ($driver === 'mysql') {
-                $table->foreign('negocio_id')->references('id')->on('negocios')->cascadeOnDelete();
+                $table->foreign('negocio_id')->references('id')->on('negocios')->restrictOnDelete();
                 $table->foreign('sucursal_id')->references('id')->on('sucursales')->nullOnDelete();
             }
         });
 
         Schema::table('tickets_abiertos_detalles', function (Blueprint $table) use ($driver) {
             if ($driver === 'mysql') {
-                $table->foreign('negocio_id')->references('id')->on('negocios')->cascadeOnDelete();
+                $table->foreign('negocio_id')->references('id')->on('negocios')->restrictOnDelete();
                 $table->foreign('producto_variante_id')->references('id')->on('producto_variantes')->nullOnDelete();
             }
         });
 
         Schema::table('producto_variantes', function (Blueprint $table) use ($driver) {
             if ($driver === 'mysql') {
-                $table->foreign('negocio_id')->references('id')->on('negocios')->cascadeOnDelete();
+                $table->foreign('negocio_id')->references('id')->on('negocios')->restrictOnDelete();
             }
         });
 
         Schema::table('grupos_modificadores', function (Blueprint $table) use ($driver) {
             if ($driver === 'mysql') {
-                $table->foreign('negocio_id')->references('id')->on('negocios')->cascadeOnDelete();
+                $table->foreign('negocio_id')->references('id')->on('negocios')->restrictOnDelete();
             }
         });
 
         Schema::table('modificadores', function (Blueprint $table) use ($driver) {
             if ($driver === 'mysql') {
-                $table->foreign('negocio_id')->references('id')->on('negocios')->cascadeOnDelete();
+                $table->foreign('negocio_id')->references('id')->on('negocios')->restrictOnDelete();
             }
         });
 

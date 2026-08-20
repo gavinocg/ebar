@@ -16,7 +16,7 @@ class TicketAbierto extends Model
     protected $fillable = [
         'negocio_id',
         'sucursal_id',
-        'turno_caja_id',
+        'turno_cajero_id',
         'usuario_id',
         'nombre',
         'descripcion',
@@ -32,9 +32,9 @@ class TicketAbierto extends Model
         return $this->belongsTo(Sucursal::class, 'sucursal_id');
     }
 
-    public function turnoCaja(): BelongsTo
+    public function turnoCajero(): BelongsTo
     {
-        return $this->belongsTo(TurnoCaja::class, 'turno_caja_id');
+        return $this->belongsTo(TurnoCajero::class, 'turno_cajero_id');
     }
 
     public function usuario(): BelongsTo

@@ -33,10 +33,29 @@ class EstablecerContextoNegocio
             return redirect()->route('inicio_sesion');
         }
 
-        $membresia = MembresiaNegocio::where('usuario_id', Auth::id())
-            ->where('esta_activa', true)
-            ->where('negocio_id', $request->session()->get('negocio_id'))
-            ->first();
+        $sesionNegocioId = $request->session()->get('negocio_id');
+
+        $membresia = $sesionNegocioId
+            ? MembresiaNegocio::where('usuario_id', Auth::id())
+                ->where('esta_activa', true)
+                ->where('negocio_id', $sesionNegocioId)
+                ->first()
+            : null;
+
+        if (!$membresia && $sesionNegocioId) {
+            // Si el usuario aún tiene una membresía (inactiva) para el negocio de la sesión,
+            // significa que su acceso fue revocado: no cambiar silenciosamente, pedir que elija.
+            $membresiaRevocada = MembresiaNegocio::where('usuario_id', Auth::id())
+                ->where('negocio_id', $sesionNegocioId)
+                ->exists();
+
+            if ($membresiaRevocada) {
+                $request->session()->forget('negocio_id');
+                $request->session()->forget('sucursal_id');
+
+                return redirect()->route('negocio.seleccionar')->with('error', 'Tu acceso a ese negocio cambió. Selecciona un negocio para continuar.');
+            }
+        }
 
         if (!$membresia) {
             $membresia = MembresiaNegocio::where('usuario_id', Auth::id())
@@ -52,16 +71,24 @@ class EstablecerContextoNegocio
         abort_unless($membresia, 403, 'El usuario no tiene un negocio asignado.');
 
         $negocio = Negocio::query()
-            ->with('membresia')
+            ->with('contratos')
             ->find($membresia->negocio_id);
 
         abort_unless($negocio && $negocio->esta_activo, 403, 'Este bar está suspendido.');
 
-        if ($negocio->membresia) {
-            $negocio->membresia->aplicarVencimiento();
-            abort_unless($negocio->membresia->estaVigente(), 403, 'La membresía de este bar no está vigente o está vencida.');
-        } elseif (!app()->environment('testing')) {
-            abort(403, 'Este bar no tiene una membresía activa.');
+        $contratoActivo = $negocio->contratos
+            ->where('estado', 'activo')
+            ->sortByDesc('fecha_fin')
+            ->first();
+
+        if ($contratoActivo) {
+            $contratoActivo->aplicarVencimiento();
+        }
+
+        $contratoVigente = $negocio->contratoVigente();
+
+        if (!$contratoVigente && !app()->environment('testing')) {
+            abort(403, 'Este bar no tiene un contrato vigente.');
         }
 
         $this->contexto->establecer($membresia->negocio_id);

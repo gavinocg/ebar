@@ -2,15 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Models\Caja;
 use App\Models\Categoria;
 use App\Models\ConfiguracionNegocio;
-use App\Models\Membresia;
 use App\Models\MembresiaNegocio;
 use App\Models\Negocio;
-use App\Models\Plan;
 use App\Models\Producto;
-use App\Models\TurnoCaja;
+use App\Models\TurnoCajero;
 use App\Models\User;
 use App\Services\ContextoNegocio;
 use Carbon\Carbon;
@@ -36,17 +33,8 @@ class CajaApprovalTest extends TestCase
 
     private function bar(): Negocio
     {
-        $plan = Plan::create(['nombre' => 'Básico', 'duracion_dias' => 30, 'limite_cajeros' => 5, 'limite_cajas' => 5, 'limite_sucursales' => 5]);
         $negocio = Negocio::create(['nombre' => 'Bar CA', 'identificador' => 'bar-ca-' . str()->random(6), 'esta_activo' => true]);
         app(ContextoNegocio::class)->establecer($negocio->id);
-
-        Membresia::create([
-            'negocio_id' => $negocio->id,
-            'plan_id' => $plan->id,
-            'estado' => 'activa',
-            'fecha_inicio' => now(),
-            'fecha_vencimiento' => now()->addDays(30),
-        ]);
 
         return $negocio;
     }
@@ -74,11 +62,6 @@ class CajaApprovalTest extends TestCase
         return $usuario;
     }
 
-    private function caja(): Caja
-    {
-        return Caja::create(['nombre' => 'Caja Test', 'esta_activa' => true]);
-    }
-
     private function producto(Negocio $negocio, string $nombre, int $precio = 10, int $existencias = 10): Producto
     {
         $categoria = Categoria::create(['nombre' => 'Cat ' . rand(1000, 9999), 'esta_activa' => true]);
@@ -92,11 +75,9 @@ class CajaApprovalTest extends TestCase
         ]);
     }
 
-    private function abrirTurno(User $cajero): TurnoCaja
+    private function abrirTurno(User $cajero): TurnoCajero
     {
-        $caja = $this->caja();
-        return TurnoCaja::create([
-            'caja_id' => $caja->id,
+        return TurnoCajero::create([
             'usuario_id' => $cajero->id,
             'fondo_inicial' => 100,
             'abierto_en' => now(),
@@ -335,14 +316,6 @@ class CajaApprovalTest extends TestCase
         $turno->refresh();
 
         $negocio2 = Negocio::create(['nombre' => 'Bar 2', 'identificador' => 'bar-2-' . str()->random(6), 'esta_activo' => true]);
-        $plan = Plan::first();
-        Membresia::create([
-            'negocio_id' => $negocio2->id,
-            'plan_id' => $plan->id,
-            'estado' => 'activa',
-            'fecha_inicio' => now(),
-            'fecha_vencimiento' => now()->addDays(30),
-        ]);
         app(ContextoNegocio::class)->establecer($negocio2->id);
         $admin2 = $this->admin($negocio2);
 

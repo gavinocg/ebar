@@ -29,8 +29,8 @@
     <div class="col-md-4">
         <div class="card border-0 shadow-sm">
             <div class="card-body">
-                <div class="text-muted small">Membresías activas</div>
-                <div class="display-6 fw-semibold text-primary">{{ $membresiasActivas }}</div>
+                <div class="text-muted small">Contratos activos</div>
+                <div class="display-6 fw-semibold text-primary">{{ $contratosActivos }}</div>
             </div>
         </div>
     </div>

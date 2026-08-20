@@ -41,7 +41,7 @@ return new class extends Migration
                     'reembolso.ver', 'reembolso.crear',
                     'ticket.ver', 'ticket.crear', 'ticket.eliminar',
                     'cuadre.ver', 'cuadre.aprobar', 'cuadre.rechazar',
-                    'caja.administrar', 'caja.reporte',
+                    'caja.reporte',
                     'reporte.cajeros',
                 ],
             ],

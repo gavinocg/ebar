@@ -78,6 +78,7 @@
                                     <th>Nombre</th>
                                     <th>Descripción</th>
                                     <th>Productos</th>
+                                    <th>Estado</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
@@ -96,6 +97,13 @@
                                         </td>
                                         <td>{{ $category->descripcion ?? '-' }}</td>
                                         <td><span class="badge bg-info">{{ $category->productos_count }}</span></td>
+                                        <td>
+                                            @if($category->esta_activa)
+                                                <span class="badge bg-success">Activa</span>
+                                            @else
+                                                <span class="badge bg-secondary">Inactiva</span>
+                                            @endif
+                                        </td>
                                         <td>
                                             <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ $category->id }}">
                                                 <i class="bi bi-pencil"></i>

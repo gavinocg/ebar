@@ -3,12 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Contrato;
-use App\Models\Membresia;
 use App\Models\MembresiaNegocio;
 use App\Models\Negocio;
 use App\Models\Pago;
 use App\Models\Permission;
-use App\Models\Plan;
 use App\Models\Rol;
 use App\Models\Sucursal;
 use App\Models\User;
@@ -23,17 +21,9 @@ class ReportesTenancyTest extends TestCase
 
     private function bar(): Negocio
     {
-        $plan = Plan::create(['nombre' => 'Básico', 'duracion_dias' => 30, 'limite_cajeros' => 5, 'limite_cajas' => 5, 'limite_sucursales' => 5]);
-        $negocio = Negocio::create(['nombre' => 'Bar T', 'identificador' => 'bar-t-' . str()->random(6), 'esta_activo' => true, 'numero_sucursales_contratadas' => 5]);
+        $negocio = Negocio::create(['nombre' => 'Bar T', 'identificador' => 'bar-t-' . str()->random(6), 'esta_activo' => true]);
         app(ContextoNegocio::class)->establecer($negocio->id);
 
-        Membresia::create([
-            'negocio_id' => $negocio->id,
-            'plan_id' => $plan->id,
-            'estado' => 'activa',
-            'fecha_inicio' => now(),
-            'fecha_vencimiento' => now()->addDays(30),
-        ]);
 
         return $negocio;
     }
@@ -100,7 +90,6 @@ class ReportesTenancyTest extends TestCase
 
     public function test_generar_identificador_resuelve_la_colision_con_sufijo(): void
     {
-        $plan = Plan::create(['nombre' => 'Pro', 'duracion_dias' => 30, 'limite_cajeros' => 5, 'limite_cajas' => 3, 'limite_sucursales' => 2]);
         $admin = User::factory()->create(['rol' => 'super_admin']);
 
         $this->actingAs($admin);
@@ -109,14 +98,11 @@ class ReportesTenancyTest extends TestCase
             'nombre' => 'Bar Duplicado',
             'zona_horaria' => 'America/Guayaquil',
             'moneda' => 'USD',
-            'plan_id' => $plan->id,
-            'numero_sucursales_contratadas' => 2,
             'nombre_admin' => 'Dueño',
             'correo_admin' => 'dueno-t@bar.com',
             'clave_admin' => 'secreto123',
             'clave_admin_confirmation' => 'secreto123',
             'nombre_sucursal' => 'Central',
-            'n_cajeros_sucursal' => 2,
         ];
 
         $this->post(route('plataforma.negocios.store'), $payload)->assertRedirect();
@@ -128,7 +114,6 @@ class ReportesTenancyTest extends TestCase
 
     public function test_el_ruc_es_opcional_al_crear_un_bar(): void
     {
-        $plan = Plan::create(['nombre' => 'Pro', 'duracion_dias' => 30, 'limite_cajeros' => 5, 'limite_cajas' => 3, 'limite_sucursales' => 2]);
         $admin = User::factory()->create(['rol' => 'super_admin']);
 
         $this->actingAs($admin);
@@ -137,27 +122,23 @@ class ReportesTenancyTest extends TestCase
             'nombre' => 'Bar Sin Ruc',
             'zona_horaria' => 'America/Guayaquil',
             'moneda' => 'USD',
-            'plan_id' => $plan->id,
-            'numero_sucursales_contratadas' => 1,
             'nombre_admin' => 'Dueño',
             'correo_admin' => 'dueno-sin-ruc@bar.com',
             'clave_admin' => 'secreto123',
             'clave_admin_confirmation' => 'secreto123',
             'nombre_sucursal' => 'Central',
-            'n_cajeros_sucursal' => 1,
         ])->assertRedirect();
 
         $this->assertDatabaseHas('negocios', ['nombre' => 'Bar Sin Ruc', 'ruc' => null]);
     }
 
-    public function test_turnos_caja_tiene_indice_compuesto_por_negocio_usuario_y_estado(): void
+    public function test_turnos_cajero_tiene_indice_compuesto_por_negocio_usuario_y_estado(): void
     {
-        $this->assertTrue(Schema::hasIndex('turnos_caja', 'turnos_caja_negocio_usuario_estado_index'));
+        $this->assertTrue(Schema::hasIndex('turnos_cajero', 'turnos_cajero_negocio_usuario_estado_index'));
     }
 
     public function test_el_flash_de_credenciales_se_limpia_despues_de_mostrarse(): void
     {
-        $plan = Plan::create(['nombre' => 'Pro', 'duracion_dias' => 30, 'limite_cajeros' => 5, 'limite_cajas' => 3, 'limite_sucursales' => 2]);
         $admin = User::factory()->create(['rol' => 'super_admin']);
 
         $this->actingAs($admin);
@@ -166,14 +147,11 @@ class ReportesTenancyTest extends TestCase
             'nombre' => 'Bar Credenciales',
             'zona_horaria' => 'America/Guayaquil',
             'moneda' => 'USD',
-            'plan_id' => $plan->id,
-            'numero_sucursales_contratadas' => 1,
             'nombre_admin' => 'Dueño',
             'correo_admin' => 'dueno-credenciales@bar.com',
             'clave_admin' => 'secreto123',
             'clave_admin_confirmation' => 'secreto123',
             'nombre_sucursal' => 'Central',
-            'n_cajeros_sucursal' => 1,
         ])->assertRedirect();
 
         $negocio = Negocio::where('nombre', 'Bar Credenciales')->firstOrFail();

@@ -8,7 +8,7 @@ use App\Models\MovimientoInventario as InventoryMovement;
 use App\Models\Producto as Product;
 use App\Models\ProductoVariante;
 use App\Models\Venta as Sale;
-use App\Models\TurnoCaja;
+use App\Models\TurnoCajero;
 use App\Models\MovimientoEfectivo;
 use App\Models\Cliente;
 use Illuminate\Support\Facades\Auth;
@@ -27,13 +27,13 @@ class ServicioCobro
                 return $existingSale->load('detalles');
             }
 
-            $turnoCaja = TurnoCaja::where('usuario_id', Auth::id())
+            $turnoCajero = TurnoCajero::where('usuario_id', Auth::id())
                 ->where('estado', 'abierta')
                 ->latest('id')
                 ->first();
 
-            if (!$turnoCaja) {
-                throw new \RuntimeException('Debes abrir un turno de caja antes de registrar ventas.');
+            if (!$turnoCajero) {
+                throw new \RuntimeException('Debes abrir un turno de cajero antes de registrar ventas.');
             }
 
             $quantities = collect($itemsData)
@@ -77,7 +77,7 @@ class ServicioCobro
                 $product = $products->get($productId);
 
                 if (!$product || !$product->esta_activo) {
-                    throw new \RuntimeException('Uno de los productos ya no está disponible.');
+                    throw new \RuntimeException('Uno de los productos ya no estÃ¡ disponible.');
                 }
 
                 $unitPrice = (float) $product->precio;
@@ -97,7 +97,7 @@ class ServicioCobro
                     $modificador = $modificadores->get($mod['modificador_id'] ?? null);
 
                     if (!$modificador || !$modificador->esta_activo) {
-                        throw new \RuntimeException('Uno de los modificadores ya no está disponible.');
+                        throw new \RuntimeException('Uno de los modificadores ya no estÃ¡ disponible.');
                     }
 
                     $precioExtra = (float) $modificador->precio_extra;
@@ -132,8 +132,14 @@ class ServicioCobro
             $taxEnabled = (bool) $business->cobrar_impuesto;
             $taxPercentage = $taxEnabled ? (float) $business->porcentaje_impuesto : 0;
             $subtotalConDescuento = round($subtotal - $totalDescuentoProductos, 2);
-            $tax = round($subtotalConDescuento * ($taxPercentage / 100), 2);
-            $total = round($subtotalConDescuento + $tax, 2);
+
+            $descuentoPorcentajeGlobal = 0;
+            if ($descuentoActivo && $descuentoPorcentaje > 0) {
+                $descuentoPorcentajeGlobal = round($subtotalConDescuento * ((float) $descuentoPorcentaje / 100), 2);
+            }
+
+            $tax = round(($subtotalConDescuento - $descuentoPorcentajeGlobal) * ($taxPercentage / 100), 2);
+            $total = round($subtotalConDescuento - $descuentoPorcentajeGlobal + $tax, 2);
             $paidAmount = $paymentMethod === 'credito' ? 0 : round((float) $paid, 2);
             $cambio = in_array($paymentMethod, ['credito', 'dividido']) ? 0 : round($paidAmount - $total, 2);
 
@@ -150,7 +156,7 @@ class ServicioCobro
                 $cambio = 0;
             }
 
-            $descuentoTotal = $totalDescuentoProductos;
+            $descuentoTotal = round($totalDescuentoProductos + $descuentoPorcentajeGlobal, 2);
             $descuentoPorcentajeFinal = $descuentoActivo && $descuentoPorcentaje > 0 ? $descuentoPorcentaje : null;
 
             $ultimoNumero = (int) Sale::withoutGlobalScopes()
@@ -161,10 +167,10 @@ class ServicioCobro
 
             try {
                 $sale = Sale::create([
-                    'sucursal_id' => $turnoCaja->sucursal_id,
+                    'sucursal_id' => $turnoCajero->sucursal_id,
                     'numero_comprobante' => $numeroComprobante,
                     'clave_idempotencia' => $idempotencyKey,
-                    'turno_caja_id' => $turnoCaja->id,
+                    'turno_cajero_id' => $turnoCajero->id,
                     'usuario_id' => Auth::id(),
                     'subtotal' => $subtotal,
                     'descuento' => $descuentoTotal,
@@ -238,10 +244,9 @@ class ServicioCobro
 
             if ($paymentMethod === 'efectivo') {
                 MovimientoEfectivo::create([
-                    'negocio_id' => $turnoCaja->negocio_id,
-                    'sucursal_id' => $turnoCaja->sucursal_id,
-                    'caja_id' => $turnoCaja->caja_id,
-                    'turno_caja_id' => $turnoCaja->id,
+                    'negocio_id' => $turnoCajero->negocio_id,
+                    'sucursal_id' => $turnoCajero->sucursal_id,
+                    'turno_cajero_id' => $turnoCajero->id,
                     'usuario_id' => Auth::id(),
                     'tipo' => 'venta',
                     'monto' => $paidAmount,
@@ -252,10 +257,9 @@ class ServicioCobro
 
                 if ($cambio > 0) {
                     MovimientoEfectivo::create([
-                        'negocio_id' => $turnoCaja->negocio_id,
-                        'sucursal_id' => $turnoCaja->sucursal_id,
-                        'caja_id' => $turnoCaja->caja_id,
-                        'turno_caja_id' => $turnoCaja->id,
+                        'negocio_id' => $turnoCajero->negocio_id,
+                        'sucursal_id' => $turnoCajero->sucursal_id,
+                        'turno_cajero_id' => $turnoCajero->id,
                         'usuario_id' => Auth::id(),
                         'tipo' => 'retiro',
                         'monto' => -$cambio,
@@ -266,10 +270,9 @@ class ServicioCobro
                 }
             } elseif ($paymentMethod === 'transferencia') {
                 MovimientoEfectivo::create([
-                    'negocio_id' => $turnoCaja->negocio_id,
-                    'sucursal_id' => $turnoCaja->sucursal_id,
-                    'caja_id' => $turnoCaja->caja_id,
-                    'turno_caja_id' => $turnoCaja->id,
+                    'negocio_id' => $turnoCajero->negocio_id,
+                    'sucursal_id' => $turnoCajero->sucursal_id,
+                    'turno_cajero_id' => $turnoCajero->id,
                     'usuario_id' => Auth::id(),
                     'tipo' => 'transferencia',
                     'monto' => $paidAmount,
@@ -282,10 +285,9 @@ class ServicioCobro
                     $tipoMovimiento = $pago['metodo'] === 'transferencia' ? 'transferencia' : 'venta';
                     $motivo = ($pago['metodo'] === 'transferencia' ? 'Transferencia ' : 'Venta ') . $sale->numero_comprobante;
                     MovimientoEfectivo::create([
-                        'negocio_id' => $turnoCaja->negocio_id,
-                        'sucursal_id' => $turnoCaja->sucursal_id,
-                        'caja_id' => $turnoCaja->caja_id,
-                        'turno_caja_id' => $turnoCaja->id,
+                        'negocio_id' => $turnoCajero->negocio_id,
+                        'sucursal_id' => $turnoCajero->sucursal_id,
+                        'turno_cajero_id' => $turnoCajero->id,
                         'usuario_id' => Auth::id(),
                         'tipo' => $tipoMovimiento,
                         'monto' => round((float) $pago['monto'], 2),

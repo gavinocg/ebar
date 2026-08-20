@@ -9,7 +9,7 @@
         <h1 class="h3 mt-2">{{ $negocio->nombre }}</h1>
         <p class="text-muted mb-0">
             RUC: <strong>{{ $negocio->ruc ?: '—' }}</strong> ·
-            Sucursales: <strong>{{ $negocio->numero_sucursales_contratadas }} ({{ $negocio->sucursales->count() }} activas)</strong>
+            Sucursales: <strong>{{ $negocio->sucursales->where('esta_activa', true)->count() }} activas</strong>
         </p>
     </div>
     <div class="d-flex gap-2">
@@ -67,12 +67,27 @@
                 </span>
             </div>
             <div class="col-md-3">
-                <div class="text-muted small">Plan</div>
-                <span class="badge bg-info text-dark">{{ $negocio->membresia?->plan?->nombre ?? 'Sin plan' }}</span>
+                <div class="text-muted small">Contrato vigente</div>
+                @php
+                    $contratoVigente = $negocio->contratoVigente();
+                @endphp
+                @if ($contratoVigente)
+                    <span class="badge bg-success">Activo hasta {{ $contratoVigente->fecha_fin->format('d/m/Y') }}</span>
+                @else
+                    <span class="badge bg-secondary">Sin contrato vigente</span>
+                @endif
             </div>
             <div class="col-md-3">
-                <div class="text-muted small">Membresía</div>
-                <span class="badge bg-secondary">{{ $negocio->membresia?->estado ?? 'Sin membresía' }}</span>
+                <div class="text-muted small">Valor del contrato</div>
+                <span class="fw-semibold">${{ number_format($contratoVigente?->valor ?? 0, 2) }}</span>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">Sucursales contratadas</div>
+                <span>{{ $contratoVigente?->sucursales_ilimitadas ? 'Ilimitadas' : ($contratoVigente?->numero_sucursales_contratadas ?? '—') }}</span>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">Cajeros contratados</div>
+                <span>{{ $contratoVigente?->cajeros_ilimitados ? 'Ilimitados' : ($contratoVigente?->numero_cajeros_contratados ?? '—') }}</span>
             </div>
         </div>
     </div>
@@ -89,6 +104,10 @@
                 <input type="date" name="fecha_fin" class="form-control" value="{{ old('fecha_fin', now()->addYear()->format('Y-m-d')) }}" required>
             </div>
             <div class="col-md-3">
+                <label class="form-label">Valor total (USD) *</label>
+                <input type="number" name="valor" step="0.01" min="0.01" class="form-control" value="{{ old('valor') }}" required>
+            </div>
+            <div class="col-md-3">
                 <label class="form-label">Forma de contratación *</label>
                 <select name="forma_contratacion" class="form-select">
                     @foreach (['mensual' => 'Mensual', 'trimestral' => 'Trimestral', 'semestral' => 'Semestral', 'anual' => 'Anual', 'otro' => 'Otro'] as $clave => $etiqueta)
@@ -97,6 +116,26 @@
                 </select>
             </div>
             <div class="col-md-3">
+                <label class="form-label">Sucursales contratadas (xNS) *</label>
+                <input type="number" name="numero_sucursales_contratadas" min="1" max="1000" class="form-control" value="{{ old('numero_sucursales_contratadas', 1) }}" required>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" name="sucursales_ilimitadas" id="sucursales_ilimitadas" value="1" @checked(old('sucursales_ilimitadas'))>
+                    <label class="form-check-label" for="sucursales_ilimitadas">Sucursales ilimitadas</label>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Cajeros contratados (xNC) *</label>
+                <input type="number" name="numero_cajeros_contratados" min="1" max="1000" class="form-control" value="{{ old('numero_cajeros_contratados', 1) }}" required>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" name="cajeros_ilimitados" id="cajeros_ilimitados" value="1" @checked(old('cajeros_ilimitados'))>
+                    <label class="form-check-label" for="cajeros_ilimitados">Cajeros ilimitados</label>
+                </div>
+            </div>
+            <div class="col-12">
                 <label class="form-label">Referencia</label>
                 <input type="text" name="referencia" class="form-control" value="{{ old('referencia') }}">
             </div>
@@ -133,7 +172,12 @@
                     <div class="row mb-3">
                         <div class="col-md-3"><span class="text-muted small">Desde</span><div>{{ $contrato->fecha_inicio->format('d/m/Y') }}</div></div>
                         <div class="col-md-3"><span class="text-muted small">Hasta</span><div>{{ $contrato->fecha_fin->format('d/m/Y') }}</div></div>
-                        <div class="col-md-3"><span class="text-muted small">Total pagado</span><div class="fw-semibold">${{ number_format($contrato->totalPagado(), 2) }}</div></div>
+                        <div class="col-md-3"><span class="text-muted small">Valor total</span><div class="fw-semibold">${{ number_format($contrato->valor, 2) }}</div></div>
+                        <div class="col-md-3"><span class="text-muted small">Total pagado</span><div class="fw-semibold">${{ number_format($contrato->totalPagado(), 2) }} <span class="text-muted small">/ ${{ number_format($contrato->valor, 2) }}</span></div></div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3"><span class="text-muted small">Sucursales</span><div>{{ $contrato->sucursales_ilimitadas ? 'Ilimitadas' : $contrato->numero_sucursales_contratadas }}</div></div>
+                        <div class="col-md-3"><span class="text-muted small">Cajeros</span><div>{{ $contrato->cajeros_ilimitados ? 'Ilimitados' : $contrato->numero_cajeros_contratados }}</div></div>
                         <div class="col-md-3"><span class="text-muted small">Ref.</span><div>{{ $contrato->referencia ?: '—' }}</div></div>
                     </div>
 

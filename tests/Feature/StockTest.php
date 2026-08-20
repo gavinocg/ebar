@@ -6,8 +6,7 @@ use App\Models\Producto;
 use App\Models\Categoria;
 use App\Models\ProductoVariante;
 use App\Models\Negocio;
-use App\Models\TurnoCaja;
-use App\Models\Caja;
+use App\Models\TurnoCajero;
 use App\Models\ConfiguracionNegocio;
 use App\Models\User;
 use App\Models\MembresiaNegocio;
@@ -28,9 +27,7 @@ class StockTest extends TestCase
         $cajero = User::factory()->create();
         MembresiaNegocio::create(['negocio_id' => $negocio->id, 'usuario_id' => $cajero->id, 'rol' => 'cajero', 'esta_activa' => true]);
 
-        $caja = Caja::create(['nombre' => 'Caja 1', 'esta_activa' => true]);
-        $turno = TurnoCaja::create([
-            'caja_id' => $caja->id,
+        $turno = TurnoCajero::create([
             'usuario_id' => $cajero->id,
             'negocio_id' => $negocio->id,
             'sucursal_id' => null,

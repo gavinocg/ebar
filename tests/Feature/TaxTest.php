@@ -2,12 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Models\Caja;
 use App\Models\Categoria as Category;
 use App\Models\ConfiguracionNegocio;
 use App\Models\Negocio;
 use App\Models\Producto as Product;
-use App\Models\TurnoCaja;
+use App\Models\TurnoCajero;
 use App\Models\User;
 use App\Models\Venta;
 use App\Services\ContextoNegocio;
@@ -164,12 +163,10 @@ class TaxTest extends TestCase
         return $usuario;
     }
 
-    private function abrirTurno(User $usuario): TurnoCaja
+    private function abrirTurno(User $usuario): TurnoCajero
     {
-        $caja = Caja::create(['nombre' => 'Caja de pruebas', 'esta_activa' => true]);
 
-        return TurnoCaja::create([
-            'caja_id' => $caja->id,
+        return TurnoCajero::create([
             'usuario_id' => $usuario->id,
             'fondo_inicial' => 100,
             'abierto_en' => now(),

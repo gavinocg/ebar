@@ -12,7 +12,7 @@
 
 <div class="row mb-3">
     <div class="col-md-3 col-6"><div class="card"><div class="card-body"><small class="text-muted">Cajero</small><div class="fw-semibold">{{ $turno->usuario?->nombre ?? '—' }}</div></div></div></div>
-    <div class="col-md-3 col-6"><div class="card"><div class="card-body"><small class="text-muted">Caja / Sucursal</small><div class="fw-semibold">{{ $turno->caja?->nombre ?? '—' }} <span class="text-muted">· {{ $turno->caja?->sucursal?->nombre ?? '—' }}</span></div></div></div></div>
+    <div class="col-md-3 col-6"><div class="card"><div class="card-body"><small class="text-muted">Sucursal</small><div class="fw-semibold">{{ $turno->sucursal?->nombre ?? '—' }}</div></div></div></div>
     <div class="col-md-3 col-6"><div class="card"><div class="card-body"><small class="text-muted">Apertura</small><div>{{ $turno->abierto_en->format('d/m/Y H:i') }}</div></div></div></div>
     <div class="col-md-3 col-6"><div class="card"><div class="card-body"><small class="text-muted">Cierre</small><div>{{ $turno->cerrado_en?->format('d/m/Y H:i') ?? '—' }}</div></div></div></div>
 </div>

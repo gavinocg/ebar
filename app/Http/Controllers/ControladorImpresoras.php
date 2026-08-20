@@ -28,13 +28,17 @@ class ControladorImpresoras extends Controller
             'tipo_conexion' => 'required|in:bluetooth',
             'ancho_papel' => 'required|in:58mm',
             'es_predeterminada' => 'nullable|boolean',
+            'esta_activa' => 'nullable|boolean',
         ]);
 
         if ($request->es_predeterminada) {
             Printer::where('es_predeterminada', true)->update(['es_predeterminada' => false]);
         }
 
-        Printer::create($request->validated());
+        $datos = $request->validated();
+        $datos['esta_activa'] = $request->boolean('esta_activa');
+
+        Printer::create($datos);
 
         return redirect()->route('impresoras.index')->with('success', 'Impresora agregada');
     }
@@ -49,6 +53,7 @@ class ControladorImpresoras extends Controller
             'tipo_conexion' => 'required|in:bluetooth',
             'ancho_papel' => 'required|in:58mm',
             'es_predeterminada' => 'nullable|boolean',
+            'esta_activa' => 'nullable|boolean',
         ]);
 
         if ($request->es_predeterminada) {
@@ -57,7 +62,10 @@ class ControladorImpresoras extends Controller
                 ->update(['es_predeterminada' => false]);
         }
 
-        $printer->update($request->validated());
+        $datos = $request->validated();
+        $datos['esta_activa'] = $request->boolean('esta_activa');
+
+        $printer->update($datos);
 
         return redirect()->route('impresoras.index')->with('success', 'Impresora actualizada');
     }

@@ -10,14 +10,14 @@
 </style>
 @endpush
 
-@section('title', 'Apertura de caja')
+@section('title', 'Apertura de turno')
 
 @section('content')
 <div class="d-flex justify-content-center align-items-center" style="min-height: 70vh; padding: 16px;">
     <div class="card shadow-sm w-100" style="max-width: 380px;">
         <div class="card-body text-center p-4">
             <i class="bi bi-cash-coin display-4 text-success"></i>
-            <h5 class="mt-2 mb-1">Apertura de caja</h5>
+            <h5 class="mt-2 mb-1">Apertura de turno</h5>
             <p class="text-muted small mb-1">{{ auth()->user()->nombre }}</p>
             <p class="text-muted small mb-3">Registra el fondo inicial con el que inicias tu turno.</p>
 
@@ -38,7 +38,7 @@
                     <div class="form-text">Efectivo que recibes para dar cambio.</div>
                 </div>
                 <button type="submit" class="btn btn-success w-100 btn-lg">
-                    <i class="bi bi-unlock"></i> Abrir caja y comenzar
+                    <i class="bi bi-unlock"></i> Abrir turno y comenzar
                 </button>
             </form>
         </div>

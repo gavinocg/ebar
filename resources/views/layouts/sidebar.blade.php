@@ -346,7 +346,7 @@
             </li>
             @endif
 
-            @if(auth()->user()->tienePermiso('cuadre.aprobar') || auth()->user()->tienePermiso('impresora.ver') || auth()->user()->tienePermiso('sucursal.ver') || auth()->user()->tienePermiso('usuario.cajeros') || auth()->user()->tienePermiso('usuario.admin_bar') || auth()->user()->tienePermiso('caja.administrar') || auth()->user()->tienePermiso('caja.reporte') || auth()->user()->tienePermiso('auditoria.ver') || auth()->user()->tienePermiso('rol.gestionar') || auth()->user()->tienePermiso('reembolso.ver') || auth()->user()->tienePermiso('configuracion.negocio'))
+            @if(auth()->user()->tienePermiso('cuadre.aprobar') || auth()->user()->tienePermiso('impresora.ver') || auth()->user()->tienePermiso('sucursal.ver') || auth()->user()->tienePermiso('usuario.cajeros') || auth()->user()->tienePermiso('usuario.admin_bar') || auth()->user()->tienePermiso('caja.reporte') || auth()->user()->tienePermiso('auditoria.ver') || auth()->user()->tienePermiso('rol.gestionar') || auth()->user()->tienePermiso('reembolso.ver') || auth()->user()->tienePermiso('configuracion.negocio'))
             <li class="menu-label">Configuración</li>
             @endif
             @if(auth()->user()->tienePermiso('cuadre.aprobar'))
@@ -386,14 +386,6 @@
                 <a href="{{ route('admin-bar.index') }}" class="{{ request()->routeIs('admin-bar.*') ? 'active' : '' }}">
                     <i class="bi bi-person-gear"></i>
                     <span>Admins de bar</span>
-                </a>
-            </li>
-            @endif
-            @if(auth()->user()->tienePermiso('caja.administrar'))
-            <li>
-                <a href="{{ route('cajas.index') }}" class="{{ request()->routeIs('cajas.*') ? 'active' : '' }}">
-                    <i class="bi bi-safe"></i>
-                    <span>Cajas</span>
                 </a>
             </li>
             @endif
@@ -485,6 +477,49 @@
                     </ul>
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
+            @endif
+
+            @if(session('no_eliminable'))
+                <div class="modal fade" id="modalNoEliminable" tabindex="-1" aria-labelledby="modalNoEliminableLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="modalNoEliminableLabel">No se puede eliminar</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="mb-2">
+                                    Este {{ session('no_eliminable.entidad') }} no se puede eliminar porque tiene registros dependientes:
+                                </p>
+                                <ul class="mb-3">
+                                    @foreach(session('no_eliminable.dependencias') as $dependencia)
+                                        <li>{{ $dependencia }}</li>
+                                    @endforeach
+                                </ul>
+                                <p class="mb-0">
+                                    ¿Deseas desactivarlo? El registro pasará a estado INACTIVO y se mantendrá visible en el listado.
+                                </p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <form method="POST" action="{{ session('no_eliminable.url') }}" class="m-0">
+                                    @csrf
+                                    <button type="submit" class="btn btn-warning">
+                                        <i class="bi bi-pause-circle"></i> Sí, desactivar
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        const modal = document.getElementById('modalNoEliminable');
+                        if (modal && window.bootstrap) {
+                            new bootstrap.Modal(modal).show();
+                        }
+                    });
+                </script>
             @endif
             
             @yield('content')

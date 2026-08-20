@@ -14,6 +14,8 @@ trait PerteneceANegocio
 
             if ($negocioId !== null) {
                 $builder->where($builder->getModel()->getTable() . '.negocio_id', $negocioId);
+            } elseif (!app()->environment('testing')) {
+                throw new \RuntimeException('ContextoNegocio no establecido. No se pueden consultar registros sin un negocio activo.');
             }
         });
 

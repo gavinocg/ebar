@@ -6,6 +6,7 @@ use App\Models\Producto as Product;
 use App\Models\Categoria as Category;
 use App\Models\Sucursal;
 use App\Services\ContextoNegocio;
+use App\Services\GuardiaEliminacion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -131,6 +132,16 @@ class ControladorProductos extends Controller
     {
         $this->authorize('gestionar', $product);
 
+        $dependencias = GuardiaEliminacion::productoConDependencias($product->id);
+
+        if ($dependencias) {
+            return back()->with('no_eliminable', [
+                'entidad' => 'producto',
+                'dependencias' => array_values(array_unique($dependencias)),
+                'url' => route('productos.desactivar', $product),
+            ]);
+        }
+
         if ($product->imagen_path) {
             Storage::disk('public')->delete($product->imagen_path);
         }
@@ -140,6 +151,16 @@ class ControladorProductos extends Controller
         }
         $product->delete();
         return redirect()->route('productos.index')->with('success', 'Producto eliminado');
+    }
+
+    public function desactivar(Product $product)
+    {
+        $this->authorize('gestionar', $product);
+
+        $product->esta_activo = false;
+        $product->save();
+
+        return redirect()->route('productos.index')->with('success', 'Producto desactivado por tener registros dependientes.');
     }
 
     public function exportar(): StreamedResponse

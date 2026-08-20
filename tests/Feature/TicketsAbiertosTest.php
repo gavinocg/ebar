@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Caja;
 use App\Models\Categoria;
 use App\Models\ConfiguracionNegocio;
 use App\Models\MembresiaNegocio;
@@ -11,7 +10,7 @@ use App\Models\Producto;
 use App\Models\ProductoVariante;
 use App\Models\Sucursal;
 use App\Models\TicketAbierto;
-use App\Models\TurnoCaja;
+use App\Models\TurnoCajero;
 use App\Models\User;
 use App\Services\ContextoNegocio;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -53,7 +52,7 @@ class TicketsAbiertosTest extends TestCase
             ]],
         ])->assertOk()->assertJsonPath('success', true);
 
-        $detalle = TicketAbierto::where('turno_caja_id', $turno->id)->firstOrFail()->detalles()->firstOrFail();
+        $detalle = TicketAbierto::where('turno_cajero_id', $turno->id)->firstOrFail()->detalles()->firstOrFail();
 
         $this->assertSame(5.0, (float) $detalle->precio);
         $this->assertSame(10.0, (float) $detalle->descuento);
@@ -104,57 +103,67 @@ class TicketsAbiertosTest extends TestCase
 
         $cajeroDos = User::factory()->create();
         MembresiaNegocio::create(['negocio_id' => $bar->id, 'usuario_id' => $cajeroDos->id, 'rol' => 'cajero', 'esta_activa' => true]);
-        $turnoDos = TurnoCaja::create([
-            'caja_id' => $turnoUno->caja_id,
+        $turnoDos = TurnoCajero::create([
             'usuario_id' => $cajeroDos->id,
             'fondo_inicial' => 50,
             'abierto_en' => now(),
             'estado' => 'abierta',
         ]);
 
-        $ticketUno = TicketAbierto::create(['negocio_id' => $bar->id, 'turno_caja_id' => $turnoUno->id, 'usuario_id' => $cajeroUno->id, 'nombre' => 'Mesa 1']);
-        TicketAbierto::create(['negocio_id' => $bar->id, 'turno_caja_id' => $turnoDos->id, 'usuario_id' => $cajeroDos->id, 'nombre' => 'Mesa 2']);
+        $ticketUno = TicketAbierto::create(['negocio_id' => $bar->id, 'turno_cajero_id' => $turnoUno->id, 'usuario_id' => $cajeroUno->id, 'nombre' => 'Mesa 1']);
+        TicketAbierto::create(['negocio_id' => $bar->id, 'turno_cajero_id' => $turnoDos->id, 'usuario_id' => $cajeroDos->id, 'nombre' => 'Mesa 2']);
 
         $this->actingAs($cajeroUno)->withSession(['negocio_id' => $bar->id, 'sucursal_id' => null]);
         $this->getJson(route('tickets_abiertos.index'))->assertOk()->assertJsonCount(1)->assertJsonFragment(['id' => $ticketUno->id]);
 
         $this->actingAs($cajeroDos)->withSession(['negocio_id' => $bar->id, 'sucursal_id' => null]);
         $this->getJson(route('tickets_abiertos.index'))->assertOk()->assertJsonCount(1);
-        $this->assertSame($turnoDos->id, (int) TicketAbierto::find(2)->turno_caja_id);
+        $this->assertSame($turnoDos->id, (int) TicketAbierto::find(2)->turno_cajero_id);
     }
 
-    public function test_abrir_turno_rechaza_una_caja_ya_ocupada_por_otro_cajero(): void
+    public function test_abrir_turno_rechaza_si_el_cajero_ya_tiene_un_turno_abierto(): void
     {
         [$bar, $cajeroUno, $turnoUno] = $this->setupBar();
         $turnoUno->update(['estado' => 'cerrada']);
-        $caja = Caja::create(['nombre' => 'Caja Única', 'esta_activa' => true]);
+        $sucursal = Sucursal::create(['nombre' => 'Principal', 'esta_activa' => true]);
+
+        $cajeroUno->membresias()->first()->update(['sucursal_id' => $sucursal->id]);
 
         $this->actingAs($cajeroUno)->withSession(['negocio_id' => $bar->id]);
-        $this->post(route('caja.abrir'), ['fondo_inicial' => 100, 'caja_id' => $caja->id])->assertRedirect();
+        $this->post(route('caja.abrir'), ['fondo_inicial' => 100])->assertRedirect();
 
         $cajeroDos = User::factory()->create();
-        MembresiaNegocio::create(['negocio_id' => $bar->id, 'usuario_id' => $cajeroDos->id, 'rol' => 'cajero', 'esta_activa' => true]);
+        MembresiaNegocio::create(['negocio_id' => $bar->id, 'usuario_id' => $cajeroDos->id, 'rol' => 'cajero', 'esta_activa' => true, 'sucursal_id' => $sucursal->id]);
 
         $this->actingAs($cajeroDos)->withSession(['negocio_id' => $bar->id]);
-        $this->post(route('caja.abrir'), ['fondo_inicial' => 100, 'caja_id' => $caja->id])
-            ->assertSessionHasErrors('caja');
+        $this->post(route('caja.abrir'), ['fondo_inicial' => 100])->assertRedirect();
+        $this->post(route('caja.abrir'), ['fondo_inicial' => 100])->assertSessionHasErrors('caja');
 
-        $this->assertSame(1, TurnoCaja::where('estado', 'abierta')->count());
+        $this->assertSame(2, TurnoCajero::where('estado', 'abierta')->count());
     }
 
-    public function test_abrir_turno_rechaza_una_caja_de_otra_sucursal_si_el_cajero_esta_asignado(): void
+    public function test_abrir_turno_requiere_sucursal_asignada_al_cajero(): void
     {
         [$bar, $cajero] = $this->setupBar();
 
-        $sucursalAsignada = Sucursal::create(['nombre' => 'Centro', 'esta_activa' => true]);
-        $sucursalOtra = Sucursal::create(['nombre' => 'Norte', 'esta_activa' => true]);
-        $cajaOtra = Caja::create(['nombre' => 'Caja Norte', 'sucursal_id' => $sucursalOtra->id, 'esta_activa' => true]);
+        $this->actingAs($cajero)->withSession(['negocio_id' => $bar->id]);
+        $this->post(route('caja.abrir'), ['fondo_inicial' => 100])->assertStatus(422);
 
+        $this->assertSame(1, TurnoCajero::count());
+    }
+
+    public function test_abrir_turno_usa_la_sucursal_asignada_al_cajero(): void
+    {
+        [$bar, $cajero, $turno] = $this->setupBar();
+        $turno->update(['estado' => 'cerrada']);
+
+        $sucursalAsignada = Sucursal::create(['nombre' => 'Centro', 'esta_activa' => true]);
         $cajero->membresias()->first()->update(['sucursal_id' => $sucursalAsignada->id]);
 
-        $this->actingAs($cajero)->withSession(['negocio_id' => $bar->id, 'sucursal_id' => $sucursalAsignada->id]);
-        $this->post(route('caja.abrir'), ['fondo_inicial' => 100, 'caja_id' => $cajaOtra->id])
-            ->assertSessionHasErrors('caja');
+        $this->actingAs($cajero)->withSession(['negocio_id' => $bar->id]);
+
+        $this->post(route('caja.abrir'), ['fondo_inicial' => 100])->assertRedirect(route('punto_venta.inicio'));
+        $this->assertDatabaseHas('turnos_cajero', ['usuario_id' => $cajero->id, 'sucursal_id' => $sucursalAsignada->id, 'estado' => 'abierta']);
     }
 
     public function test_solicitar_modificacion_no_se_apila(): void
@@ -209,7 +218,7 @@ class TicketsAbiertosTest extends TestCase
         ]);
 
         $response->assertOk()->assertJsonPath('sale.numero_comprobante', 'CMP-000001');
-        $this->assertDatabaseHas('ventas', ['turno_caja_id' => $turno->id, 'numero_comprobante' => 'CMP-000001']);
+        $this->assertDatabaseHas('ventas', ['turno_cajero_id' => $turno->id, 'numero_comprobante' => 'CMP-000001']);
     }
 
     private function setupBar(): array
@@ -220,9 +229,7 @@ class TicketsAbiertosTest extends TestCase
         $cajero = User::factory()->create();
         MembresiaNegocio::create(['negocio_id' => $bar->id, 'usuario_id' => $cajero->id, 'rol' => 'cajero', 'esta_activa' => true]);
 
-        $caja = Caja::create(['nombre' => 'Caja P', 'esta_activa' => true]);
-        $turno = TurnoCaja::create([
-            'caja_id' => $caja->id,
+        $turno = TurnoCajero::create([
             'usuario_id' => $cajero->id,
             'fondo_inicial' => 100,
             'abierto_en' => now(),

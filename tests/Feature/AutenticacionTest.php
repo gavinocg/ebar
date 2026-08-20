@@ -3,10 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\IntentoPin;
-use App\Models\Membresia;
 use App\Models\MembresiaNegocio;
 use App\Models\Negocio;
-use App\Models\Plan;
 use App\Models\Sucursal;
 use App\Models\User;
 use App\Services\ContextoNegocio;
@@ -163,7 +161,6 @@ class AutenticacionTest extends TestCase
 
     private function crearBar(): Negocio
     {
-        $plan = Plan::create(['nombre' => 'Prueba', 'duracion_dias' => 30, 'limite_cajeros' => 2, 'limite_cajas' => 1, 'limite_sucursales' => 1]);
 
         $negocio = Negocio::create([
             'nombre' => 'Bar de prueba',
@@ -175,13 +172,6 @@ class AutenticacionTest extends TestCase
 
         Sucursal::create(['nombre' => 'Principal', 'esta_activa' => true]);
 
-        Membresia::create([
-            'negocio_id' => $negocio->id,
-            'plan_id' => $plan->id,
-            'estado' => 'activa',
-            'fecha_inicio' => now()->subDay(),
-            'fecha_vencimiento' => now()->addDays(30),
-        ]);
 
         return $negocio;
     }

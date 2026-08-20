@@ -45,6 +45,11 @@
                         <label class="form-check-label">Impresora principal</label>
                     </div>
 
+                    <div class="mb-3 form-check form-switch">
+                        <input type="checkbox" name="esta_activa" class="form-check-input" value="1" checked>
+                        <label class="form-check-label">Impresora activa</label>
+                    </div>
+
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="bi bi-plus-circle"></i> Agregar Impresora
                     </button>
@@ -154,6 +159,11 @@
                                                         <div class="mb-3 form-check">
                                                             <input type="checkbox" name="es_predeterminada" class="form-check-input" value="1" {{ $printer->es_predeterminada ? 'checked' : '' }}>
                                                             <label class="form-check-label">Impresora principal</label>
+                                                        </div>
+
+                                                        <div class="mb-3 form-check form-switch">
+                                                            <input type="checkbox" name="esta_activa" class="form-check-input" value="1" {{ $printer->esta_activa ? 'checked' : '' }}>
+                                                            <label class="form-check-label">Impresora activa</label>
                                                         </div>
                                                     </div>
                                                     <div class="modal-footer">

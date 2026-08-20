@@ -5,8 +5,7 @@ namespace Tests\Feature;
 use App\Models\Negocio;
 use App\Models\User;
 use App\Models\MembresiaNegocio;
-use App\Models\Caja;
-use App\Models\TurnoCaja;
+use App\Models\TurnoCajero;
 use App\Models\Categoria;
 use App\Models\Producto;
 use App\Models\ProductoVariante;
@@ -109,9 +108,7 @@ class MultiTenantIsolationTest extends TestCase
         $cajero = User::factory()->create();
         MembresiaNegocio::create(['negocio_id' => $barA['negocio']->id, 'usuario_id' => $cajero->id, 'rol' => 'cajero', 'esta_activa' => true]);
 
-        $caja = Caja::create(['nombre' => 'Caja 1', 'esta_activa' => true]);
-        $turno = TurnoCaja::create([
-            'caja_id' => $caja->id,
+        $turno = TurnoCajero::create([
             'usuario_id' => $cajero->id,
             'negocio_id' => $barA['negocio']->id,
             'sucursal_id' => null,
@@ -122,7 +119,7 @@ class MultiTenantIsolationTest extends TestCase
 
         $this->actingAs($cajero);
         app(ContextoNegocio::class)->establecer($barA['negocio']->id);
-        session(['pos_desbloqueado' => true, 'turno_caja_id' => $turno->id]);
+        session(['pos_desbloqueado' => true, 'turno_cajero_id' => $turno->id]);
 
         $response = $this->postJson(route('punto_venta.cobrar'), [
             'items' => [['producto_id' => $barA['producto']->id, 'cantidad' => 1]],

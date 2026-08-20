@@ -30,7 +30,11 @@ class ControladorPagos extends Controller
             'referencia' => $datos['referencia'] ?? null,
         ]);
 
-        return back()->with('success', 'Pago registrado.');
+        if ($contrato->estado === 'pendiente') {
+            $contrato->update(['estado' => 'activo']);
+        }
+
+        return back()->with('success', 'Pago registrado. El contrato quedó activo si estaba pendiente.');
     }
 
     public function anular(Pago $pago): RedirectResponse

@@ -4,11 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Auditoria;
 use App\Models\ConfiguracionNegocio;
-use App\Models\Membresia;
 use App\Models\MembresiaNegocio;
 use App\Models\Negocio;
 use App\Models\Permission;
-use App\Models\Plan;
 use App\Models\Rol;
 use App\Models\Sucursal;
 use App\Models\User;
@@ -22,17 +20,9 @@ class RolesAdminConfigTest extends TestCase
 
     private function bar(): Negocio
     {
-        $plan = Plan::create(['nombre' => 'Básico', 'duracion_dias' => 30, 'limite_cajeros' => 5, 'limite_cajas' => 5, 'limite_sucursales' => 5]);
-        $negocio = Negocio::create(['nombre' => 'Bar S', 'identificador' => 'bar-s-' . str()->random(6), 'esta_activo' => true, 'numero_sucursales_contratadas' => 5]);
+        $negocio = Negocio::create(['nombre' => 'Bar S', 'identificador' => 'bar-s-' . str()->random(6), 'esta_activo' => true]);
         app(ContextoNegocio::class)->establecer($negocio->id);
 
-        Membresia::create([
-            'negocio_id' => $negocio->id,
-            'plan_id' => $plan->id,
-            'estado' => 'activa',
-            'fecha_inicio' => now(),
-            'fecha_vencimiento' => now()->addDays(30),
-        ]);
 
         return $negocio;
     }
@@ -112,15 +102,8 @@ class RolesAdminConfigTest extends TestCase
             'permisos' => [$permiso->id],
         ])->assertRedirect(route('roles.index'));
 
-        $otroBar = Negocio::create(['nombre' => 'Bar Dos', 'identificador' => 'bar-s-dos-' . str()->random(6), 'esta_activo' => true, 'numero_sucursales_contratadas' => 5]);
+        $otroBar = Negocio::create(['nombre' => 'Bar Dos', 'identificador' => 'bar-s-dos-' . str()->random(6), 'esta_activo' => true]);
         app(ContextoNegocio::class)->establecer($otroBar->id);
-        Membresia::create([
-            'negocio_id' => $otroBar->id,
-            'plan_id' => Plan::first()->id,
-            'estado' => 'activa',
-            'fecha_inicio' => now(),
-            'fecha_vencimiento' => now()->addDays(30),
-        ]);
         $adminOtro = $this->propietario($otroBar);
 
         $this->actingAs($adminOtro);
@@ -169,6 +152,26 @@ class RolesAdminConfigTest extends TestCase
         $this->delete(route('roles.destroy', $rolSistema))->assertStatus(422);
 
         $this->assertDatabaseHas('roles', ['id' => $rolSistema->id, 'nombre' => 'Cajero']);
+    }
+
+    public function test_un_rol_asignado_a_usuarios_activos_no_se_elimina_y_se_pregunta_antes_de_desactivar(): void
+    {
+        $negocio = $this->bar();
+        $admin = $this->propietario($negocio);
+        $permiso = Permission::create(['nombre' => 'Ver ventas', 'clave' => 'ver.ventas', 'modulo' => 'ventas']);
+        $rol = Rol::create(['nombre' => 'Mesero', 'slug' => 'mesero', 'negocio_id' => $negocio->id, 'es_sistema' => false]);
+        $rol->permisos()->sync([$permiso->id]);
+
+        $usuario = User::factory()->create();
+        MembresiaNegocio::create(['negocio_id' => $negocio->id, 'usuario_id' => $usuario->id, 'rol' => 'cajero', 'rol_id' => $rol->id, 'esta_activa' => true]);
+
+        $this->actingAs($admin);
+
+        $this->delete(route('roles.destroy', $rol))->assertSessionHas('no_eliminable');
+        $this->assertDatabaseHas('roles', ['id' => $rol->id, 'esta_activo' => true]);
+
+        $this->post(route('roles.desactivar', $rol))->assertRedirect(route('roles.index'));
+        $this->assertDatabaseHas('roles', ['id' => $rol->id, 'esta_activo' => false]);
     }
 
     public function test_un_cajero_no_puede_cambiar_la_configuracion_del_negocio(): void

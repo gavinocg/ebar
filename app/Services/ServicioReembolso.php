@@ -28,7 +28,7 @@ class ServicioReembolso
             $totalDetalles = $venta->detalles->count();
             $itemsRecibidos = count($items);
             if ($tipo === 'total' && $itemsRecibidos < $totalDetalles) {
-                throw new \RuntimeException('Un reembolso total debe incluir todos los artículos de la venta.');
+                throw new \RuntimeException('Un reembolso total debe incluir todos los artÃ­culos de la venta.');
             }
 
             $reembolsoDetalles = [];
@@ -45,14 +45,14 @@ class ServicioReembolso
                 $detalle = $venta->detalles->firstWhere('id', $detalleVentaId);
 
                 if (!$detalle) {
-                    throw new \RuntimeException('Uno de los artículos no pertenece a la venta.');
+                    throw new \RuntimeException('Uno de los artÃ­culos no pertenece a la venta.');
                 }
 
                 $devueltoAntes = ReembolsoDetalle::where('detalle_venta_id', $detalle->id)->sum('cantidad');
                 $disponible = $detalle->cantidad - $devueltoAntes;
 
                 if ($cantidad < 1 || $cantidad > $disponible) {
-                    throw new \RuntimeException("Cantidad no válida para {$detalle->nombre_producto} (disponible: {$disponible}).");
+                    throw new \RuntimeException("Cantidad no vÃ¡lida para {$detalle->nombre_producto} (disponible: {$disponible}).");
                 }
 
                 $precioUnitario = (float) $detalle->precio;
@@ -106,6 +106,7 @@ class ServicioReembolso
                         if ($producto) {
                             $stockAntes = $producto->existencias;
                             $producto->increment('existencias', $cantidad);
+                            $producto->refresh();
 
                             MovimientoInventario::create([
                                 'producto_id' => $producto->id,
@@ -116,7 +117,7 @@ class ServicioReembolso
                                 'existencias_posteriores' => $stockAntes + $cantidad,
                                 'tipo_referencia' => Reembolso::class,
                                 'id_referencia' => $reembolso->id,
-                                'notas' => 'Devolución de ' . $venta->numero_comprobante,
+                                'notas' => 'DevoluciÃ³n de ' . $venta->numero_comprobante,
                             ]);
                         }
                     } elseif ($detalle->variante) {
@@ -133,24 +134,23 @@ class ServicioReembolso
                             'existencias_posteriores' => $stockAntes + $cantidad,
                             'tipo_referencia' => Reembolso::class,
                             'id_referencia' => $reembolso->id,
-                            'notas' => 'Devolución variante ' . ($v->nombre ?? '') . ' de ' . $venta->numero_comprobante,
+                            'notas' => 'DevoluciÃ³n variante ' . ($v->nombre ?? '') . ' de ' . $venta->numero_comprobante,
                         ]);
                     }
                 }
             }
 
             if ($metodo === 'efectivo') {
-                $turnoCaja = $venta->turnoCaja;
+                $turnoCajero = $venta->turnoCajero;
 
-                if (!$turnoCaja || $turnoCaja->estado !== 'abierta') {
+                if (!$turnoCajero || $turnoCajero->estado !== 'abierta') {
                     throw new \RuntimeException('El reembolso en efectivo requiere un turno de caja abierto.');
                 }
 
                 MovimientoEfectivo::create([
                     'negocio_id' => $venta->negocio_id,
                     'sucursal_id' => $venta->sucursal_id,
-                    'caja_id' => $venta->turnoCaja->caja_id,
-                    'turno_caja_id' => $venta->turnoCaja->id,
+                    'turno_cajero_id' => $venta->turnoCajero->id,
                     'usuario_id' => Auth::id(),
                     'tipo' => 'retiro',
                     'monto' => -$montoTotal,

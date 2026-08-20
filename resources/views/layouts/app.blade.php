@@ -102,7 +102,7 @@
                             <li><a class="dropdown-item" href="{{ route('reportes.ventas') }}">Ventas</a></li>
                             <li><a class="dropdown-item" href="{{ route('reportes.inventario') }}">Inventario</a></li>
                             <li><a class="dropdown-item" href="{{ route('reportes.cajeros') }}">Por cajero</a></li>
-                            <li><a class="dropdown-item" href="{{ route('caja.reporte') }}">Arqueos de caja</a></li>
+                            <li><a class="dropdown-item" href="{{ route('caja.reporte') }}">Arqueos</a></li>
                         </ul>
                     </li>
                 </ul>

@@ -24,21 +24,16 @@
     @endif
 </div>
 
-@if(count($limitesPorSucursal) > 0)
-    <div class="row mb-4 g-2">
-        @foreach($limitesPorSucursal as $sucursalId => $datos)
-            @php $sucursalNombre = $sucursales->firstWhere('id', $sucursalId)?->nombre ?? 'Sucursal'; @endphp
-            <div class="col-md-3">
-                <div class="card bg-white shadow-sm">
-                    <div class="card-body py-2">
-                        <div class="small text-muted">{{ $sucursalNombre }}</div>
-                        <div class="fw-bold">
-                            {{ $datos['activos'] }} / {{ $datos['limite'] > 0 ? $datos['limite'] : '∞' }} cajeros
-                        </div>
-                    </div>
+@if ($limiteCajeros > 0)
+    <div class="col-md-3">
+        <div class="card bg-white shadow-sm">
+            <div class="card-body py-2">
+                <div class="small text-muted">Cajeros activos</div>
+                <div class="fw-bold">
+                    {{ $cajeros->where('esta_activa', true)->count() }} / {{ $limiteCajeros }}
                 </div>
             </div>
-        @endforeach
+        </div>
     </div>
 @endif
 
@@ -167,7 +162,7 @@
                     @endif
                     <div class="form-check form-switch mb-2">
                         <input class="form-check-input" type="checkbox" name="cuadre_activo" id="cuadre_crear" value="1" checked>
-                        <label class="form-check-label" for="cuadre_crear">Cuadre de caja activo (conteo de billetes/monedas)</label>
+                        <label class="form-check-label" for="cuadre_crear">Cuadre de turno activo (conteo de billetes/monedas)</label>
                     </div>
                     <div class="form-check form-switch mb-0">
                         <input class="form-check-input" type="checkbox" name="aprobacion_activa" id="aprobacion_crear" value="1" checked>
@@ -229,11 +224,15 @@
                         @endif
                         <div class="form-check form-switch mb-2">
                             <input class="form-check-input" type="checkbox" name="cuadre_activo" id="cuadre_{{ $cajero->id }}" value="1" @checked($cajero->cuadre_activo)>
-                            <label class="form-check-label" for="cuadre_{{ $cajero->id }}">Cuadre de caja activo (conteo de billetes/monedas)</label>
+                            <label class="form-check-label" for="cuadre_{{ $cajero->id }}">Cuadre de turno activo (conteo de billetes/monedas)</label>
                         </div>
                         <div class="form-check form-switch mb-0">
                             <input class="form-check-input" type="checkbox" name="aprobacion_activa" id="aprobacion_{{ $cajero->id }}" value="1" @checked($cajero->aprobacion_activa)>
                             <label class="form-check-label" for="aprobacion_{{ $cajero->id }}">Requiere visto bueno del administrador</label>
+                        </div>
+                        <div class="form-check form-switch mt-2">
+                            <input class="form-check-input" type="checkbox" name="esta_activa" id="estado_{{ $cajero->id }}" value="1" @checked($cajero->esta_activa)>
+                            <label class="form-check-label" for="estado_{{ $cajero->id }}">Cajero activo (INACTIVO no podrá abrir turnos)</label>
                         </div>
                     </div>
                     <div class="modal-footer">

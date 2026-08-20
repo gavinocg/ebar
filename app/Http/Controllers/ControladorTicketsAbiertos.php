@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Producto;
 use App\Models\ProductoVariante;
 use App\Models\TicketAbierto;
-use App\Models\TurnoCaja;
+use App\Models\TurnoCajero;
 use App\Services\ContextoNegocio;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -21,7 +21,7 @@ class ControladorTicketsAbiertos extends Controller
 
         $tickets = $turno
             ? TicketAbierto::where('negocio_id', app(ContextoNegocio::class)->id())
-                ->where('turno_caja_id', $turno->id)
+                ->where('turno_cajero_id', $turno->id)
                 ->with('detalles')
                 ->get()
             : collect();
@@ -47,7 +47,7 @@ class ControladorTicketsAbiertos extends Controller
         if (!$turno) {
             return response()->json([
                 'success' => false,
-                'message' => 'Debes abrir un turno de caja antes de guardar tickets.',
+                'message' => 'Debes abrir un turno de cajero antes de guardar tickets.',
             ], 422);
         }
 
@@ -60,14 +60,14 @@ class ControladorTicketsAbiertos extends Controller
         $variantes = $varianteIds ? ProductoVariante::whereIn('id', $varianteIds)->get()->keyBy('id') : collect();
 
         if ($productos->count() !== count($productIds)) {
-            return response()->json(['success' => false, 'message' => 'Uno de los productos no está disponible.'], 422);
+            return response()->json(['success' => false, 'message' => 'Uno de los productos no estÃ¡ disponible.'], 422);
         }
 
         foreach ($request->items as $item) {
             $producto = $productos->get($item['producto_id']);
 
             if (!$producto || !$producto->esta_activo) {
-                return response()->json(['success' => false, 'message' => 'Uno de los productos ya no está disponible.'], 422);
+                return response()->json(['success' => false, 'message' => 'Uno de los productos ya no estÃ¡ disponible.'], 422);
             }
 
             $variante = null;
@@ -96,7 +96,7 @@ class ControladorTicketsAbiertos extends Controller
             $ticket = TicketAbierto::create([
                 'negocio_id' => $negocioId,
                 'sucursal_id' => app(ContextoNegocio::class)->sucursalId(),
-                'turno_caja_id' => $turno->id,
+                'turno_cajero_id' => $turno->id,
                 'usuario_id' => auth()->id(),
                 'nombre' => $request->nombre,
                 'descripcion' => $request->descripcion,
@@ -139,7 +139,7 @@ class ControladorTicketsAbiertos extends Controller
     public function show(TicketAbierto $ticket): JsonResponse
     {
         abort_unless($ticket->negocio_id === app(ContextoNegocio::class)->id(), 404);
-        return response()->json($ticket->load('detalles'));
+        return response()->json($ticket->load('detalles', 'detalles.producto', 'detalles.productoVariante'));
     }
 
     public function destroy(TicketAbierto $ticket): JsonResponse
@@ -152,9 +152,9 @@ class ControladorTicketsAbiertos extends Controller
         ]);
     }
 
-    private function turnoAbiertoDeCajero(): ?TurnoCaja
+    private function turnoAbiertoDeCajero(): ?TurnoCajero
     {
-        return TurnoCaja::where('usuario_id', Auth::id())
+        return TurnoCajero::where('usuario_id', Auth::id())
             ->where('estado', 'abierta')
             ->latest('id')
             ->first();

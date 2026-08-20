@@ -3,12 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Categoria;
-use App\Models\Membresia;
 use App\Models\MembresiaNegocio;
 use App\Models\MovimientoInventario;
 use App\Models\Negocio;
 use App\Models\OrdenCompra;
-use App\Models\Plan;
 use App\Models\Producto;
 use App\Models\ProductoVariante;
 use App\Models\Proveedor;
@@ -30,17 +28,9 @@ class PurchaseOrdersTest extends TestCase
 
     private function bar(): Negocio
     {
-        $plan = Plan::create(['nombre' => 'Básico', 'duracion_dias' => 30, 'limite_cajeros' => 5, 'limite_cajas' => 5, 'limite_sucursales' => 5]);
         $negocio = Negocio::create(['nombre' => 'Bar PO', 'identificador' => 'bar-po-' . str()->random(6), 'esta_activo' => true]);
         app(ContextoNegocio::class)->establecer($negocio->id);
 
-        Membresia::create([
-            'negocio_id' => $negocio->id,
-            'plan_id' => $plan->id,
-            'estado' => 'activa',
-            'fecha_inicio' => now(),
-            'fecha_vencimiento' => now()->addDays(30),
-        ]);
 
         return $negocio;
     }
@@ -276,14 +266,6 @@ class PurchaseOrdersTest extends TestCase
         $orden1 = OrdenCompra::first();
 
         $negocio2 = Negocio::create(['nombre' => 'Bar 2', 'identificador' => 'bar-2-' . str()->random(6), 'esta_activo' => true]);
-        $plan = Plan::first();
-        Membresia::create([
-            'negocio_id' => $negocio2->id,
-            'plan_id' => $plan->id,
-            'estado' => 'activa',
-            'fecha_inicio' => now(),
-            'fecha_vencimiento' => now()->addDays(30),
-        ]);
         app(ContextoNegocio::class)->establecer($negocio2->id);
         $admin2 = $this->propietario($negocio2);
         $proveedor2 = $this->proveedor($negocio2, 'Prov 2');

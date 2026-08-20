@@ -6,7 +6,7 @@ use App\Models\MembresiaNegocio;
 use App\Models\Negocio;
 use App\Models\Rol;
 use App\Models\Sucursal;
-use App\Models\TurnoCaja;
+use App\Models\TurnoCajero;
 use App\Models\User;
 use App\Services\ContextoNegocio;
 use App\Services\RegistradorAuditoria;
@@ -21,7 +21,7 @@ class ControladorCajeros extends Controller
     public function index(): View
     {
         $negocioId = app(ContextoNegocio::class)->id();
-        $negocio = Negocio::with('membresia.plan')->findOrFail($negocioId);
+        $negocio = Negocio::findOrFail($negocioId);
 
         $cajeros = MembresiaNegocio::with('usuario', 'sucursal')
             ->where('negocio_id', $negocioId)
@@ -47,7 +47,6 @@ class ControladorCajeros extends Controller
             'cajeros' => $cajeros,
             'limiteCajeros' => $limite,
             'limiteAlcanzado' => $limite > 0 && $cajeros->where('esta_activa', true)->count() >= $limite,
-            'limitesPorSucursal' => $this->resolverLimitesPorSucursal($negocio, $sucursales, $cajeros),
             'sucursales' => $sucursales,
             'rolesPersonalizados' => $rolesPersonalizados,
             'rolCajeroDefaultId' => $rolCajero?->id,
@@ -57,7 +56,7 @@ class ControladorCajeros extends Controller
     public function store(Request $request, RegistradorAuditoria $auditoria): RedirectResponse
     {
         $negocioId = app(ContextoNegocio::class)->id();
-        $negocio = Negocio::with('membresia.plan')->findOrFail($negocioId);
+        $negocio = Negocio::findOrFail($negocioId);
 
         $datos = $request->validate([
             'nombre' => 'required|string|max:255',
@@ -70,25 +69,15 @@ class ControladorCajeros extends Controller
             'aprobacion_activa' => 'nullable|boolean',
         ]);
 
-        $sucursal = Sucursal::findOrFail($datos['sucursal_id']);
-        $limiteSucursal = (int) $sucursal->n_cajeros_contratados;
         $limiteGlobal = $this->resolverLimiteCajeros($negocio);
 
-        if ($limiteSucursal > 0) {
-            $activosEnSucursal = MembresiaNegocio::where('negocio_id', $negocioId)
-                ->where('rol', 'cajero')
-                ->where('sucursal_id', $sucursal->id)
-                ->where('esta_activa', true)
-                ->count();
-
-            abort_if($activosEnSucursal >= $limiteSucursal, 422, "Límite de cajeros alcanzado en {$sucursal->nombre} ({$limiteSucursal}).");
-        } else {
+        if ($limiteGlobal > 0) {
             $activos = MembresiaNegocio::where('negocio_id', $negocioId)
                 ->where('rol', 'cajero')
                 ->where('esta_activa', true)
                 ->count();
 
-            abort_if($limiteGlobal > 0 && $activos >= $limiteGlobal, 422, "Límite de cajeros alcanzado ({$limiteGlobal}).");
+            abort_if($activos >= $limiteGlobal, 422, "Límite de cajeros alcanzado ({$limiteGlobal}).");
         }
 
         $usuario = new User();
@@ -141,6 +130,7 @@ class ControladorCajeros extends Controller
             'rol_id' => ['nullable', 'integer', Rule::exists('roles', 'id')->where(fn ($q) => $q->where('negocio_id', $negocioId)->where('es_sistema', false))],
             'cuadre_activo' => 'nullable|boolean',
             'aprobacion_activa' => 'nullable|boolean',
+            'esta_activa' => 'nullable|boolean',
         ]);
 
         if ($miembro?->rol === 'admin_bar') {
@@ -158,7 +148,7 @@ class ControladorCajeros extends Controller
         }
 
         if ((int) $datos['sucursal_id'] !== $membresia->sucursal_id) {
-            $this->validarLimitesDeSucursalDestino($negocioId, $cajero->id, (int) $datos['sucursal_id']);
+            $this->validarLimiteGlobal($negocioId, $cajero->id);
         }
 
         $cajero->nombre = $datos['nombre'];
@@ -181,6 +171,7 @@ class ControladorCajeros extends Controller
                 'rol_id' => $datos['rol_id'] ?? $rolCajero?->id,
                 'cuadre_activo' => $request->boolean('cuadre_activo'),
                 'aprobacion_activa' => $request->boolean('aprobacion_activa'),
+                'esta_activa' => $request->has('esta_activa') ? $request->boolean('esta_activa') : $membresia->esta_activa,
             ]);
 
         $auditoria->registrar('cajeros', 'actualizar', 'Cajero actualizado', [
@@ -196,9 +187,9 @@ class ControladorCajeros extends Controller
         $this->validarCajeroDelNegocio($cajero);
 
         abort_if(
-            TurnoCaja::where('usuario_id', $cajero->id)->where('estado', 'abierta')->exists(),
+            TurnoCajero::where('usuario_id', $cajero->id)->where('estado', 'abierta')->exists(),
             422,
-            'No se puede desactivar un cajero con un turno de caja abierto.'
+            'No se puede desactivar un cajero con un turno de cajero abierto.'
         );
 
         $negocioId = app(ContextoNegocio::class)->id();
@@ -229,71 +220,32 @@ class ControladorCajeros extends Controller
         return $membresia;
     }
 
-    private function validarLimitesDeSucursalDestino(int $negocioId, int $usuarioId, int $sucursalDestinoId): void
+    private function validarLimiteGlobal(int $negocioId, int $usuarioId): void
     {
-        $sucursal = Sucursal::findOrFail($sucursalDestinoId);
-        $limiteSucursal = (int) $sucursal->n_cajeros_contratados;
-        $negocio = Negocio::with('membresia.plan')->findOrFail($negocioId);
+        $negocio = Negocio::findOrFail($negocioId);
+        $limite = $this->resolverLimiteCajeros($negocio);
 
-        if ($limiteSucursal > 0) {
-            $activosEnSucursal = MembresiaNegocio::where('negocio_id', $negocioId)
-                ->where('rol', 'cajero')
-                ->where('sucursal_id', $sucursal->id)
-                ->where('esta_activa', true)
-                ->where('usuario_id', '!=', $usuarioId)
-                ->count();
-
-            abort_if($activosEnSucursal >= $limiteSucursal, 422, "Límite de cajeros alcanzado en {$sucursal->nombre} ({$limiteSucursal}).");
+        if ($limite <= 0) {
             return;
         }
 
-        $limiteGlobal = $this->resolverLimiteCajeros($negocio);
+        $activos = MembresiaNegocio::where('negocio_id', $negocioId)
+            ->where('rol', 'cajero')
+            ->where('esta_activa', true)
+            ->where('usuario_id', '!=', $usuarioId)
+            ->count();
 
-        if ($limiteGlobal > 0) {
-            $activos = MembresiaNegocio::where('negocio_id', $negocioId)
-                ->where('rol', 'cajero')
-                ->where('esta_activa', true)
-                ->where('usuario_id', '!=', $usuarioId)
-                ->count();
-
-            abort_if($activos >= $limiteGlobal, 422, "Límite de cajeros alcanzado ({$limiteGlobal}).");
-        }
+        abort_if($activos >= $limite, 422, "Límite de cajeros alcanzado ({$limite}).");
     }
 
     private function resolverLimiteCajeros(Negocio $negocio): int
     {
-        $propietario = MembresiaNegocio::where('negocio_id', $negocio->id)
-            ->where('rol', 'propietario')
-            ->where('esta_activa', true)
-            ->first();
+        $contrato = $negocio->contratoVigente();
 
-        if ($propietario && $propietario->limite_cajeros > 0) {
-            return (int) $propietario->limite_cajeros;
+        if (!$contrato) {
+            return 0;
         }
 
-        return (int) ($negocio->membresia?->plan?->limite_cajeros ?? 0);
-    }
-
-    private function resolverLimitesPorSucursal(Negocio $negocio, $sucursales, $cajeros): array
-    {
-        $limites = [];
-
-        foreach ($sucursales as $sucursal) {
-            $limite = (int) $sucursal->n_cajeros_contratados;
-
-            if ($limite <= 0) {
-                $limite = $this->resolverLimiteCajeros($negocio);
-            }
-
-            $limites[$sucursal->id] = [
-                'limite' => $limite,
-                'activos' => $cajeros
-                    ->where('sucursal_id', $sucursal->id)
-                    ->where('esta_activa', true)
-                    ->count(),
-            ];
-        }
-
-        return $limites;
+        return $contrato->cajeros_ilimitados ? 0 : (int) $contrato->numero_cajeros_contratados;
     }
 }

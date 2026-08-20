@@ -11,9 +11,9 @@ class Rol extends Model
 {
     protected $table = 'roles';
 
-    protected $fillable = ['negocio_id', 'nombre', 'slug', 'descripcion', 'es_sistema'];
+    protected $fillable = ['negocio_id', 'nombre', 'slug', 'descripcion', 'es_sistema', 'esta_activo'];
 
-    protected $casts = ['es_sistema' => 'boolean'];
+    protected $casts = ['es_sistema' => 'boolean', 'esta_activo' => 'boolean'];
 
     public function negocio(): BelongsTo
     {

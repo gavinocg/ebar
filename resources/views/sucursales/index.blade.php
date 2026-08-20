@@ -23,7 +23,6 @@
                 <th>Ubicación</th>
                 <th>Dirección</th>
                 <th>Teléfono</th>
-                <th>Cajeros</th>
                 <th>Estado</th>
                 <th class="text-end">Acciones</th>
             </tr>
@@ -41,7 +40,6 @@
                     </td>
                     <td>{{ $sucursal->direccion ?? '—' }}</td>
                     <td>{{ $sucursal->telefono ?? '—' }}</td>
-                    <td>{{ $sucursal->n_cajeros_contratados > 0 ? $sucursal->n_cajeros_contratados : '∞' }}</td>
                     <td>
                         @if ($sucursal->esta_activa)
                             <span class="badge bg-success">Activa</span>
@@ -62,7 +60,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" class="text-center text-muted py-4">No hay sucursales registradas.</td>
+                    <td colspan="6" class="text-center text-muted py-4">No hay sucursales registradas.</td>
                 </tr>
             @endforelse
         </tbody>
@@ -104,11 +102,6 @@
                     <div class="mb-3">
                         <label class="form-label">Teléfono</label>
                         <input type="text" name="telefono" class="form-control">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Cajeros contratados (xNC)</label>
-                        <input type="number" name="n_cajeros_contratados" min="0" max="50" class="form-control" value="1">
-                        <div class="form-text">0 = ilimitado.</div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -157,11 +150,6 @@
                         <div class="mb-3">
                             <label class="form-label">Teléfono</label>
                             <input type="text" name="telefono" class="form-control" value="{{ $sucursal->telefono }}">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Cajeros contratados (xNC)</label>
-                            <input type="number" name="n_cajeros_contratados" min="0" max="50" class="form-control" value="{{ $sucursal->n_cajeros_contratados }}">
-                            <div class="form-text">0 = ilimitado.</div>
                         </div>
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" name="esta_activa" id="activa{{ $sucursal->id }}" value="1" @checked($sucursal->esta_activa)>

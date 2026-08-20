@@ -26,6 +26,11 @@
                     <input type="text" name="descripcion" id="descripcion" class="form-control"
                            value="{{ old('descripcion', $rol->descripcion) }}" maxlength="255">
                 </div>
+                <div class="col-md-6 d-flex align-items-end form-check form-switch mb-2">
+                    <input type="hidden" name="esta_activo" value="0">
+                    <input type="checkbox" name="esta_activo" class="form-check-input" id="esta_activo" value="1" @checked($rol->esta_activo)>
+                    <label class="form-check-label ms-2" for="esta_activo">Rol activo (INACTIVO no se podrá asignar)</label>
+                </div>
             </div>
         </div>
     </div>

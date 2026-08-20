@@ -8,16 +8,15 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class TurnoCaja extends Model
+class TurnoCajero extends Model
 {
     use PerteneceANegocio;
     use SoftDeletes;
 
-    protected $table = 'turnos_caja';
+    protected $table = 'turnos_cajero';
 
     protected $fillable = [
         'sucursal_id',
-        'caja_id',
         'usuario_id',
         'fondo_inicial',
         'abierto_en',
@@ -44,9 +43,9 @@ class TurnoCaja extends Model
         'monedas' => 'array',
     ];
 
-    public function caja(): BelongsTo
+    public function cajero(): BelongsTo
     {
-        return $this->belongsTo(Caja::class, 'caja_id');
+        return $this->belongsTo(User::class, 'usuario_id');
     }
 
     public function usuario(): BelongsTo
@@ -56,12 +55,12 @@ class TurnoCaja extends Model
 
     public function ventas(): HasMany
     {
-        return $this->hasMany(Venta::class, 'turno_caja_id');
+        return $this->hasMany(Venta::class, 'turno_cajero_id');
     }
 
     public function movimientosEfectivo(): HasMany
     {
-        return $this->hasMany(MovimientoEfectivo::class, 'turno_caja_id');
+        return $this->hasMany(MovimientoEfectivo::class, 'turno_cajero_id');
     }
 
     public function sucursal(): BelongsTo

@@ -21,13 +21,15 @@
                 <th>RUC</th>
                 <th>Sucursales</th>
                 <th>Contrato</th>
-                <th>Plan</th>
                 <th>Estado</th>
                 <th class="text-end">Acciones</th>
             </tr>
         </thead>
         <tbody>
             @forelse($negocios as $negocio)
+                @php
+                    $contratoVigente = $negocio->contratos->first();
+                @endphp
                 <tr>
                     <td class="fw-semibold">
                         @if ($negocio->logo)
@@ -36,21 +38,19 @@
                         {{ $negocio->nombre }}
                     </td>
                     <td><code>{{ $negocio->ruc ?: '—' }}</code></td>
-                    <td>{{ $negocio->sucursales->count() }} / {{ $negocio->numero_sucursales_contratadas }}</td>
                     <td>
-                        @if ($contratoVigente = $negocio->contratos->first())
+                        {{ $negocio->sucursales->count() }}
+                        @if ($contratoVigente)
+                            / {{ $contratoVigente->sucursales_ilimitadas ? '∞' : $contratoVigente->numero_sucursales_contratadas }}
+                        @endif
+                    </td>
+                    <td>
+                        @if ($contratoVigente)
                             <span class="badge bg-success">Activo</span>
                             <br>
                             <small class="text-muted">hasta {{ $contratoVigente->fecha_fin->format('d/m/Y') }}</small>
                         @else
                             <span class="badge bg-danger">Sin contrato vigente</span>
-                        @endif
-                    </td>
-                    <td>
-                        @if ($negocio->membresia?->plan)
-                            <span class="badge bg-info text-dark">{{ $negocio->membresia->plan->nombre }}</span>
-                        @else
-                            <span class="badge bg-secondary">Sin plan</span>
                         @endif
                     </td>
                     <td>
@@ -61,9 +61,6 @@
                         @endif
                     </td>
                     <td class="text-end">
-                        <a href="{{ route('plataforma.negocios.show', $negocio) }}" class="btn btn-sm btn-outline-secondary">
-                            <i class="bi bi-eye"></i> Ver
-                        </a>
                         <a href="{{ route('plataforma.negocios.edit', $negocio) }}" class="btn btn-sm btn-outline-primary">
                             <i class="bi bi-pencil"></i> Editar
                         </a>
@@ -78,7 +75,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" class="text-center text-muted py-4">No hay bares registrados.</td>
+                    <td colspan="6" class="text-center text-muted py-4">No hay bares registrados.</td>
                 </tr>
             @endforelse
         </tbody>

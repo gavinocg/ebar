@@ -6,11 +6,13 @@ use PHPUnit\Framework\TestCase;
 
 class ExampleTest extends TestCase
 {
-    /**
-     * A basic test example.
-     */
-    public function test_that_true_is_true(): void
+    public function test_true_is_true(): void
     {
         $this->assertTrue(true);
+    }
+
+    public function test_environment_is_testing(): void
+    {
+        $this->assertSame('testing', $_ENV['APP_ENV'] ?? 'testing');
     }
 }

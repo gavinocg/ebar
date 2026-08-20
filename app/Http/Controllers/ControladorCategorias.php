@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Categoria as Category;
+use App\Services\GuardiaEliminacion;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -64,8 +66,14 @@ class ControladorCategorias extends Controller
 
     public function destroy(Category $category)
     {
-        if ($category->productos()->exists()) {
-            return back()->withErrors(['nombre' => 'No se puede eliminar una categoría con productos asociados.']);
+        $dependencias = GuardiaEliminacion::categoriaConDependencias($category->id);
+
+        if ($dependencias) {
+            return back()->with('no_eliminable', [
+                'entidad' => 'categoría',
+                'dependencias' => array_values(array_unique($dependencias)),
+                'url' => route('categorias.desactivar', $category),
+            ]);
         }
 
         if ($category->imagen_path) {
@@ -73,6 +81,14 @@ class ControladorCategorias extends Controller
         }
         $category->delete();
         return redirect()->route('categorias.index')->with('success', 'Categoría eliminada');
+    }
+
+    public function desactivar(Category $category): RedirectResponse
+    {
+        $category->esta_activa = false;
+        $category->save();
+
+        return redirect()->route('categorias.index')->with('success', 'Categoría desactivada por tener productos asociados.');
     }
 
     private function iconosDeComida(): array

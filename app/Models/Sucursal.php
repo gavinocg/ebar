@@ -14,9 +14,9 @@ class Sucursal extends Model
 
     protected $table = 'sucursales';
 
-    protected $fillable = ['nombre', 'direccion', 'telefono', 'provincia', 'canton', 'ciudad', 'esta_activa', 'n_cajeros_contratados'];
+    protected $fillable = ['nombre', 'direccion', 'telefono', 'provincia', 'canton', 'ciudad', 'esta_activa'];
 
-    protected $casts = ['esta_activa' => 'boolean', 'n_cajeros_contratados' => 'integer'];
+    protected $casts = ['esta_activa' => 'boolean'];
 
     protected static function booted(): void
     {
@@ -32,9 +32,9 @@ class Sucursal extends Model
         return $this->belongsTo(Negocio::class, 'negocio_id');
     }
 
-    public function cajas(): HasMany
+    public function turnosCajero(): HasMany
     {
-        return $this->hasMany(Caja::class, 'sucursal_id');
+        return $this->hasMany(TurnoCajero::class, 'sucursal_id');
     }
 
     public function productos(): HasMany
@@ -50,10 +50,5 @@ class Sucursal extends Model
     public function ventas(): HasMany
     {
         return $this->hasMany(Venta::class, 'sucursal_id');
-    }
-
-    public function turnosCaja(): HasMany
-    {
-        return $this->hasMany(TurnoCaja::class, 'sucursal_id');
     }
 }

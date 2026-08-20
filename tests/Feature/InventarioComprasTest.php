@@ -4,11 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Categoria;
 use App\Models\ConteoInventario;
-use App\Models\Membresia;
 use App\Models\MembresiaNegocio;
 use App\Models\Negocio;
 use App\Models\OrdenCompra;
-use App\Models\Plan;
 use App\Models\Producto;
 use App\Models\ProductoVariante;
 use App\Models\Proveedor;
@@ -16,6 +14,7 @@ use App\Models\User;
 use App\Services\ContextoNegocio;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class InventarioComprasTest extends TestCase
@@ -24,17 +23,9 @@ class InventarioComprasTest extends TestCase
 
     private function bar(): Negocio
     {
-        $plan = Plan::create(['nombre' => 'Básico', 'duracion_dias' => 30, 'limite_cajeros' => 5, 'limite_cajas' => 5, 'limite_sucursales' => 5]);
         $negocio = Negocio::create(['nombre' => 'Bar R', 'identificador' => 'bar-r-' . str()->random(6), 'esta_activo' => true]);
         app(ContextoNegocio::class)->establecer($negocio->id);
 
-        Membresia::create([
-            'negocio_id' => $negocio->id,
-            'plan_id' => $plan->id,
-            'estado' => 'activa',
-            'fecha_inicio' => now(),
-            'fecha_vencimiento' => now()->addDays(30),
-        ]);
 
         return $negocio;
     }
@@ -137,13 +128,6 @@ class InventarioComprasTest extends TestCase
 
         $anotherBar = Negocio::create(['nombre' => 'Bar Dos', 'identificador' => 'bar-dos-' . str()->random(6), 'esta_activo' => true]);
         app(ContextoNegocio::class)->establecer($anotherBar->id);
-        Membresia::create([
-            'negocio_id' => $anotherBar->id,
-            'plan_id' => Plan::first()->id,
-            'estado' => 'activa',
-            'fecha_inicio' => now(),
-            'fecha_vencimiento' => now()->addDays(30),
-        ]);
         $this->producto($anotherBar, 'B', 5, 'BAR-001');
 
         app(ContextoNegocio::class)->establecer($negocio->id);
@@ -176,6 +160,56 @@ class InventarioComprasTest extends TestCase
         ])->assertRedirect(route('productos.index'));
 
         $this->assertDatabaseHas('productos', ['nombre' => 'Reusado', 'codigo_barras' => 'BAR-002']);
+    }
+
+    public function test_un_producto_con_movimientos_de_inventario_no_se_puede_eliminar_y_se_pregunta_antes_de_desactivar(): void
+    {
+        $negocio = $this->bar();
+        $admin = $this->propietario($negocio);
+        $producto = $this->producto($negocio, 'Con historial');
+
+        DB::table('movimientos_inventario')->insert([
+            'negocio_id' => $negocio->id,
+            'sucursal_id' => null,
+            'producto_id' => $producto->id,
+            'tipo' => 'ajuste',
+            'cantidad' => 1,
+            'existencias_anteriores' => 10,
+            'existencias_posteriores' => 11,
+            'notas' => 'prueba',
+            'usuario_id' => $admin->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin);
+        $this->delete(route('productos.destroy', $producto))->assertSessionHas('no_eliminable');
+
+        $this->assertDatabaseHas('productos', ['id' => $producto->id, 'esta_activo' => true]);
+
+        $this->post(route('productos.desactivar', $producto))->assertRedirect(route('productos.index'));
+        $this->assertDatabaseHas('productos', ['id' => $producto->id, 'esta_activo' => false]);
+    }
+
+    public function test_un_proveedor_con_ordenes_no_se_puede_eliminar_y_se_pregunta_antes_de_desactivar(): void
+    {
+        $negocio = $this->bar();
+        $admin = $this->propietario($negocio);
+        $producto = $this->producto($negocio, 'Cerveza');
+        $proveedor = Proveedor::create(['nombre' => 'Distribuidora R']);
+
+        $this->actingAs($admin);
+        $this->post(route('ordenes.store'), [
+            'proveedor_id' => $proveedor->id,
+            'items' => [['producto_id' => $producto->id, 'cantidad' => 5, 'precio_unitario' => 2]],
+        ])->assertRedirect();
+
+        $this->delete(route('proveedores.destroy', $proveedor))->assertSessionHas('no_eliminable');
+
+        $this->assertDatabaseHas('proveedores', ['id' => $proveedor->id, 'esta_activo' => true]);
+
+        $this->post(route('proveedores.desactivar', $proveedor))->assertRedirect(route('proveedores.index'));
+        $this->assertDatabaseHas('proveedores', ['id' => $proveedor->id, 'esta_activo' => false]);
     }
 
     public function test_desactivar_el_control_de_existencias_conserva_el_stock(): void
@@ -220,7 +254,7 @@ class InventarioComprasTest extends TestCase
         $this->assertDatabaseHas('productos', ['nombre' => 'Valida', 'precio' => 10]);
     }
 
-    public function test_no_se_elimina_una_categoria_con_productos(): void
+    public function test_no_se_elimina_una_categoria_con_productos_y_se_pregunta_antes_de_desactivar(): void
     {
         $negocio = $this->bar();
         $admin = $this->propietario($negocio);
@@ -228,8 +262,11 @@ class InventarioComprasTest extends TestCase
 
         $this->actingAs($admin);
 
-        $this->delete(route('categorias.destroy', $producto->categoria))->assertSessionHasErrors('nombre');
-        $this->assertDatabaseHas('categorias', ['id' => $producto->categoria_id]);
+        $this->delete(route('categorias.destroy', $producto->categoria))->assertSessionHas('no_eliminable');
+        $this->assertDatabaseHas('categorias', ['id' => $producto->categoria_id, 'esta_activa' => true]);
+
+        $this->post(route('categorias.desactivar', $producto->categoria))->assertRedirect(route('categorias.index'));
+        $this->assertDatabaseHas('categorias', ['id' => $producto->categoria_id, 'esta_activa' => false]);
     }
 
     public function test_la_numeracion_de_ordenes_es_global_y_consecutiva(): void
@@ -247,13 +284,6 @@ class InventarioComprasTest extends TestCase
 
         $otroBar = Negocio::create(['nombre' => 'Bar Tres', 'identificador' => 'bar-tres-' . str()->random(6), 'esta_activo' => true]);
         app(ContextoNegocio::class)->establecer($otroBar->id);
-        Membresia::create([
-            'negocio_id' => $otroBar->id,
-            'plan_id' => Plan::first()->id,
-            'estado' => 'activa',
-            'fecha_inicio' => now(),
-            'fecha_vencimiento' => now()->addDays(30),
-        ]);
         $adminOtro = $this->propietario($otroBar);
         $productoOtro = $this->producto($otroBar, 'Producto Tres');
         $proveedorOtro = Proveedor::create(['nombre' => 'Distribuidora Tres']);

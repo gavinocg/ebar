@@ -1080,7 +1080,7 @@ async function restaurarTicket(ticketId) {
             name: d.nombre_producto,
             price: parseFloat(d.precio),
             qty: d.cantidad,
-            stock: 999999,
+            stock: (d.producto && d.producto.maneja_existencias) ? (d.producto_variante ? (d.producto_variante.stock ?? Infinity) : d.producto.existencias) : Infinity,
             variante_id: d.producto_variante_id || null,
             modificadores: d.modificadores || [],
         }));

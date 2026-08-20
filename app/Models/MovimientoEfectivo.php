@@ -14,8 +14,7 @@ class MovimientoEfectivo extends Model
     protected $fillable = [
         'negocio_id',
         'sucursal_id',
-        'caja_id',
-        'turno_caja_id',
+        'turno_cajero_id',
         'usuario_id',
         'tipo',
         'monto',
@@ -26,9 +25,9 @@ class MovimientoEfectivo extends Model
 
     protected $casts = ['monto' => 'decimal:2'];
 
-    public function turnoCaja(): BelongsTo
+    public function turnoCajero(): BelongsTo
     {
-        return $this->belongsTo(TurnoCaja::class, 'turno_caja_id');
+        return $this->belongsTo(TurnoCajero::class, 'turno_cajero_id');
     }
 
     public function usuario(): BelongsTo
@@ -39,10 +38,5 @@ class MovimientoEfectivo extends Model
     public function sucursal(): BelongsTo
     {
         return $this->belongsTo(Sucursal::class, 'sucursal_id');
-    }
-
-    public function caja(): BelongsTo
-    {
-        return $this->belongsTo(Caja::class, 'caja_id');
     }
 }

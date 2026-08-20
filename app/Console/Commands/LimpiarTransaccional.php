@@ -11,7 +11,7 @@ class LimpiarTransaccional extends Command
 {
     protected $signature = 'clean-transactional {--force : Confirmar la limpieza en producción}';
 
-    protected $description = 'Limpia catálogo, ventas, inventario, caja e imágenes de prueba sin borrar configuración';
+    protected $description = 'Limpia todas las tablas transaccionales (ventas, caja, inventario, compras, catálogo e imágenes) sin borrar configuración';
 
     public function handle(): int
     {
@@ -21,22 +21,37 @@ class LimpiarTransaccional extends Command
             return self::FAILURE;
         }
 
-        if (!$this->option('force') && !$this->confirm('Se eliminarán categorías, productos, ventas, inventario, caja e imágenes. ¿Continuar?')) {
+        if (!$this->option('force') && !$this->confirm('Se eliminarán ventas, caja, inventario, compras, catálogo, contratos, pagos, clientes, proveedores, auditorías e imágenes. ¿Continuar?')) {
             $this->info('Limpieza cancelada.');
 
             return self::SUCCESS;
         }
 
         $tablas = [
-            'movimientos_efectivo',
             'detalles_venta',
-            'movimientos_inventario',
             'ventas',
-            'turnos_caja',
+            'reembolsos_detalles',
+            'reembolsos',
+            'tickets_abiertos_detalles',
+            'tickets_abiertos',
+            'detalles_orden_compra',
+            'ordenes_compra',
+            'detalles_conteo',
+            'conteos_inventario',
+            'movimientos_inventario',
+            'movimientos_efectivo',
+            'turnos_cajero',
             'pagos',
             'contratos',
+            'producto_grupo_modificador',
+            'producto_variantes',
+            'modificadores',
+            'grupos_modificadores',
             'productos',
             'categorias',
+            'clientes',
+            'proveedores',
+            'auditorias',
         ];
 
         Schema::disableForeignKeyConstraints();
@@ -53,7 +68,7 @@ class LimpiarTransaccional extends Command
         Storage::disk('public')->deleteDirectory('categorias');
 
         $this->info('Limpieza clean-transactional completada.');
-        $this->line('Se conservaron usuarios, configuración, impresoras, cajas y estructura de base de datos.');
+        $this->line('Se conservaron usuarios, configuración, impresoras, sucursales y estructura de base de datos.');
 
         return self::SUCCESS;
     }

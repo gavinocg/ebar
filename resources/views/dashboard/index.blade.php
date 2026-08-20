@@ -7,15 +7,15 @@
     <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
         <div>
             <div class="text-uppercase small text-muted fw-semibold">Control de efectivo</div>
-            @if($turnoCaja)
-                <h5 class="mb-1"><span class="badge bg-success me-2">Caja abierta</span>{{ $turnoCaja->caja->nombre }}</h5>
-                <p class="text-muted mb-0">Abierta {{ $turnoCaja->abierto_en->format('d/m/Y H:i') }} · Fondo inicial: ${{ number_format($turnoCaja->fondo_inicial, 2) }}</p>
+            @if($turnoCajero)
+                <h5 class="mb-1"><span class="badge bg-success me-2">Turno abierto</span>{{ $turnoCajero->sucursal?->nombre }}</h5>
+                <p class="text-muted mb-0">Abierto {{ $turnoCajero->abierto_en->format('d/m/Y H:i') }} · Fondo inicial: ${{ number_format($turnoCajero->fondo_inicial, 2) }}</p>
             @else
-                <h5 class="mb-1"><span class="badge bg-secondary me-2">Caja cerrada</span>Sin turno activo</h5>
-                <p class="text-muted mb-0">Abre la caja antes de registrar ventas.</p>
+                <h5 class="mb-1"><span class="badge bg-secondary me-2">Sin turno activo</span>No hay turno abierto</h5>
+                <p class="text-muted mb-0">Abre un turno antes de registrar ventas.</p>
             @endif
         </div>
-        @if($turnoCaja)
+        @if($turnoCajero)
             <form method="POST" action="{{ route('caja.movimiento') }}" class="d-flex gap-2 align-items-end flex-wrap">
                 @csrf
                 <div>
@@ -42,10 +42,10 @@
                     <label class="form-label small mb-1" for="efectivo_contado">Efectivo contado</label>
                     <input class="form-control" id="efectivo_contado" name="efectivo_contado" type="number" min="0" step="0.01" required>
                 </div>
-                <button class="btn btn-outline-danger" type="submit"><i class="bi bi-lock"></i> Cerrar caja</button>
+                <button class="btn btn-outline-danger" type="submit"><i class="bi bi-lock"></i> Cerrar turno</button>
             </form>
-        @elseif($cajaActiva)
-            <a href="{{ route('punto_venta.inicio') }}" class="btn btn-dark"><i class="bi bi-unlock"></i> Abrir caja</a>
+        @else
+            <a href="{{ route('punto_venta.inicio') }}" class="btn btn-dark"><i class="bi bi-unlock"></i> Abrir turno</a>
         @endif
     </div>
 </div>
