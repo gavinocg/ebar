@@ -166,8 +166,9 @@ class ReportesTenancyTest extends TestCase
                 && $mailable->nombreBar === 'Bar Credenciales';
         });
 
-        $this->get(route('plataforma.negocios.show', $negocio))
+        $this->get(route('plataforma.negocios.index'))
             ->assertOk()
+            ->assertSee('Bar Credenciales')
             ->assertDontSee('Credenciales del propietario');
     }
 }

@@ -25,9 +25,22 @@
                 <div class="col-md-6">
                     <label for="ruc" class="form-label">RUC *</label>
                     <input type="text" name="ruc" id="ruc" class="form-control @error('ruc') is-invalid @enderror"
-                           value="{{ old('ruc') }}" maxlength="13">
+                           value="{{ old('ruc') }}" maxlength="13" autocomplete="off">
                     @error('ruc') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                    <div class="form-text">13 dígitos. Se valida contra el SRI (persona natural o jurídica).</div>
+                    <div class="form-text">13 dígitos. Si el RUC pertenece a un bar inactivado, se ofrecerá reactivarlo.</div>
+                </div>
+
+                <div class="col-12" id="aviso-reactivar" style="display:none">
+                    <div class="alert alert-warning border-warning d-flex flex-wrap align-items-center gap-2 mb-0">
+                        <div class="flex-grow-1">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            Este RUC corresponde al bar <strong id="aviso-reactivar-nombre"></strong>, que está
+                            <strong>inactivado</strong>. ¿Deseas reactivarlo y recuperar su información?
+                        </div>
+                        <button type="button" id="btn-reactivar" class="btn btn-warning btn-sm">
+                            <i class="bi bi-arrow-counterclockwise"></i> Reactivar bar
+                        </button>
+                    </div>
                 </div>
 
                 <div class="col-md-6">
@@ -120,6 +133,10 @@
     </div>
 </form>
 
+<form method="POST" id="form-reactivar" action="{{ route('plataforma.negocios.reactivar', ['ruc' => '__RUC__']) }}" style="display:none">
+    @csrf
+</form>
+
 <script>
     function cargarPorCedula() {
         const cedula = document.getElementById('cedula_admin').value.trim();
@@ -148,7 +165,11 @@
         fetch(url)
             .then(r => r.json())
             .then(d => {
-                if (!d.encontrado) return;
+                const aviso = document.getElementById('aviso-reactivar');
+                if (!d.encontrado) {
+                    aviso.style.display = 'none';
+                    return;
+                }
                 if (d.nombre) document.getElementById('nombre').value = d.nombre;
                 if (d.zona_horaria) document.getElementById('zona_horaria').value = d.zona_horaria;
                 if (d.moneda) {
@@ -156,10 +177,27 @@
                     if ([...sel.options].some(o => o.value === d.moneda)) sel.value = d.moneda;
                 }
                 if (d.nombre_sucursal) document.getElementById('nombre_sucursal').value = d.nombre_sucursal;
+
+                if (d.eliminado) {
+                    document.getElementById('aviso-reactivar-nombre').textContent = d.nombre;
+                    document.getElementById('aviso-reactivar').style.display = '';
+                } else {
+                    aviso.style.display = 'none';
+                }
             });
     }
 
     document.getElementById('cedula_admin').addEventListener('input', cargarPorCedula);
     document.getElementById('ruc').addEventListener('input', cargarPorRuc);
+
+    document.getElementById('btn-reactivar').addEventListener('click', function () {
+        const ruc = document.getElementById('ruc').value.trim();
+        if (ruc.length !== 13) return;
+
+        const form = document.getElementById('form-reactivar');
+        form.action = '{{ route('plataforma.negocios.reactivar', ['ruc' => '__RUC__']) }}'
+            .replace('__RUC__', encodeURIComponent(ruc));
+        form.submit();
+    });
 </script>
 @endsection

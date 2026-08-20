@@ -44,6 +44,22 @@ class ControladorNegocios extends Controller
         ]);
     }
 
+    public function reactivar(string $ruc): RedirectResponse
+    {
+        $negocio = Negocio::withTrashed()->where('ruc', $ruc)->whereNotNull('deleted_at')->first();
+
+        abort_unless($negocio, 404, 'No se encontró un bar inactivado con ese RUC.');
+
+        $negocio->restore();
+        $negocio->esta_activo = true;
+        $negocio->save();
+
+        MembresiaNegocio::where('negocio_id', $negocio->id)->update(['esta_activa' => true]);
+
+        return redirect()->route('plataforma.negocios.index')
+            ->with('success', "Bar {$negocio->nombre} reactivado. Se recuperó su información.");
+    }
+
     public function autocompletarCedula(string $cedula): JsonResponse
     {
         $usuario = User::where('cedula', $cedula)->first();
@@ -154,22 +170,6 @@ class ControladorNegocios extends Controller
 
         return redirect()->route('plataforma.negocios.index')
             ->with('success', "Bar {$negocio->nombre} creado. Se enviaron las credenciales de primer ingreso al correo {$admin->correo}.");
-    }
-
-    public function show(Negocio $negocio): View
-    {
-        $negocio->load([
-            'sucursales' => fn ($q) => $q->withoutGlobalScope('negocio'),
-            'contratos.pagos',
-        ]);
-
-        return view('plataforma.negocios.show', [
-            'negocio' => $negocio,
-            'propietario' => MembresiaNegocio::with('usuario')
-                ->where('negocio_id', $negocio->id)
-                ->where('rol', 'propietario')
-                ->first(),
-        ]);
     }
 
     public function edit(Negocio $negocio): View
@@ -312,13 +312,70 @@ class ControladorNegocios extends Controller
         }
 
         DB::transaction(function () use ($negocio) {
-            ConfiguracionNegocio::withoutGlobalScope('negocio')->where('negocio_id', $negocio->id)->delete();
-            MembresiaNegocio::where('negocio_id', $negocio->id)->update(['esta_activa' => false]);
-            $negocio->contratos()->whereIn('estado', ['pendiente', 'activo'])->update(['estado' => 'cancelado']);
-            $negocio->delete();
+            $this->eliminarFisico($negocio);
         });
 
-        return redirect()->route('plataforma.negocios.index')->with('success', 'Bar eliminado.');
+        return redirect()->route('plataforma.negocios.index')->with('success', 'Bar eliminado físicamente con todos sus registros.');
+    }
+
+    /**
+     * Elimina físicamente un bar sin actividad (sin ventas ni pagos registrados):
+     * negocio, sucursales, contratos, catálogo, operación y usuarios del bar.
+     */
+    private function eliminarFisico(Negocio $negocio): void
+    {
+        $negocioId = $negocio->id;
+
+        $usuarioIds = DB::table('membresias_negocio')->where('negocio_id', $negocioId)->pluck('usuario_id');
+
+        $tablas = [
+            'impresoras',
+            'detalles_venta',
+            'ventas',
+            'reembolsos',
+            'tickets_abiertos_detalles',
+            'tickets_abiertos',
+            'movimientos_efectivo',
+            'movimientos_inventario',
+            'conteos_inventario',
+            'ordenes_compra',
+            'turnos_cajero',
+            'producto_variantes',
+            'modificadores',
+            'grupos_modificadores',
+            'productos',
+            'categorias',
+            'clientes',
+            'proveedores',
+            'roles',
+            'membresias_negocio',
+            'configuraciones_negocio',
+            'contratos',
+            'auditorias',
+            'sucursales',
+        ];
+
+        foreach ($tablas as $tabla) {
+            DB::table($tabla)->where('negocio_id', $negocioId)->delete();
+        }
+
+        DB::table('negocios')->where('id', $negocioId)->delete();
+
+        foreach ($usuarioIds as $usuarioId) {
+            $usuario = DB::table('usuarios')->find($usuarioId);
+
+            if (!$usuario || $usuario->rol === 'super_admin') {
+                continue;
+            }
+
+            if (DB::table('membresias_negocio')->where('usuario_id', $usuarioId)->exists()) {
+                continue;
+            }
+
+            DB::table('pin_intentos')->where('usuario_id', $usuarioId)->delete();
+            DB::table('password_reset_tokens')->where('email', $usuario->correo)->delete();
+            DB::table('usuarios')->where('id', $usuarioId)->delete();
+        }
     }
 
     public function desactivar(Negocio $negocio): RedirectResponse
@@ -326,14 +383,22 @@ class ControladorNegocios extends Controller
         $negocio->esta_activo = false;
         $negocio->save();
 
-        return redirect()->route('plataforma.negocios.index')->with('success', 'Bar desactivado por tener ventas registradas.');
+        return redirect()->route('plataforma.negocios.index')->with('success', 'Bar desactivado por tener ventas o pagos registrados.');
     }
 
     private function validarDatos(Request $request, ?Negocio $negocio = null): array
     {
         $reglas = [
             'nombre' => 'required|string|max:255',
-            'ruc' => ['nullable', 'string', 'size:13', new RucEcuatoriano(), Rule::unique('negocios', 'ruc')->ignore($negocio?->id)->whereNull('deleted_at')],
+            'ruc' => [
+                'nullable', 'string', 'size:13', new RucEcuatoriano(),
+                Rule::unique('negocios', 'ruc')->ignore($negocio?->id)->whereNull('deleted_at'),
+                function ($attribute, $value, $fail) use ($negocio) {
+                    if ($value && $negocio === null && Negocio::withTrashed()->where('ruc', $value)->whereNotNull('deleted_at')->exists()) {
+                        $fail('Este RUC pertenece a un bar inactivado. Puedes reactivarlo o ingresar un RUC distinto.');
+                    }
+                },
+            ],
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'zona_horaria' => 'nullable|string|max:60',
             'moneda' => 'nullable|string|size:3',

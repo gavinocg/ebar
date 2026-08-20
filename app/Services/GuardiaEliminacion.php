@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Categoria;
 use App\Models\Cliente;
 use App\Models\ConteoInventario;
+use App\Models\Contrato;
 use App\Models\DetalleConteo;
 use App\Models\DetalleOrdenCompra;
 use App\Models\DetalleVenta;
@@ -106,9 +107,15 @@ class GuardiaEliminacion
      */
     public static function negocioConDependencias(int $negocioId): array
     {
-        return static::colector([
+        $dependencias = static::colector([
             [Venta::class, 'ventas'],
         ], static fn (string $modelo) => $modelo::withoutGlobalScope('negocio')->where('negocio_id', $negocioId)->exists());
+
+        if (Contrato::where('negocio_id', $negocioId)->whereHas('pagos', fn ($q) => $q->where('estado', 'registrado'))->exists()) {
+            $dependencias[] = 'pagos registrados';
+        }
+
+        return $dependencias;
     }
 
     /**

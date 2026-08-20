@@ -60,7 +60,7 @@ class PlataformaTest extends TestCase
         $this->assertSame(1, \App\Models\Contrato::where('negocio_id', $negocio->id)->whereIn('estado', ['pendiente', 'activo'])->count());
     }
 
-    public function test_eliminar_bar_desactiva_membresias_y_cancela_contratos(): void
+    public function test_eliminar_bar_sin_pagos_lo_elimina_fisicamente_en_cascada(): void
     {
         $this->actingAs($this->superAdmin());
 
@@ -75,6 +75,7 @@ class PlataformaTest extends TestCase
         ])->assertRedirect();
 
         $negocio = Negocio::where('identificador', 'bar-a-eliminar')->firstOrFail();
+        $usuario = User::where('correo', 'eliminar@bar.com')->firstOrFail();
         Contrato::create([
             'negocio_id' => $negocio->id,
             'fecha_inicio' => now()->subDay(),
@@ -88,9 +89,13 @@ class PlataformaTest extends TestCase
 
         $this->delete(route('plataforma.negocios.destroy', $negocio))->assertRedirect();
 
-        $this->assertSoftDeleted('negocios', ['id' => $negocio->id]);
-        $this->assertDatabaseHas('membresias_negocio', ['negocio_id' => $negocio->id, 'esta_activa' => false]);
-        $this->assertDatabaseHas('contratos', ['negocio_id' => $negocio->id, 'estado' => 'cancelado']);
+        $this->assertDatabaseMissing('negocios', ['id' => $negocio->id]);
+        $this->assertDatabaseMissing('sucursales', ['negocio_id' => $negocio->id]);
+        $this->assertDatabaseMissing('contratos', ['negocio_id' => $negocio->id]);
+        $this->assertDatabaseMissing('membresias_negocio', ['negocio_id' => $negocio->id]);
+        $this->assertDatabaseMissing('configuraciones_negocio', ['negocio_id' => $negocio->id]);
+        $this->assertDatabaseMissing('auditorias', ['negocio_id' => $negocio->id]);
+        $this->assertDatabaseMissing('usuarios', ['id' => $usuario->id]);
     }
 
     private function superAdmin(): User
@@ -131,7 +136,7 @@ class PlataformaTest extends TestCase
         $this->get(route('plataforma.negocios.index'))->assertOk()->assertSee('Bares registrados');
     }
 
-    public function test_super_admin_ve_el_detalle_de_un_bar_de_otro_negocio_sin_contexto(): void
+    public function test_super_admin_ve_un_bar_de_otro_negocio_en_el_listado_sin_contexto(): void
     {
         $this->actingAs($this->superAdmin());
 
@@ -144,13 +149,9 @@ class PlataformaTest extends TestCase
 
         $this->assertSame(1, Sucursal::withoutGlobalScope('negocio')->where('negocio_id', $negocio->id)->count());
 
-        $negocio->load(['sucursales' => fn ($q) => $q->withoutGlobalScope('negocio')]);
-        $this->assertSame(1, $negocio->sucursales->count());
-
-        $this->get(route('plataforma.negocios.show', $negocio))
+        $this->get(route('plataforma.negocios.index'))
             ->assertOk()
-            ->assertSee('Bar sin contexto')
-            ->assertSee('1 activas');
+            ->assertSee('Bar sin contexto');
     }
 
     public function test_usuario_del_bar_no_puede_gestionar_bares(): void
@@ -229,6 +230,44 @@ class PlataformaTest extends TestCase
         $this->assertStringContainsString('El campo RUC ya ha sido registrado.', $errores->first('ruc'));
 
         $this->assertSame(1, Negocio::where('ruc', '1002003000001')->count());
+    }
+
+    public function test_ruc_de_bar_inactivado_exige_reactivar_o_ruc_distinto(): void
+    {
+        Mail::fake();
+
+        $this->actingAs($this->superAdmin());
+
+        $base = [
+            'zona_horaria' => 'America/Guayaquil',
+            'moneda' => 'USD',
+            'nombre_admin' => 'A',
+            'clave_admin' => 'secreto123',
+            'clave_admin_confirmation' => 'secreto123',
+            'ruc' => '1002003000001',
+        ];
+
+        $this->post(route('plataforma.negocios.store'), array_merge($base, ['nombre' => 'Gaby', 'correo_admin' => 'gaby@bar.com']))->assertRedirect();
+        $negocio = Negocio::where('identificador', 'gaby')->firstOrFail();
+        $this->assertSame(1, Sucursal::withoutGlobalScope('negocio')->where('negocio_id', $negocio->id)->count());
+        $negocio->delete();
+
+        $this->post(route('plataforma.negocios.store'), array_merge($base, ['nombre' => 'Gaby', 'correo_admin' => 'gaby@bar.com']))
+            ->assertSessionHasErrors('ruc');
+
+        $errores = session('errors');
+        $this->assertStringContainsString('inactivado', $errores->first('ruc'));
+
+        $this->post(route('plataforma.negocios.reactivar', ['ruc' => '1002003000001']))
+            ->assertRedirect(route('plataforma.negocios.index'));
+
+        $this->assertDatabaseHas('negocios', ['id' => $negocio->id, 'ruc' => '1002003000001', 'deleted_at' => null, 'esta_activo' => true]);
+        $this->assertDatabaseHas('membresias_negocio', ['negocio_id' => $negocio->id, 'esta_activa' => true]);
+        $this->assertSame(1, Sucursal::withoutGlobalScope('negocio')->where('negocio_id', $negocio->id)->count());
+
+        $this->get(route('plataforma.negocios.index'))
+            ->assertOk()
+            ->assertSee('Gaby');
     }
 
     public function test_plataforma_actualiza_un_bar_ignorando_campos_obsoletos(): void
@@ -369,6 +408,30 @@ class PlataformaTest extends TestCase
 
         $this->post(route('plataforma.contratos.desactivar', $contrato))->assertRedirect();
         $this->assertDatabaseHas('contratos', ['id' => $contrato->id, 'estado' => 'suspendido']);
+    }
+
+    public function test_bar_con_pagos_registrados_no_se_elimina_fisicamente(): void
+    {
+        $this->actingAs($this->superAdmin());
+        $negocio = $this->crearBarConContrato();
+        $contrato = $negocio->contratos()->firstOrFail();
+
+        Pago::create([
+            'contrato_id' => $contrato->id,
+            'fecha_pago' => now()->toDateString(),
+            'concepto' => 'Cuota inicial',
+            'forma_pago' => 'efectivo',
+            'valor' => 50,
+            'estado' => 'registrado',
+        ]);
+
+        $this->delete(route('plataforma.negocios.destroy', $negocio))->assertSessionHas('no_eliminable');
+
+        $this->assertDatabaseHas('negocios', ['id' => $negocio->id]);
+        $this->assertDatabaseHas('contratos', ['id' => $contrato->id, 'estado' => 'activo']);
+
+        $this->post(route('plataforma.negocios.desactivar', $negocio))->assertRedirect();
+        $this->assertDatabaseHas('negocios', ['id' => $negocio->id, 'esta_activo' => false]);
     }
 
     public function test_cambiar_estado_de_contrato_desde_la_plataforma(): void
