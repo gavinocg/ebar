@@ -54,6 +54,8 @@ Route::middleware(['auth', 'super_admin', 'forzar_cambio_password'])->prefix('pl
     Route::get('/', [ControladorPlataforma::class, 'index'])->name('inicio');
     Route::get('/negocios', [ControladorNegocios::class, 'index'])->name('negocios.index');
     Route::get('/negocios/crear', [ControladorNegocios::class, 'create'])->name('negocios.create');
+    Route::get('/negocios/autocompletar-cedula/{cedula}', [ControladorNegocios::class, 'autocompletarCedula'])->name('negocios.autocompletar.cedula');
+    Route::get('/negocios/autocompletar-ruc/{ruc}', [ControladorNegocios::class, 'autocompletarRuc'])->name('negocios.autocompletar.ruc');
     Route::post('/negocios', [ControladorNegocios::class, 'store'])->name('negocios.store');
     Route::get('/negocios/{negocio}', [ControladorNegocios::class, 'show'])->name('negocios.show');
     Route::get('/negocios/{negocio}/editar', [ControladorNegocios::class, 'edit'])->name('negocios.edit');

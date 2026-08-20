@@ -7,11 +7,15 @@ use App\Models\MembresiaNegocio;
 use App\Models\Negocio;
 use App\Models\Sucursal;
 use App\Models\User;
+use App\Mail\CredencialesPrimerIngreso;
 use App\Rules\RucEcuatoriano;
 use App\Services\ContextoNegocio;
 use App\Services\GuardiaEliminacion;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -40,13 +44,52 @@ class ControladorNegocios extends Controller
         ]);
     }
 
+    public function autocompletarCedula(string $cedula): JsonResponse
+    {
+        $usuario = User::where('cedula', $cedula)->first();
+
+        if (!$usuario) {
+            return response()->json(['encontrado' => false]);
+        }
+
+        return response()->json([
+            'encontrado' => true,
+            'nombre' => $usuario->nombre,
+            'correo' => $usuario->correo,
+            'celular' => $usuario->celular,
+        ]);
+    }
+
+    public function autocompletarRuc(string $ruc): JsonResponse
+    {
+        $negocio = Negocio::withTrashed()->where('ruc', $ruc)->first();
+
+        if (!$negocio) {
+            return response()->json(['encontrado' => false]);
+        }
+
+        $sucursal = Sucursal::withoutGlobalScope('negocio')
+            ->where('negocio_id', $negocio->id)
+            ->orderBy('id')
+            ->first();
+
+        return response()->json([
+            'encontrado' => true,
+            'nombre' => $negocio->nombre,
+            'zona_horaria' => $negocio->zona_horaria,
+            'moneda' => $negocio->moneda,
+            'nombre_sucursal' => $sucursal?->nombre,
+            'eliminado' => $negocio->trashed(),
+        ]);
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $datos = $this->validarDatos($request);
 
         $claveGenerada = $datos['clave_admin'] ?? Str::password(14);
 
-        $negocio = DB::transaction(function () use ($request, $datos, $claveGenerada) {
+        [$negocio, $admin] = DB::transaction(function () use ($request, $datos, $claveGenerada) {
             $negocio = Negocio::create([
                 'nombre' => $datos['nombre'],
                 'identificador' => $this->generarIdentificador($datos['nombre']),
@@ -74,6 +117,8 @@ class ControladorNegocios extends Controller
                 $admin->nombre = $datos['nombre_admin'];
                 $admin->cedula = $datos['cedula_admin'] ?? null;
                 $admin->celular = $datos['celular_admin'] ?? null;
+                $admin->password = $claveGenerada;
+                $admin->debe_cambiar_password = true;
             } else {
                 $admin = new User();
                 $admin->nombre = $datos['nombre_admin'];
@@ -92,16 +137,23 @@ class ControladorNegocios extends Controller
                 'esta_activa' => true,
             ]);
 
-            return $negocio;
+            return [$negocio, $admin];
         });
 
-        return redirect()->route('plataforma.negocios.show', $negocio)
-            ->with('credenciales', [
-                'correo' => $datos['correo_admin'],
-                'clave' => $claveGenerada,
-                'nombre' => $datos['nombre_admin'],
-            ])
-            ->with('success', "Bar {$negocio->nombre} creado con propietario.");
+        try {
+            Mail::to($admin->correo)->send(new CredencialesPrimerIngreso(
+                nombre: $admin->nombre,
+                correo: $admin->correo,
+                clave: $claveGenerada,
+                nombreBar: $negocio->nombre,
+                url: route('inicio_sesion'),
+            ));
+        } catch (\Throwable $e) {
+            Log::error('No se pudo enviar las credenciales al propietario del bar ' . $negocio->id . ': ' . $e->getMessage());
+        }
+
+        return redirect()->route('plataforma.negocios.index')
+            ->with('success', "Bar {$negocio->nombre} creado. Se enviaron las credenciales de primer ingreso al correo {$admin->correo}.");
     }
 
     public function show(Negocio $negocio): View

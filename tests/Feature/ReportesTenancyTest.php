@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Mail\CredencialesPrimerIngreso;
 use App\Models\Contrato;
 use App\Models\MembresiaNegocio;
 use App\Models\Negocio;
@@ -12,6 +13,7 @@ use App\Models\Sucursal;
 use App\Models\User;
 use App\Services\ContextoNegocio;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
@@ -137,8 +139,10 @@ class ReportesTenancyTest extends TestCase
         $this->assertTrue(Schema::hasIndex('turnos_cajero', 'turnos_cajero_negocio_usuario_estado_index'));
     }
 
-    public function test_el_flash_de_credenciales_se_limpia_despues_de_mostrarse(): void
+    public function test_creacion_de_bar_envia_credenciales_por_correo_y_redirige_al_listado(): void
     {
+        Mail::fake();
+
         $admin = User::factory()->create(['rol' => 'super_admin']);
 
         $this->actingAs($admin);
@@ -152,12 +156,18 @@ class ReportesTenancyTest extends TestCase
             'clave_admin' => 'secreto123',
             'clave_admin_confirmation' => 'secreto123',
             'nombre_sucursal' => 'Central',
-        ])->assertRedirect();
+        ])->assertRedirect(route('plataforma.negocios.index'));
 
         $negocio = Negocio::where('nombre', 'Bar Credenciales')->firstOrFail();
 
-        $this->get(route('plataforma.negocios.show', $negocio))->assertOk()->assertSee('Clave temporal');
+        Mail::assertSent(CredencialesPrimerIngreso::class, function (CredencialesPrimerIngreso $mailable) use ($negocio) {
+            return $mailable->hasTo('dueno-credenciales@bar.com')
+                && $mailable->clave === 'secreto123'
+                && $mailable->nombreBar === 'Bar Credenciales';
+        });
 
-        $this->get(route('plataforma.negocios.show', $negocio))->assertOk()->assertDontSee('Clave temporal');
+        $this->get(route('plataforma.negocios.show', $negocio))
+            ->assertOk()
+            ->assertDontSee('Credenciales del propietario');
     }
 }

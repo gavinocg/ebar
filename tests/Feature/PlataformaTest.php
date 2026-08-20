@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\Venta;
 use App\Services\ContextoNegocio;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class PlataformaTest extends TestCase
@@ -161,6 +162,8 @@ class PlataformaTest extends TestCase
 
     public function test_super_admin_crea_un_bar_con_admin_inicial(): void
     {
+        Mail::fake();
+
         $this->actingAs($this->superAdmin());
 
         $this->post(route('plataforma.negocios.store'), [
@@ -174,10 +177,9 @@ class PlataformaTest extends TestCase
             'clave_admin' => 'secreto123',
             'clave_admin_confirmation' => 'secreto123',
             'nombre_sucursal' => 'Central',
-        ])->assertRedirect();
+        ])->assertRedirect(route('plataforma.negocios.index'));
 
         $negocio = Negocio::where('identificador', 'bar-san-felipe')->firstOrFail();
-        $this->get(route('plataforma.negocios.show', $negocio))->assertOk();
         $this->assertSame('Bar San Felipe', $negocio->nombre);
         $this->assertDatabaseHas('sucursales', ['negocio_id' => $negocio->id, 'nombre' => 'Central']);
         $this->assertDatabaseHas('usuarios', ['correo' => 'dueno@bar.com']);

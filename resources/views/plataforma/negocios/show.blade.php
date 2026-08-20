@@ -22,21 +22,6 @@
     </div>
 </div>
 
-@if(session('credenciales'))
-    <div class="alert alert-warning border-warning">
-        <h6><i class="bi bi-key"></i> Credenciales del propietario (guárdalas, solo se muestran una vez)</h6>
-        <p class="mb-0">
-            <strong>{{ session('credenciales')['nombre'] }}</strong> ·
-            Correo: <code>{{ session('credenciales')['correo'] }}</code> ·
-            Clave temporal: <code>{{ session('credenciales')['clave'] }}</code>
-        </p>
-        <small class="text-muted">En su primer ingreso el propietario deberá cambiar la contraseña.</small>
-    </div>
-@php
-    session()->forget('credenciales');
-@endphp
-@endif
-
 <ul class="nav nav-tabs mt-4" id="barTabs" role="tablist">
     <li class="nav-item" role="presentation">
         <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">General</button>
