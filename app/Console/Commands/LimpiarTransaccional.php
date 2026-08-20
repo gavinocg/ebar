@@ -9,9 +9,11 @@ use Illuminate\Support\Facades\Storage;
 
 class LimpiarTransaccional extends Command
 {
-    protected $signature = 'clean-transactional {--force : Confirmar la limpieza en producción}';
+    protected $signature = 'clean-transactional
+        {--force : Confirmar la limpieza en producción}
+        {--solo-superadmin : Vaciar también los datos maestros (bares, sucursales, membresías, usuarios) dejando solo el acceso super_admin}';
 
-    protected $description = 'Limpia todas las tablas transaccionales (ventas, caja, inventario, compras, catálogo e imágenes) sin borrar configuración';
+    protected $description = 'Limpia todas las tablas transaccionales (ventas, caja, inventario, compras, catálogo e imágenes) sin borrar configuración. Con --solo-superadmin deja la base de datos vacía con solo acceso super_admin.';
 
     public function handle(): int
     {
@@ -21,7 +23,13 @@ class LimpiarTransaccional extends Command
             return self::FAILURE;
         }
 
-        if (!$this->option('force') && !$this->confirm('Se eliminarán ventas, caja, inventario, compras, catálogo, contratos, pagos, clientes, proveedores, auditorías e imágenes. ¿Continuar?')) {
+        $soloSuperadmin = $this->option('solo-superadmin');
+
+        $mensaje = $soloSuperadmin
+            ? 'Se vaciará la base de datos completa (transaccional + bares, sucursales, membresías, usuarios), dejando únicamente el acceso super_admin. ¿Continuar?'
+            : 'Se eliminarán ventas, caja, inventario, compras, catálogo, contratos, pagos, clientes, proveedores, auditorías e imágenes. ¿Continuar?';
+
+        if (!$this->option('force') && !$this->confirm($mensaje)) {
             $this->info('Limpieza cancelada.');
 
             return self::SUCCESS;
@@ -60,6 +68,22 @@ class LimpiarTransaccional extends Command
             foreach ($tablas as $tabla) {
                 DB::table($tabla)->truncate();
             }
+
+            if ($soloSuperadmin) {
+                DB::table('password_reset_tokens')->delete();
+                DB::table('pin_intentos')->delete();
+                DB::table('impresoras')->delete();
+                DB::table('configuraciones_negocio')->delete();
+                DB::table('membresias_negocio')->delete();
+                DB::table('sucursales')->delete();
+                DB::table('negocios')->delete();
+                DB::table('roles')->whereNotNull('negocio_id')->delete();
+                DB::table('usuarios')
+                    ->where(function ($q) {
+                        $q->whereNull('rol')->orWhere('rol', '!=', 'super_admin');
+                    })
+                    ->delete();
+            }
         } finally {
             Schema::enableForeignKeyConstraints();
         }
@@ -67,8 +91,20 @@ class LimpiarTransaccional extends Command
         Storage::disk('public')->deleteDirectory('productos');
         Storage::disk('public')->deleteDirectory('categorias');
 
-        $this->info('Limpieza clean-transactional completada.');
-        $this->line('Se conservaron usuarios, configuración, impresoras, sucursales y estructura de base de datos.');
+        if ($soloSuperadmin) {
+            $superAdmins = DB::table('usuarios')->where('rol', 'super_admin')->count();
+            $this->info('Limpieza completa con solo-superadmin: la base de datos quedó vacía.');
+            $this->line("Usuarios super_admin restantes: {$superAdmins}.");
+
+            if ($superAdmins === 0) {
+                $this->warn('No quedó ningún super_admin. Regístralo ejecutando un seeder de super_admin o crea el usuario manualmente.');
+
+                return self::FAILURE;
+            }
+        } else {
+            $this->info('Limpieza clean-transactional completada.');
+            $this->line('Se conservaron usuarios, configuración, impresoras, sucursales y estructura de base de datos.');
+        }
 
         return self::SUCCESS;
     }
